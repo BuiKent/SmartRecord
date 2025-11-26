@@ -145,26 +145,6 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         }
         
-        // Toggle: Auto-save
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Auto-save",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = uiState.autoSaveEnabled,
-                    onCheckedChange = { viewModel.onAutoSaveToggleChanged(it) }
-                )
-            }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        }
-        
         // Card: Premium
         item {
             Card(

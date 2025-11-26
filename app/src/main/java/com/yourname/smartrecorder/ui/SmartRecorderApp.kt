@@ -7,7 +7,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import android.widget.Toast
@@ -38,12 +40,49 @@ import com.yourname.smartrecorder.ui.screens.RecordScreen
 import com.yourname.smartrecorder.ui.screens.RealtimeTranscriptScreen
 import com.yourname.smartrecorder.ui.screens.StudyScreen
 import com.yourname.smartrecorder.ui.screens.TranscriptScreen
+import com.yourname.smartrecorder.ui.onboarding.OnboardingScreen
+import com.yourname.smartrecorder.ui.onboarding.OnboardingViewModel
 import com.yourname.smartrecorder.ui.settings.SettingsScreen
 import com.yourname.smartrecorder.ui.settings.SettingsTopBar
 import com.yourname.smartrecorder.ui.widgets.AppBottomBar
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun SmartRecorderApp() {
+    var showOnboarding by remember { mutableStateOf<Boolean?>(null) }
+    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+    
+    // Check onboarding status
+    LaunchedEffect(Unit) {
+        val completed = onboardingViewModel.settingsStore.onboardingCompleted.first()
+        showOnboarding = !completed
+    }
+    
+    when {
+        showOnboarding == null -> {
+            // Loading state
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        showOnboarding == true -> {
+            OnboardingScreen(
+                onComplete = { showOnboarding = false },
+                onNavigateToPremium = { /* TODO: Navigate to Premium */ },
+                onNavigateToRate = { /* TODO: Open Play Store */ }
+            )
+        }
+        else -> {
+            MainAppContent()
+        }
+    }
+}
+
+@Composable
+private fun MainAppContent() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("/") 

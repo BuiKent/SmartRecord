@@ -1436,10 +1436,76 @@ Box(modifier = Modifier.fillMaxSize()) {
 
 ---
 
+## 🔔 Notification System (Priority: High)
+
+### Phase 1: Cải thiện Foreground Service Notifications
+- [ ] **RecordingForegroundService.kt**:
+  - [ ] Thêm ACTION_PAUSE, ACTION_RESUME constants
+  - [ ] Xử lý pause/resume actions trong onStartCommand
+  - [ ] Cải thiện notification với action buttons (Pause/Resume, Stop)
+  - [ ] Set visibility PUBLIC cho lock screen
+  - [ ] Set priority HIGH
+  - [ ] Thêm BroadcastReceiver hoặc callback để giao tiếp với RecordViewModel
+  - [ ] Test pause/resume/stop từ notification và lock screen
+- [ ] **PlaybackForegroundService.kt**:
+  - [ ] Sử dụng MediaStyle notification (androidx.media.app.NotificationCompat.MediaStyle)
+  - [ ] Thêm MediaSession cho media controls
+  - [ ] Cải thiện media controls (Play/Pause, Stop)
+  - [ ] Test media controls từ notification và lock screen
+
+### Phase 2: App Content Notifications
+- [ ] Tạo `NotificationChannelManager.kt` (3 channels: recording, playback, app_content)
+- [ ] Tạo `NotificationContent.kt` với messages phù hợp Smart Recorder
+- [ ] Tạo `NotificationDeepLinkHandler.kt` với routes (record, library, transcript, settings)
+- [ ] Tạo `AppNotificationManager.kt` cho app content notifications
+- [ ] Tạo `NotificationFrequencyCap.kt` (max 3/ngày, min 4h interval)
+- [ ] Tạo `NotificationScheduler.kt` với WorkManager
+- [ ] Tạo `NotificationWorker.kt` cho background scheduling
+- [ ] Cấu hình Hilt WorkManager trong `AppModule.kt` và `SmartRecorderApplication.kt`
+
+### Phase 3: UI Integration
+- [ ] Thêm notification toggle vào `SettingsScreen.kt`
+- [ ] Handle deep links trong `MainActivity.kt`
+- [ ] Handle service actions trong `RecordViewModel.kt` (BroadcastReceiver)
+- [ ] Test deep link navigation
+
+### Phase 4: Testing
+- [ ] Test recording notification với pause/resume/stop từ notification bar
+- [ ] Test recording notification với controls từ lock screen
+- [ ] Test playback notification với media controls
+- [ ] Test với permission granted/denied (POST_NOTIFICATIONS)
+- [ ] Test frequency cap (max 3/ngày, min 4h interval)
+- [ ] Test worker schedule (daily notifications)
+- [ ] Test deep links (tap notification → navigate đúng route)
+- [ ] Test với app killed/background
+
+**Files cần tạo:**
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/NotificationChannelManager.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/NotificationContent.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/NotificationDeepLinkHandler.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/AppNotificationManager.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/NotificationFrequencyCap.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/NotificationScheduler.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/notification/worker/NotificationWorker.kt`
+
+**Files cần cải thiện:**
+- `app/src/main/java/com/yourname/smartrecorder/core/service/RecordingForegroundService.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/service/PlaybackForegroundService.kt`
+
+**Dependencies cần thêm:**
+- `androidx.work:work-runtime-ktx:2.9.0`
+- `androidx.hilt:hilt-work:1.1.0`
+- `androidx.media3:media3-session:1.2.0` (optional, for better media controls)
+
+**Tài liệu:** Xem `NOTIFICATION_PLAN.md` để biết chi tiết triển khai
+
+---
+
 ## 🚀 Next Steps
 
 1. Bắt đầu với Phase 1 (Quick Wins)
 2. Test kỹ từng feature
 3. Document các thay đổi
 4. Update UI/UX guide nếu cần
+5. **Triển khai Notification System** (xem NOTIFICATION_PLAN.md)
 

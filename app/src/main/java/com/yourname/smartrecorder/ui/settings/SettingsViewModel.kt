@@ -19,7 +19,6 @@ sealed class SettingsEvent {
 
 data class SettingsUiState(
     val notificationsEnabled: Boolean = true,
-    val autoSaveEnabled: Boolean = true,
     val transcriptionQuality: String = "balanced"
 )
 
@@ -42,13 +41,11 @@ class SettingsViewModel @Inject constructor(
     
     // Combine settings flows
     val settings = combine(
-        settingsStore.autoSaveEnabled,
         settingsStore.transcriptionQuality,
         systemNotificationAllowed
-    ) { autoSave, quality, notifications ->
+    ) { quality, notifications ->
         SettingsUiState(
             notificationsEnabled = notifications,
-            autoSaveEnabled = autoSave,
             transcriptionQuality = quality
         )
     }.stateIn(
