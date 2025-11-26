@@ -98,11 +98,18 @@ class TranscriptViewModel @Inject constructor(
                     AppLogger.w(TAG_TRANSCRIPT, "Recording not found -> recordingId: %s", recordingId)
                     _uiState.update { 
                         it.copy(
-                            error = "Recording not found",
+                            error = "Recording not found. It may have been deleted.",
                             isLoading = false
                         )
                     }
                     return@launch
+                }
+                
+                // Check if audio file exists
+                val audioFile = File(recording.filePath)
+                if (!audioFile.exists()) {
+                    AppLogger.w(TAG_TRANSCRIPT, "Audio file not found -> path: %s", recording.filePath)
+                    // Still load transcript if available, but show warning
                 }
                 
                 AppLogger.d(TAG_TRANSCRIPT, "Recording loaded -> id: %s, title: %s, duration: %d ms, file: %s", 
@@ -315,6 +322,14 @@ class TranscriptViewModel @Inject constructor(
             return
         }
         
+        // Check if audio file exists
+        val audioFile = File(recording.filePath)
+        if (!audioFile.exists()) {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot generate transcript - audio file not found: %s", recording.filePath)
+            _uiState.update { it.copy(error = "Audio file not found. Cannot generate transcript.") }
+            return
+        }
+        
         if (_uiState.value.isGeneratingTranscript) {
             AppLogger.w(TAG_TRANSCRIPT, "Transcript generation already in progress")
             return
@@ -413,11 +428,25 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun exportTranscript(format: ExportFormat): String? {
-        val recording = _uiState.value.recording ?: return null
+        val recording = _uiState.value.recording ?: run {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot export - no recording")
+            _uiState.update { it.copy(error = "No recording available") }
+            return null
+        }
         val segments = _uiState.value.segments
-        if (segments.isEmpty()) return null
+        if (segments.isEmpty()) {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot export - no transcript segments")
+            _uiState.update { it.copy(error = "No transcript available. Please generate transcript first.") }
+            return null
+        }
         
-        return exportTranscript.export(recording, segments, format)
+        return try {
+            exportTranscript.export(recording, segments, format)
+        } catch (e: Exception) {
+            AppLogger.e(TAG_TRANSCRIPT, "Export failed", e)
+            _uiState.update { it.copy(error = "Export failed: ${e.message}") }
+            null
+        }
     }
     
     fun generateFlashcards() {
@@ -471,6 +500,17 @@ class TranscriptViewModel @Inject constructor(
                 }
             }
         }
+    }
+    
+    fun toggleLoop() {
+        val newLoopingState = !_uiState.value.isLooping
+        AppLogger.d(TAG_TRANSCRIPT, "Toggling loop: %b", newLoopingState)
+        audioPlayer.setLooping(newLoopingState)
+        _uiState.update { it.copy(isLooping = newLoopingState) }
+    }
+    
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
     
     override fun onCleared() {

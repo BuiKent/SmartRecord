@@ -157,7 +157,13 @@ class LibraryViewModel @Inject constructor(
                 val file = File(recording.filePath)
                 if (!file.exists()) {
                     AppLogger.e(TAG_VIEWMODEL, "Audio file not found: %s", null, recording.filePath)
-                    _uiState.update { it.copy(error = "Audio file not found") }
+                    _uiState.update { it.copy(error = "Audio file not found. The recording may have been moved or deleted.") }
+                    return@launch
+                }
+                
+                if (!file.canRead()) {
+                    AppLogger.e(TAG_VIEWMODEL, "Cannot read audio file: %s", null, recording.filePath)
+                    _uiState.update { it.copy(error = "Cannot read audio file. Please check file permissions.") }
                     return@launch
                 }
                 
@@ -227,6 +233,10 @@ class LibraryViewModel @Inject constructor(
                 _uiState.update { it.copy(error = e.message) }
             }
         }
+    }
+    
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }
 

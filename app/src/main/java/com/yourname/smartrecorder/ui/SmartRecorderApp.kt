@@ -6,6 +6,8 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import android.widget.Toast
@@ -164,6 +166,12 @@ fun SmartRecorderApp() {
                     onBookmarkClick = { note ->
                         viewModel.onBookmarkClick(note)
                     }
+                )
+                
+                // Error handling
+                com.yourname.smartrecorder.ui.components.ErrorHandler(
+                    error = uiState.error,
+                    onErrorShown = { viewModel.clearError() }
                 )
                 
                 // Show toast when bookmark is added

@@ -201,6 +201,10 @@ class RecordViewModel @Inject constructor(
         }
     }
     
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
+    
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()

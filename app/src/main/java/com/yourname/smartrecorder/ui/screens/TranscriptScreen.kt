@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
 import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
+import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
 import com.yourname.smartrecorder.ui.transcript.TranscriptViewModel
@@ -116,6 +117,12 @@ fun TranscriptScreen(
                         Icon(Icons.Default.Share, contentDescription = "Export")
                     }
                 }
+            )
+        },
+        snackbarHost = {
+            ErrorHandler(
+                error = uiState.error,
+                onErrorShown = { viewModel.clearError() }
             )
         }
     ) { innerPadding ->

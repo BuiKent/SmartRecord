@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.RecordingCard
 import com.yourname.smartrecorder.ui.library.LibraryViewModel
 
@@ -23,10 +25,11 @@ fun LibraryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val filteredRecordings = viewModel.getFilteredRecordings()
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Search bar
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Search bar
         OutlinedTextField(
             value = uiState.searchQuery,
             onValueChange = { viewModel.updateSearchQuery(it) },
@@ -93,6 +96,14 @@ fun LibraryScreen(
                 }
             }
         }
+        }
+        
+        // Error handling
+        ErrorHandler(
+            error = uiState.error,
+            onErrorShown = { viewModel.clearError() },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
