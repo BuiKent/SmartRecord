@@ -12,7 +12,7 @@ import java.util.UUID
 import javax.inject.Inject
 
 class ImportAudioFileUseCase @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val recordingRepository: RecordingRepository
 ) {
     suspend operator fun invoke(uri: Uri, fileName: String): Recording = withContext(Dispatchers.IO) {

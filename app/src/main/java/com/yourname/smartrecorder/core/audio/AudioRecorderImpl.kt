@@ -41,6 +41,7 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
                     this@AudioRecorderImpl.outputFile = outputFile
                     outputFile.parentFile?.mkdirs()
                     
+                    @Suppress("DEPRECATION")
                     mediaRecorder = MediaRecorder().apply {
                         setAudioSource(MediaRecorder.AudioSource.MIC)
                         setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)

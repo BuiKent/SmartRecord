@@ -6,7 +6,7 @@ import java.io.File
 import javax.inject.Inject
 
 class GetRecordingsDirectoryUseCase @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     operator fun invoke(): File {
         val recordingsDir = File(context.filesDir, "recordings")
