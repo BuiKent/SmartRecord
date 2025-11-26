@@ -52,30 +52,25 @@ fun SmartRecorderApp() {
             AppBottomBar(
                 currentRoute = currentRoute,
                 onLibraryClick = {
+                    // Always navigate to Library main screen, clear back stack
                     navController.navigate(AppRoutes.LIBRARY) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        // Pop to root and clear all intermediate screens
+                        popUpTo(AppRoutes.LIBRARY) { inclusive = true }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 onRecordClick = {
+                    // Always navigate to Record main screen, clear back stack
                     navController.navigate(AppRoutes.RECORD) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(AppRoutes.RECORD) { inclusive = true }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 onStudyClick = {
+                    // Always navigate to Study main screen, clear back stack
                     navController.navigate(AppRoutes.STUDY) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(AppRoutes.STUDY) { inclusive = true }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 }
             )

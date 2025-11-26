@@ -24,6 +24,10 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import kotlinx.coroutines.delay
 import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
 import com.yourname.smartrecorder.ui.components.DeleteConfirmDialog
 import com.yourname.smartrecorder.ui.components.ErrorHandler
@@ -81,6 +86,16 @@ fun TranscriptScreen(
     // Log tab changes
     LaunchedEffect(currentTab) {
         AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User switched tab -> tab: %s", currentTab.name)
+    }
+    
+    // Show toast message for volume warning
+    LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            // Clear toast message after showing
+            delay(3500) // Show for 3.5 seconds
+            viewModel.clearToastMessage()
+        }
     }
     
     if (showExportSheet) {
@@ -225,36 +240,62 @@ fun TranscriptScreen(
                 }
             }
 
-            // Content
-            when (currentTab) {
-                TranscriptTab.TRANSCRIPT -> {
-                    var showSpeakerMode by remember { mutableStateOf(false) }
-                    TranscriptTabContent(
+            // Content with floating buttons overlay
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (currentTab) {
+                    TranscriptTab.TRANSCRIPT -> {
+                        var showSpeakerMode by remember { mutableStateOf(false) }
+                        TranscriptTabContent(
+                            uiState = uiState,
+                            showSpeakerMode = showSpeakerMode,
+                            onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
+                            onSegmentClick = { segment ->
+                                viewModel.seekTo(segment.startTimeMs)
+                            },
+                            onGenerateTranscript = {
+                                AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
+                                viewModel.generateTranscript()
+                            }
+                        )
+                        
+                        // Floating action buttons at bottom right
+                        FloatingActionButtons(
+                            showSpeakerMode = showSpeakerMode,
+                            onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
+                            onCopyClick = {
+                                val exportedText = if (showSpeakerMode) {
+                                    // Copy TXT format (like Share → TXT)
+                                    viewModel.exportTranscript(ExportFormat.TXT)
+                                } else {
+                                    // Copy Subtitle format (like Share → Subtitle)
+                                    viewModel.exportTranscript(ExportFormat.SRT)
+                                }
+                                if (exportedText != null) {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("Transcript", exportedText)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    AppLogger.logMain(TAG_VIEWMODEL, "[TranscriptScreen] Copied to clipboard -> mode: %s, length: %d", 
+                                        if (showSpeakerMode) "TXT" else "SRT", exportedText.length)
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.BottomEnd)
+                        )
+                    }
+                    TranscriptTab.NOTES -> NotesTabContent(
                         uiState = uiState,
-                        showSpeakerMode = showSpeakerMode,
-                        onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
-                        onSegmentClick = { segment ->
-                            viewModel.seekTo(segment.startTimeMs)
-                        },
-                        onGenerateTranscript = {
-                            AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
-                            viewModel.generateTranscript()
+                        bookmarks = uiState.bookmarks,
+                        onBookmarkClick = { bookmark ->
+                            viewModel.seekTo(bookmark.timestampMs)
+                        }
+                    )
+                    TranscriptTab.SUMMARY -> SummaryTabContent(
+                        uiState = uiState,
+                        onGenerateFlashcards = {
+                            viewModel.generateFlashcards()
                         }
                     )
                 }
-                TranscriptTab.NOTES -> NotesTabContent(
-                    uiState = uiState,
-                    bookmarks = uiState.bookmarks,
-                    onBookmarkClick = { bookmark ->
-                        viewModel.seekTo(bookmark.timestampMs)
-                    }
-                )
-                TranscriptTab.SUMMARY -> SummaryTabContent(
-                    uiState = uiState,
-                    onGenerateFlashcards = {
-                        viewModel.generateFlashcards()
-                    }
-                )
             }
         }
     }
@@ -287,7 +328,7 @@ fun TranscriptScreen(
 }
 
 @Composable
-private fun PlayerBar(
+fun PlayerBar(
     isPlaying: Boolean,
     isLooping: Boolean = false,
     currentPosMs: Long,
@@ -406,26 +447,7 @@ private fun TranscriptTabContent(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onToggleSpeakerMode,
-                        modifier = Modifier.padding(end = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (showSpeakerMode) Icons.Default.Person else Icons.Default.Edit,
-                            contentDescription = if (showSpeakerMode) "Show timeline" else "Show speakers",
-                            tint = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            // Removed old icon button - now using floating buttons
             if (uiState.searchQuery.isNotEmpty() && uiState.searchResults.isNotEmpty()) {
                 item {
                     Text(
@@ -473,15 +495,21 @@ private fun TranscriptLineItem(
             .background(bgColor)
             .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
-        // Show speaker label if showSpeaker is true and speaker is not null, otherwise show timeline
-        if (showSpeaker && segment.speaker != null) {
+        // Show speaker label if showSpeaker is true, otherwise show timeline
+        if (showSpeaker) {
+            // Show speaker label (even if null, show "Unknown Speaker")
             Text(
-                text = "Speaker ${segment.speaker}:",
+                text = if (segment.speaker != null) {
+                    "Speaker ${segment.speaker}:"
+                } else {
+                    "Unknown Speaker:"
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
-        } else if (!showSpeaker) {
+        } else {
+            // Show timeline
             Text(
                 text = "[${formatDuration(segment.startTimeMs)}]",
                 style = MaterialTheme.typography.labelSmall,
@@ -779,6 +807,49 @@ private fun SummaryTabContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FloatingActionButtons(
+    showSpeakerMode: Boolean,
+    onToggleSpeakerMode: () -> Unit,
+    onCopyClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Copy button
+        FloatingActionButton(
+            onClick = onCopyClick,
+            modifier = Modifier.size(56.dp),
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ) {
+            Icon(
+                imageVector = Icons.Default.ContentCopy,
+                contentDescription = if (showSpeakerMode) "Copy TXT" else "Copy Subtitle",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        // Subtitle/Timeline button (when not in speaker mode) or People button (when in speaker mode)
+        FloatingActionButton(
+            onClick = onToggleSpeakerMode,
+            modifier = Modifier.size(56.dp),
+            containerColor = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = if (showSpeakerMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
+        ) {
+            Icon(
+                imageVector = if (showSpeakerMode) Icons.Default.Person else Icons.Default.Subtitles,
+                contentDescription = if (showSpeakerMode) "Show timeline" else "Show speakers",
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

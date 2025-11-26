@@ -11,6 +11,9 @@ import com.yourname.smartrecorder.domain.usecase.GetRecordingListUseCase
 import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import com.yourname.smartrecorder.domain.usecase.UpdateRecordingTitleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
+import com.yourname.smartrecorder.core.utils.VolumeChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +31,8 @@ data class LibraryUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val currentlyPlayingId: String? = null,
-    val isPlaying: Boolean = false
+    val isPlaying: Boolean = false,
+    val toastMessage: String? = null
 )
 
 @HiltViewModel
@@ -37,7 +41,8 @@ class LibraryViewModel @Inject constructor(
     private val searchTranscripts: SearchTranscriptsUseCase,
     private val audioPlayer: AudioPlayer,
     private val updateRecordingTitle: UpdateRecordingTitleUseCase,
-    private val deleteRecordingUseCase: DeleteRecordingUseCase
+    private val deleteRecordingUseCase: DeleteRecordingUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
@@ -186,6 +191,17 @@ class LibraryViewModel @Inject constructor(
                     _uiState.update { it.copy(isPlaying = false) }
                 } else {
                     // Play or resume
+                    // Check volume before playing
+                    if (VolumeChecker.isVolumeLow(context)) {
+                        val volumePercent = VolumeChecker.getVolumePercent(context)
+                        AppLogger.w(TAG_VIEWMODEL, "[LibraryViewModel] Volume is low: %d%%, showing warning toast", volumePercent)
+                        _uiState.update { 
+                            it.copy(toastMessage = "Volume quá thấp (${volumePercent}%). Vui lòng tăng volume để nghe rõ hơn.")
+                        }
+                    } else {
+                        _uiState.update { it.copy(toastMessage = null) }
+                    }
+                    
                     if (audioPlayer.isPlaying() && _uiState.value.currentlyPlayingId == recording.id) {
                         AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Resuming playback -> recordingId: %s", recording.id)
                         audioPlayer.resume()
@@ -284,6 +300,10 @@ class LibraryViewModel @Inject constructor(
     fun clearError() {
         AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Error cleared by user")
         _uiState.update { it.copy(error = null) }
+    }
+    
+    fun clearToastMessage() {
+        _uiState.update { it.copy(toastMessage = null) }
     }
 }
 

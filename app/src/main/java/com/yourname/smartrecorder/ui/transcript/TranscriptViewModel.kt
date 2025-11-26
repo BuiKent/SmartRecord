@@ -25,6 +25,9 @@ import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
 import com.yourname.smartrecorder.domain.usecase.GetTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
+import com.yourname.smartrecorder.core.utils.VolumeChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,7 +61,8 @@ data class TranscriptUiState(
     val searchResults: List<TranscriptSegment> = emptyList(),
     val isGeneratingFlashcards: Boolean = false,
     val flashcardsGenerated: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val toastMessage: String? = null
 )
 
 enum class TranscriptTab {
@@ -80,7 +84,8 @@ class TranscriptViewModel @Inject constructor(
     private val deleteRecording: DeleteRecordingUseCase,
     private val noteRepository: NoteRepository,
     private val audioPlayer: AudioPlayer,
-    private val foregroundServiceManager: ForegroundServiceManager
+    private val foregroundServiceManager: ForegroundServiceManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private var positionUpdateJob: Job? = null
@@ -323,6 +328,17 @@ class TranscriptViewModel @Inject constructor(
             } else {
                 AppLogger.logMain(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s, size: %d bytes", 
                     file.absolutePath, file.length())
+                
+                // Check volume before playing
+                if (VolumeChecker.isVolumeLow(context)) {
+                    val volumePercent = VolumeChecker.getVolumePercent(context)
+                    AppLogger.w(TAG_TRANSCRIPT, "Volume is low: %d%%, showing warning toast", volumePercent)
+                    _uiState.update { 
+                        it.copy(toastMessage = "Volume quá thấp (${volumePercent}%). Vui lòng tăng volume để nghe rõ hơn.")
+                    }
+                } else {
+                    _uiState.update { it.copy(toastMessage = null) }
+                }
                 
                 if (audioPlayer.isPlaying()) {
                     audioPlayer.resume()
@@ -658,6 +674,10 @@ class TranscriptViewModel @Inject constructor(
     fun clearError() {
         AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Error cleared by user")
         _uiState.update { it.copy(error = null) }
+    }
+    
+    fun clearToastMessage() {
+        _uiState.update { it.copy(toastMessage = null) }
     }
     
     override fun onCleared() {

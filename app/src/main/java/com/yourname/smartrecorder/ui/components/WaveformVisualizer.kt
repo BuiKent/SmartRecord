@@ -2,7 +2,6 @@ package com.yourname.smartrecorder.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -34,7 +33,6 @@ fun WaveformVisualizer(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centerY = size.height / 2

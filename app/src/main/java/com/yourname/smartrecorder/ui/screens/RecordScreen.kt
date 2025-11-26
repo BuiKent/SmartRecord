@@ -6,7 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
 import com.yourname.smartrecorder.ui.components.WaveformVisualizer
@@ -90,16 +91,16 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Big mic button (always enabled - recording doesn't need model)
-        ElevatedButton(
+        // Big floating circular mic button
+        FloatingActionButton(
             onClick = when {
                 isRecording -> onPauseRecordClick  // Pause if recording
                 isPaused -> onPauseRecordClick     // Resume if paused
                 else -> onStartRecordClick         // Start if not started
             },
-            shape = MaterialTheme.shapes.extraLarge,
-            modifier = Modifier.size(96.dp),
-            contentPadding = PaddingValues(0.dp)
+            modifier = Modifier.size(80.dp),
+            shape = CircleShape,
+            containerColor = MaterialTheme.colorScheme.primary
         ) {
             Icon(
                 imageVector = when {
@@ -112,20 +113,10 @@ fun RecordScreen(
                     isPaused -> "Resume"
                     else -> "Start Record"
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = when {
-                isRecording -> "Tap to pause"
-                isPaused -> "Tap to resume"
-                else -> "Tap to start recording"
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -136,17 +127,22 @@ fun RecordScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Bookmark button
+                // Bookmark button - icon only to avoid text cutoff
                 OutlinedButton(
                     onClick = { showBookmarkDialog = true },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Bookmark,
-                        contentDescription = "Bookmark"
+                        contentDescription = "Add Bookmark",
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Bookmark")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Bookmark",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
                 }
                 
                 // Stop button
@@ -204,12 +200,6 @@ fun RecordScreen(
         }
 
         // Import / Realtime buttons
-        Text(
-            text = "Or choose another option:",
-            style = MaterialTheme.typography.labelMedium
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -220,7 +210,7 @@ fun RecordScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
+                    imageVector = Icons.Default.Folder,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
@@ -237,7 +227,7 @@ fun RecordScreen(
 
             OutlinedButton(
                 onClick = onRealtimeSttClick,
-                enabled = uiState.isModelReady,  // Only disable transcribe if model not ready
+                enabled = uiState.isModelReady,  // Only disable if model not ready
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
@@ -247,7 +237,7 @@ fun RecordScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Transcribe",
+                    text = "Live Transcribe",
                     style = MaterialTheme.typography.labelMedium
                 )
             }

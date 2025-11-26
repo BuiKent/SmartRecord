@@ -12,6 +12,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.RecordingCard
@@ -24,6 +28,17 @@ fun LibraryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filteredRecordings = viewModel.getFilteredRecordings()
+    val context = LocalContext.current
+
+    // Show toast message for volume warning
+    LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            // Clear toast message after showing
+            kotlinx.coroutines.delay(3500) // Show for 3.5 seconds
+            viewModel.clearToastMessage()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
