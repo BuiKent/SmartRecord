@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -227,16 +230,21 @@ fun TranscriptScreen(
 
             // Content
             when (currentTab) {
-                TranscriptTab.TRANSCRIPT -> TranscriptTabContent(
-                    uiState = uiState,
-                    onSegmentClick = { segment ->
-                        viewModel.seekTo(segment.startTimeMs)
-                    },
-                    onGenerateTranscript = {
-                        AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
-                        viewModel.generateTranscript()
-                    }
-                )
+                TranscriptTab.TRANSCRIPT -> {
+                    var showSpeakerMode by remember { mutableStateOf(false) }
+                    TranscriptTabContent(
+                        uiState = uiState,
+                        showSpeakerMode = showSpeakerMode,
+                        onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
+                        onSegmentClick = { segment ->
+                            viewModel.seekTo(segment.startTimeMs)
+                        },
+                        onGenerateTranscript = {
+                            AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
+                            viewModel.generateTranscript()
+                        }
+                    )
+                }
                 TranscriptTab.NOTES -> NotesTabContent(
                     uiState = uiState,
                     bookmarks = uiState.bookmarks,
@@ -305,13 +313,6 @@ private fun PlayerBar(
                     contentDescription = "Play/Pause"
                 )
             }
-            IconButton(onClick = onToggleLoop) {
-                Text(
-                    text = "🔁",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (isLooping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -341,6 +342,8 @@ private fun PlayerBar(
 @Composable
 private fun TranscriptTabContent(
     uiState: com.yourname.smartrecorder.ui.transcript.TranscriptUiState,
+    showSpeakerMode: Boolean = false,
+    onToggleSpeakerMode: () -> Unit = {},
     onSegmentClick: (com.yourname.smartrecorder.domain.model.TranscriptSegment) -> Unit,
     onGenerateTranscript: () -> Unit = {}
 ) {
@@ -406,6 +409,26 @@ private fun TranscriptTabContent(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onToggleSpeakerMode,
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (showSpeakerMode) Icons.Default.Person else Icons.Default.Edit,
+                            contentDescription = if (showSpeakerMode) "Show timeline" else "Show speakers",
+                            tint = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
             if (uiState.searchQuery.isNotEmpty() && uiState.searchResults.isNotEmpty()) {
                 item {
                     Text(
@@ -423,6 +446,7 @@ private fun TranscriptTabContent(
                     isHighlighted = uiState.searchQuery.isNotEmpty() && 
                         segment.text.lowercase().contains(uiState.searchQuery.lowercase()),
                     searchQuery = uiState.searchQuery,
+                    showSpeaker = showSpeakerMode,
                     onClick = { onSegmentClick(segment) }
                 )
             }
@@ -436,6 +460,7 @@ private fun TranscriptLineItem(
     isCurrent: Boolean,
     isHighlighted: Boolean = false,
     searchQuery: String = "",
+    showSpeaker: Boolean = false,
     onClick: () -> Unit
 ) {
     val bgColor = when {
@@ -451,11 +476,21 @@ private fun TranscriptLineItem(
             .background(bgColor)
             .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
-        Text(
-            text = "[${formatDuration(segment.startTimeMs)}]",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
+        // Show speaker label if showSpeaker is true and speaker is not null, otherwise show timeline
+        if (showSpeaker && segment.speaker != null) {
+            Text(
+                text = "Speaker ${segment.speaker}:",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        } else if (!showSpeaker) {
+            Text(
+                text = "[${formatDuration(segment.startTimeMs)}]",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         Spacer(modifier = Modifier.height(4.dp))
         // Highlight search query in text
         if (isHighlighted && searchQuery.isNotEmpty()) {

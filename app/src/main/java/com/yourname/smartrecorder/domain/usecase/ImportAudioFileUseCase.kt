@@ -61,10 +61,19 @@ class ImportAudioFileUseCase @Inject constructor(
             durationMs = 0L
         }
         
+        // Extract just the filename (without path prefix like "primary:Recordings/...")
+        // Handle cases like "primary:Recordings/Voice Recorder/Lesson 2.mp3" -> "Lesson 2"
+        // or "Lesson 2.mp3" -> "Lesson 2"
+        val cleanFileName = fileName
+            .substringAfterLast('/')  // Get last part after last slash
+            .substringAfterLast(':')  // Get last part after last colon (handle "primary:...")
+            .substringBeforeLast('.') // Remove extension
+            .takeIf { it.isNotBlank() } ?: "Imported Audio"
+        
         // Create recording entity
         val recording = Recording(
             id = recordingId,
-            title = fileName.substringBeforeLast('.'),
+            title = cleanFileName.ifBlank { "Imported Audio" },
             filePath = outputFile.absolutePath,
             createdAt = System.currentTimeMillis(),
             durationMs = durationMs,
