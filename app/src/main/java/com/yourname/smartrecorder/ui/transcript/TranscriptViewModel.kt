@@ -17,6 +17,7 @@ import com.yourname.smartrecorder.domain.usecase.ExportTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.ExtractKeywordsUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateSummaryUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateTranscriptUseCase
+import com.yourname.smartrecorder.domain.usecase.GenerateFlashcardsUseCase
 import com.yourname.smartrecorder.domain.usecase.GetBookmarksUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
 import com.yourname.smartrecorder.domain.usecase.GetTranscriptUseCase
@@ -51,6 +52,8 @@ data class TranscriptUiState(
     val currentSegmentId: Long? = null,
     val searchQuery: String = "",
     val searchResults: List<TranscriptSegment> = emptyList(),
+    val isGeneratingFlashcards: Boolean = false,
+    val flashcardsGenerated: Boolean = false,
     val error: String? = null
 )
 
@@ -69,6 +72,7 @@ class TranscriptViewModel @Inject constructor(
     private val getBookmarks: GetBookmarksUseCase,
     private val addBookmark: AddBookmarkUseCase,
     private val searchTranscripts: SearchTranscriptsUseCase,
+    private val generateFlashcards: GenerateFlashcardsUseCase,
     private val noteRepository: NoteRepository,
     private val audioPlayer: AudioPlayer
 ) : ViewModel() {
@@ -405,6 +409,59 @@ class TranscriptViewModel @Inject constructor(
         if (segments.isEmpty()) return null
         
         return exportTranscript.export(recording, segments, format)
+    }
+    
+    fun generateFlashcards() {
+        val recording = _uiState.value.recording ?: run {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot generate flashcards - no recording")
+            _uiState.update { it.copy(error = "No recording available") }
+            return
+        }
+        
+        if (_uiState.value.isGeneratingFlashcards) {
+            AppLogger.w(TAG_TRANSCRIPT, "Flashcard generation already in progress")
+            return
+        }
+        
+        val segments = _uiState.value.segments
+        if (segments.isEmpty()) {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot generate flashcards - no transcript segments")
+            _uiState.update { it.copy(error = "No transcript available. Please generate transcript first.") }
+            return
+        }
+        
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "generateFlashcards", 
+            "recordingId=${recording.id}, segments=${segments.size}")
+        
+        viewModelScope.launch {
+            try {
+                _uiState.update { 
+                    it.copy(
+                        isGeneratingFlashcards = true,
+                        error = null
+                    )
+                }
+                
+                val flashcards = generateFlashcards(recording.id, segments)
+                
+                AppLogger.d(TAG_TRANSCRIPT, "Flashcards generated successfully -> count: %d", flashcards.size)
+                
+                _uiState.update { 
+                    it.copy(
+                        isGeneratingFlashcards = false,
+                        flashcardsGenerated = true
+                    )
+                }
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Failed to generate flashcards", e)
+                _uiState.update { 
+                    it.copy(
+                        isGeneratingFlashcards = false,
+                        error = e.message ?: "Failed to generate flashcards"
+                    )
+                }
+            }
+        }
     }
     
     override fun onCleared() {

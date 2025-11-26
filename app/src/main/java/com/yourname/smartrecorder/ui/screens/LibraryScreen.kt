@@ -44,7 +44,7 @@ fun LibraryScreen(
         )
 
         // Recording list
-        if (uiState.isLoading) {
+        if (uiState.isLoading && filteredRecordings.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = androidx.compose.ui.Alignment.Center
@@ -56,15 +56,23 @@ fun LibraryScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = androidx.compose.ui.Alignment.Center
             ) {
-                Text(
-                    text = if (uiState.searchQuery.isNotEmpty()) {
-                        "No recordings found"
-                    } else {
-                        "No recordings yet"
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (uiState.isSearching) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                    Text(
+                        text = if (uiState.searchQuery.isNotEmpty()) {
+                            "No recordings found"
+                        } else {
+                            "No recordings yet"
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         } else {
             LazyColumn(

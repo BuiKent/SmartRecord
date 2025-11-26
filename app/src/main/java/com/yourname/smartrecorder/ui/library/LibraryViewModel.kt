@@ -8,8 +8,6 @@ import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.usecase.GetRecordingListUseCase
 import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +19,8 @@ import javax.inject.Inject
 data class LibraryUiState(
     val recordings: List<Recording> = emptyList(),
     val searchQuery: String = "",
+    val searchResults: List<Recording> = emptyList(),
+    val isSearching: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -64,37 +64,84 @@ class LibraryViewModel @Inject constructor(
     fun updateSearchQuery(query: String) {
         AppLogger.d(TAG_VIEWMODEL, "Search query updated: %s", query)
         _uiState.update { it.copy(searchQuery = query) }
+        
+        // Perform search when query changes
+        if (query.isNotEmpty() && query.length >= 2) {
+            performSearch(query)
+        } else {
+            _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
+        }
+    }
+    
+    private fun performSearch(query: String) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSearching = true) }
+                
+                // First, do title/id search (synchronous)
+                val titleFiltered = _uiState.value.recordings.filter { recording ->
+                    recording.title.lowercase().contains(query.lowercase()) ||
+                    recording.id.lowercase().contains(query.lowercase())
+                }
+                
+                // Then, do FTS search in transcripts (async)
+                val ftsResults = try {
+                    searchTranscripts.searchRecordings(query)
+                } catch (e: Exception) {
+                    AppLogger.e(TAG_VIEWMODEL, "FTS search failed", e)
+                    emptyList()
+                }
+                
+                // Combine results: title matches first, then FTS results (avoid duplicates)
+                val combinedResults = mutableListOf<Recording>()
+                val seenIds = mutableSetOf<String>()
+                
+                // Add title matches first
+                titleFiltered.forEach { recording ->
+                    if (seenIds.add(recording.id)) {
+                        combinedResults.add(recording)
+                    }
+                }
+                
+                // Add FTS results that aren't already included
+                ftsResults.forEach { recording ->
+                    if (seenIds.add(recording.id)) {
+                        combinedResults.add(recording)
+                    }
+                }
+                
+                AppLogger.d(TAG_VIEWMODEL, "Search completed -> query: %s, titleResults: %d, ftsResults: %d, combined: %d", 
+                    query, titleFiltered.size, ftsResults.size, combinedResults.size)
+                
+                _uiState.update { 
+                    it.copy(
+                        searchResults = combinedResults,
+                        isSearching = false
+                    )
+                }
+            } catch (e: Exception) {
+                AppLogger.e(TAG_VIEWMODEL, "Search failed", e)
+                _uiState.update { it.copy(isSearching = false, error = e.message) }
+            }
+        }
     }
 
     fun getFilteredRecordings(): List<Recording> {
-        val query = _uiState.value.searchQuery.lowercase().trim()
+        val query = _uiState.value.searchQuery.trim()
         if (query.isEmpty()) {
             return _uiState.value.recordings
         }
         
-        // Simple title/id search
-        val titleFiltered = _uiState.value.recordings.filter { recording ->
-            recording.title.lowercase().contains(query) ||
-            recording.id.lowercase().contains(query)
-        }
-        
-        // If no results from title search, try FTS search in transcripts
-        if (titleFiltered.isEmpty() && query.length > 2) {
-            viewModelScope.launch {
-                try {
-                    val ftsResults = searchTranscripts.searchRecordings(query)
-                    if (ftsResults.isNotEmpty()) {
-                        _uiState.update { it.copy(recordings = ftsResults) }
-                        AppLogger.d(TAG_VIEWMODEL, "FTS search found %d recordings", ftsResults.size)
-                    }
-                } catch (e: Exception) {
-                    AppLogger.e(TAG_VIEWMODEL, "FTS search failed", e)
-                }
+        // Return search results if available
+        return if (_uiState.value.searchResults.isNotEmpty()) {
+            _uiState.value.searchResults
+        } else {
+            // Fallback to simple title search while FTS is loading
+            _uiState.value.recordings.filter { recording ->
+                recording.title.lowercase().contains(query.lowercase()) ||
+                recording.id.lowercase().contains(query.lowercase())
             }
         }
-        
-        AppLogger.d(TAG_VIEWMODEL, "Filtered recordings -> query: %s, results: %d", query, titleFiltered.size)
-        return titleFiltered
     }
 }
 

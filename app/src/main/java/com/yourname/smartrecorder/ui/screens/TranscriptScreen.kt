@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
+import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
 import com.yourname.smartrecorder.ui.transcript.TranscriptViewModel
@@ -47,6 +48,7 @@ fun TranscriptScreen(
     var currentTab by remember { mutableStateOf(TranscriptTab.TRANSCRIPT) }
     var showExportSheet by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
+    var showBookmarkDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     LaunchedEffect(recordingId) {
@@ -104,7 +106,7 @@ fun TranscriptScreen(
                     IconButton(onClick = { showSearch = !showSearch }) {
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     }
-                    IconButton(onClick = { viewModel.addBookmark() }) {
+                    IconButton(onClick = { showBookmarkDialog = true }) {
                         Icon(Icons.Default.Bookmark, contentDescription = "Add Bookmark")
                     }
                     IconButton(onClick = { showExportSheet = true }) {
@@ -188,9 +190,26 @@ fun TranscriptScreen(
                         viewModel.seekTo(bookmark.timestampMs)
                     }
                 )
-                TranscriptTab.SUMMARY -> SummaryTabContent(uiState = uiState)
+                TranscriptTab.SUMMARY -> SummaryTabContent(
+                    uiState = uiState,
+                    onGenerateFlashcards = {
+                        viewModel.generateFlashcards()
+                    }
+                )
             }
         }
+    }
+    
+    // Bookmark dialog
+    if (showBookmarkDialog) {
+        AddBookmarkDialog(
+            timestamp = formatDuration(uiState.currentPositionMs),
+            onDismiss = { showBookmarkDialog = false },
+            onConfirm = { note ->
+                viewModel.addBookmark(note)
+                showBookmarkDialog = false
+            }
+        )
     }
 }
 
@@ -450,7 +469,8 @@ private fun NotesTabContent(
 
 @Composable
 private fun SummaryTabContent(
-    uiState: com.yourname.smartrecorder.ui.transcript.TranscriptUiState
+    uiState: com.yourname.smartrecorder.ui.transcript.TranscriptUiState,
+    onGenerateFlashcards: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -527,6 +547,54 @@ private fun SummaryTabContent(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Generate Flashcards button
+        if (uiState.segments.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Study with Flashcards",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Generate flashcards from this transcript to practice and review",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        if (uiState.isGeneratingFlashcards) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Text(
+                                text = "Generating flashcards...",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        } else if (uiState.flashcardsGenerated) {
+                            Text(
+                                text = "✓ Flashcards generated! Go to Study tab to practice",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Button(
+                                onClick = onGenerateFlashcards,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Generate Flashcards")
+                            }
                         }
                     }
                 }

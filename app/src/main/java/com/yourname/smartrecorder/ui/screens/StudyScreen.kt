@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -25,6 +26,12 @@ fun StudyScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentFlashcard = viewModel.getCurrentFlashcard()
+    
+    LaunchedEffect(Unit) {
+        if (uiState.flashcards.isEmpty() && !uiState.isLoading) {
+            viewModel.loadFlashcardsForReview()
+        }
+    }
     
     Column(
         modifier = Modifier

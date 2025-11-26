@@ -90,10 +90,14 @@
 - ❌ Chưa có practice mode
 
 ### 4. Whisper Integration
-- ❌ Chưa tích hợp Whisper.cpp
+- 📋 **Implementation guide ready** (`Whisper.md`)
+- 📋 **Checklist created** (`WHISPER_IMPLEMENTATION_CHECKLIST.md`)
+- ❌ Chưa tích hợp Whisper.cpp (chưa bắt đầu code)
 - ❌ Chưa có native code (JNI)
 - ❌ Chưa có model loading
 - ❌ Chưa có audio conversion
+- **Package**: `com.yourname.smartrecorder.data.stt`
+- **Note**: Tất cả package names đã được adapt cho project này
 
 ### 5. Advanced Features
 - ❌ Template export (Meeting, Lecture, Interview)
@@ -120,10 +124,13 @@
 
 ## 🔧 Cần làm tiếp
 
-1. **Tích hợp Whisper** (ưu tiên cao)
-   - Implement GenerateTranscriptUseCase với Whisper
-   - Implement RealtimeTranscriptUseCase với Whisper streaming
-   - Add native code và JNI bindings
+1. **Tích hợp Whisper** (ưu tiên cao) 📋
+   - ✅ Implementation guide đã sẵn sàng (`Whisper.md`)
+   - ✅ Checklist đã tạo (`WHISPER_IMPLEMENTATION_CHECKLIST.md`)
+   - [ ] Implement GenerateTranscriptUseCase với Whisper
+   - [ ] Implement RealtimeTranscriptUseCase với Whisper streaming
+   - [ ] Add native code và JNI bindings
+   - **Xem checklist để biết chi tiết từng bước**
 
 2. **Realtime Transcript UI** (ưu tiên trung bình)
    - Tạo RealtimeTranscriptScreen

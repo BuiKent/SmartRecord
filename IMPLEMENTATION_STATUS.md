@@ -55,14 +55,18 @@
 ## 🔄 Complex Features (Require More Work)
 
 ### 1. Whisper Integration
-- **Status**: Placeholder implementation exists
+- **Status**: 📋 Implementation guide ready, checklist created
+- **Documentation**: 
+  - `Whisper.md` - Complete implementation guide (adapted for this project)
+  - `WHISPER_IMPLEMENTATION_CHECKLIST.md` - Step-by-step checklist
 - **Needed**:
-  - Native code (C/C++) for Whisper.cpp
-  - JNI bindings
-  - Model loading and management
-  - Audio conversion utilities
-  - Integration with `GenerateTranscriptUseCase`
-- **Estimated**: Significant development time
+  - [ ] Native code (C/C++) for Whisper.cpp
+  - [ ] JNI bindings (package: `com.yourname.smartrecorder`)
+  - [ ] Model loading and management
+  - [ ] Audio conversion utilities
+  - [ ] Integration with `GenerateTranscriptUseCase`
+- **Package**: `com.yourname.smartrecorder.data.stt`
+- **Estimated**: Significant development time (see checklist for details)
 
 ### 2. Realtime Transcript UI
 - **Status**: UseCase placeholder exists

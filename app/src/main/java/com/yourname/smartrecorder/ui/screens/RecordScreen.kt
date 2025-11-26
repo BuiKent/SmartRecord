@@ -11,10 +11,15 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
 
 data class RecordUiState(
     val isRecording: Boolean = false,
@@ -31,9 +36,10 @@ fun RecordScreen(
     onStopRecordClick: () -> Unit,
     onImportAudioClick: () -> Unit,
     onRealtimeSttClick: () -> Unit,
-    onBookmarkClick: () -> Unit = {}
+    onBookmarkClick: (String) -> Unit = { _ -> }
 ) {
     val isRecording = uiState.isRecording
+    var showBookmarkDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -122,7 +128,7 @@ fun RecordScreen(
             ) {
                 // Bookmark button
                 OutlinedButton(
-                    onClick = onBookmarkClick,
+                    onClick = { showBookmarkDialog = true },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -193,6 +199,18 @@ fun RecordScreen(
                 )
             }
         }
+    }
+    
+    // Bookmark dialog
+    if (showBookmarkDialog) {
+        AddBookmarkDialog(
+            timestamp = formatDuration(uiState.durationMs),
+            onDismiss = { showBookmarkDialog = false },
+            onConfirm = { note ->
+                onBookmarkClick(note)
+                showBookmarkDialog = false
+            }
+        )
     }
 }
 

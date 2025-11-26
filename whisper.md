@@ -1278,6 +1278,188 @@ object AppModule {
 }
 ```
 
+### 7. Integration with GenerateTranscriptUseCase
+
+**Important:** `WhisperAudioTranscriber` returns `String`, but `GenerateTranscriptUseCase` needs `List<TranscriptSegment>`. We need to convert.
+
+**`app/src/main/java/com/yourname/smartrecorder/domain/usecase/GenerateTranscriptUseCase.kt`:**
+
+Update the existing `GenerateTranscriptUseCase` to use Whisper:
+
+```kotlin
+package com.yourname.smartrecorder.domain.usecase
+
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_TRANSCRIPT
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_USECASE
+import com.yourname.smartrecorder.data.stt.WhisperAudioTranscriber
+import com.yourname.smartrecorder.data.stt.WhisperEngine
+import com.yourname.smartrecorder.domain.model.Recording
+import com.yourname.smartrecorder.domain.model.TranscriptSegment
+import com.yourname.smartrecorder.domain.repository.TranscriptRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import android.net.Uri
+import android.content.ContentResolver
+import javax.inject.Inject
+
+/**
+ * Use case for generating transcript from audio file using Whisper.
+ */
+class GenerateTranscriptUseCase @Inject constructor(
+    private val transcriptRepository: TranscriptRepository,
+    private val transcriber: WhisperAudioTranscriber
+) {
+    suspend operator fun invoke(
+        recording: Recording,
+        onProgress: (Int) -> Unit = {}
+    ): List<TranscriptSegment> = withContext(Dispatchers.IO) {
+        val startTime = System.currentTimeMillis()
+        AppLogger.logUseCase(TAG_USECASE, "GenerateTranscriptUseCase", "Starting", 
+            mapOf("recordingId" to recording.id, "filePath" to recording.filePath))
+        
+        val audioFile = File(recording.filePath)
+        if (!audioFile.exists()) {
+            AppLogger.e(TAG_TRANSCRIPT, "Audio file not found -> path: %s", null, recording.filePath)
+            throw IllegalStateException("Audio file not found: ${recording.filePath}")
+        }
+        
+        val fileSize = audioFile.length()
+        val estimatedDurationMs = recording.durationMs
+        AppLogger.d(TAG_TRANSCRIPT, "Audio file info -> size: %d bytes, duration: %d ms", 
+            fileSize, estimatedDurationMs)
+        
+        try {
+            // Convert File path to Uri
+            val uri = android.net.Uri.fromFile(audioFile)
+            
+            // Transcribe using Whisper
+            val transcriptText = transcriber.transcribeFile(uri) { progress ->
+                onProgress(progress)
+                AppLogger.d(TAG_TRANSCRIPT, "Transcription progress: %d%%", progress)
+            }
+            
+            // Parse transcript text into segments
+            // Note: WhisperAudioTranscriber returns processed text with speaker labels
+            // We need to extract segments from WhisperEngine.WhisperSegment list
+            // For now, we'll create a single segment or parse the text
+            
+            // TODO: Better approach - modify WhisperAudioTranscriber to return segments
+            // For now, create segments from the full transcript
+            val segments = createSegmentsFromText(
+                recordingId = recording.id,
+                transcriptText = transcriptText,
+                durationMs = estimatedDurationMs
+            )
+            
+            AppLogger.d(TAG_TRANSCRIPT, "Generated %d transcript segments", segments.size)
+            
+            // Save to repository
+            AppLogger.d(TAG_TRANSCRIPT, "Saving transcript segments to database")
+            transcriptRepository.saveTranscriptSegments(recording.id, segments)
+            
+            val duration = System.currentTimeMillis() - startTime
+            AppLogger.logUseCase(TAG_USECASE, "GenerateTranscriptUseCase", "Completed", 
+                mapOf("recordingId" to recording.id, "segments" to segments.size, "duration" to "${duration}ms"))
+            AppLogger.logPerformance(TAG_TRANSCRIPT, "GenerateTranscriptUseCase", duration, 
+                "segments=${segments.size}, fileSize=${fileSize}bytes")
+            
+            segments
+            
+        } catch (e: Exception) {
+            AppLogger.e(TAG_TRANSCRIPT, "Transcription failed", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Create segments from transcript text.
+     * This is a temporary solution - ideally WhisperAudioTranscriber should return segments directly.
+     */
+    private fun createSegmentsFromText(
+        recordingId: String,
+        transcriptText: String,
+        durationMs: Long
+    ): List<TranscriptSegment> {
+        if (transcriptText.isBlank()) {
+            return emptyList()
+        }
+        
+        // Split by speaker labels or newlines
+        val lines = transcriptText.split("\n\n", "\n").filter { it.isNotBlank() }
+        
+        if (lines.isEmpty()) {
+            return emptyList()
+        }
+        
+        // Calculate segment duration
+        val segmentDuration = durationMs / lines.size.coerceAtLeast(1)
+        
+        return lines.mapIndexed { index, line ->
+            // Remove speaker labels if present
+            val cleanText = line.replace(Regex("\\[Speaker \\d+\\]:\\s*"), "").trim()
+            
+            // Detect if it's a question
+            val isQuestion = cleanText.trim().endsWith("?")
+            
+            TranscriptSegment(
+                id = index.toLong(),
+                recordingId = recordingId,
+                startTimeMs = index * segmentDuration,
+                endTimeMs = (index + 1) * segmentDuration,
+                text = cleanText,
+                isQuestion = isQuestion
+            )
+        }
+    }
+}
+```
+
+**Better Approach:** Modify `WhisperAudioTranscriber` to return segments directly:
+
+```kotlin
+// In WhisperAudioTranscriber.kt - add new method
+suspend fun transcribeFileToSegments(
+    uri: Uri,
+    onProgress: (Int) -> Unit
+): List<WhisperEngine.WhisperSegment> = withContext(Dispatchers.IO) {
+    // ... same as transcribeFile but return segments instead of String
+    val segments = engine.transcribe(modelPtr, tempFile) { transcriptionProgress ->
+        onProgress(30 + (transcriptionProgress * 65 / 100))
+    }
+    
+    // Post-process segments (keep as segments, don't convert to String)
+    val processedSegments = WhisperPostProcessor.processSegments(
+        segments,
+        PostProcessingOptions(...)
+    )
+    
+    processedSegments
+}
+```
+
+Then update `GenerateTranscriptUseCase`:
+
+```kotlin
+// Use transcribeFileToSegments instead
+val whisperSegments = transcriber.transcribeFileToSegments(uri) { progress ->
+    onProgress(progress)
+}
+
+// Convert WhisperEngine.WhisperSegment to TranscriptSegment
+val segments = whisperSegments.mapIndexed { index, whisperSegment ->
+    TranscriptSegment(
+        id = index.toLong(),
+        recordingId = recording.id,
+        startTimeMs = (whisperSegment.start * 1000).toLong(),
+        endTimeMs = (whisperSegment.end * 1000).toLong(),
+        text = whisperSegment.text,
+        isQuestion = whisperSegment.text.trim().endsWith("?")
+    )
+}
+```
+
 ---
 
 ## 📝 Transcript Post-Processing

@@ -161,8 +161,8 @@ fun SmartRecorderApp() {
                     onRealtimeSttClick = {
                         navController.navigate(AppRoutes.REALTIME_TRANSCRIPT)
                     },
-                    onBookmarkClick = {
-                        viewModel.onBookmarkClick()
+                    onBookmarkClick = { note ->
+                        viewModel.onBookmarkClick(note)
                     }
                 )
                 
