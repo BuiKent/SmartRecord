@@ -9,13 +9,19 @@ import com.yourname.smartrecorder.core.audio.AudioRecorder
 import com.yourname.smartrecorder.core.audio.AudioRecorderImpl
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_DATABASE
+import com.yourname.smartrecorder.data.local.dao.BookmarkDao
+import com.yourname.smartrecorder.data.local.dao.FlashcardDao
 import com.yourname.smartrecorder.data.local.dao.NoteDao
 import com.yourname.smartrecorder.data.local.dao.RecordingDao
 import com.yourname.smartrecorder.data.local.dao.TranscriptDao
 import com.yourname.smartrecorder.data.local.db.SmartRecorderDatabase
+import com.yourname.smartrecorder.data.repository.BookmarkRepositoryImpl
+import com.yourname.smartrecorder.data.repository.FlashcardRepositoryImpl
 import com.yourname.smartrecorder.data.repository.NoteRepositoryImpl
 import com.yourname.smartrecorder.data.repository.RecordingRepositoryImpl
 import com.yourname.smartrecorder.data.repository.TranscriptRepositoryImpl
+import com.yourname.smartrecorder.domain.repository.BookmarkRepository
+import com.yourname.smartrecorder.domain.repository.FlashcardRepository
 import com.yourname.smartrecorder.domain.repository.NoteRepository
 import com.yourname.smartrecorder.domain.repository.RecordingRepository
 import com.yourname.smartrecorder.domain.repository.TranscriptRepository
@@ -65,6 +71,16 @@ object AppModule {
     }
     
     @Provides
+    fun provideBookmarkDao(database: SmartRecorderDatabase): BookmarkDao {
+        return database.bookmarkDao()
+    }
+    
+    @Provides
+    fun provideFlashcardDao(database: SmartRecorderDatabase): FlashcardDao {
+        return database.flashcardDao()
+    }
+    
+    @Provides
     @Singleton
     fun provideRecordingRepository(dao: RecordingDao): RecordingRepository {
         return RecordingRepositoryImpl(dao)
@@ -80,6 +96,18 @@ object AppModule {
     @Singleton
     fun provideNoteRepository(dao: NoteDao): NoteRepository {
         return NoteRepositoryImpl(dao)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideBookmarkRepository(dao: BookmarkDao): BookmarkRepository {
+        return BookmarkRepositoryImpl(dao)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideFlashcardRepository(dao: FlashcardDao): FlashcardRepository {
+        return FlashcardRepositoryImpl(dao)
     }
     
     @Provides

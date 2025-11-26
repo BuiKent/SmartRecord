@@ -63,6 +63,44 @@ class TranscriptRepositoryImpl @Inject constructor(
         }
     }
     
+    override suspend fun searchTranscripts(query: String): List<TranscriptSegment> {
+        AppLogger.logDatabase(TAG_REPOSITORY, "FTS_SEARCH", "transcript_segments", "query=$query")
+        val result = transcriptDao.searchTranscripts(query).map { it.toDomain() }
+        AppLogger.logDatabase(TAG_REPOSITORY, "FTS_SEARCH_COMPLETE", "transcript_segments", 
+            "query=$query, count=${result.size}")
+        return result
+    }
+    
+    override suspend fun searchTranscriptsInRecording(recordingId: String, query: String): List<TranscriptSegment> {
+        AppLogger.logDatabase(TAG_REPOSITORY, "FTS_SEARCH", "transcript_segments", 
+            "recordingId=$recordingId, query=$query")
+        val result = transcriptDao.searchTranscriptsInRecording(recordingId, query).map { it.toDomain() }
+        AppLogger.logDatabase(TAG_REPOSITORY, "FTS_SEARCH_COMPLETE", "transcript_segments", 
+            "recordingId=$recordingId, query=$query, count=${result.size}")
+        return result
+    }
+    
+    override suspend fun searchRecordingsByTranscript(query: String): List<com.yourname.smartrecorder.domain.model.Recording> {
+        AppLogger.logDatabase(TAG_REPOSITORY, "FTS_SEARCH", "recordings", "query=$query")
+        val result = transcriptDao.searchRecordingsByTranscript(query).map { it.toDomain() }
+        AppLogger.logDatabase(TAG_REPOSITORY, "FTS_SEARCH_COMPLETE", "recordings", 
+            "query=$query, count=${result.size}")
+        return result
+    }
+    
+    private fun com.yourname.smartrecorder.data.local.entity.RecordingEntity.toDomain(): com.yourname.smartrecorder.domain.model.Recording {
+        return com.yourname.smartrecorder.domain.model.Recording(
+            id = id,
+            title = title,
+            filePath = filePath,
+            createdAt = createdAt,
+            durationMs = durationMs,
+            mode = mode,
+            isPinned = isPinned,
+            isArchived = isArchived
+        )
+    }
+    
     private fun TranscriptSegment.toEntity(): TranscriptSegmentEntity {
         return TranscriptSegmentEntity(
             id = id,
