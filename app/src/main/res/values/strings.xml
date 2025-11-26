@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Smart Recorder</string>
+    <string name="app_name_full">Smart Recorder &amp; Transcripts</string>
+    <string name="record">Record</string>
+    <string name="library">Library</string>
+    <string name="study">Study</string>
+    <string name="start_recording">Bắt đầu ghi âm</string>
+    <string name="stop_recording">Dừng ghi âm</string>
+    <string name="pause_recording">Tạm dừng</string>
+    <string name="import_audio">Import file audio</string>
+    <string name="realtime_transcript">Realtime transcript</string>
+    <string name="transcript">Transcript</string>
+    <string name="notes">Notes</string>
+    <string name="summary">Summary &amp; Questions</string>
+    <string name="export">Export</string>
+    <string name="bookmark">Bookmark</string>
+</resources>
