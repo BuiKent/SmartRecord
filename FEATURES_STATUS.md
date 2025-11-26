@@ -4,7 +4,7 @@
 
 ### 1. Recording
 - ✅ Start recording với permission handling
-- ✅ Pause recording (UI ready, backend TODO)
+- ✅ Pause recording (Backend đã có, UI ready)
 - ✅ Stop recording và save vào database
 - ✅ Timer hiển thị duration
 - ✅ Navigation đến transcript sau khi stop
@@ -75,19 +75,24 @@
 
 ## ❌ Chưa implement
 
-### 1. Bookmarks/Markers
+### 1. Bookmarks/Markers ⚠️
+- ✅ Entity/DAO/Repository đã có (BookmarkEntity, BookmarkDao, BookmarkRepository)
+- ✅ UseCases đã có (AddBookmarkUseCase, GetBookmarksUseCase)
 - ❌ Chưa có UI để add bookmark khi recording
-- ❌ Chưa có entity/DAO cho bookmarks
-- ❌ Chưa có logic để save bookmarks
+- ❌ Chưa hiển thị bookmarks trong TranscriptScreen
 
-### 2. Full-text Search (FTS)
-- ❌ Chưa có FTS trong Room database
-- ❌ Chưa có search trong transcript content
+### 2. Full-text Search (FTS) ⚠️
+- ✅ FTS Entity đã có (TranscriptSegmentFtsEntity với FTS4)
+- ✅ DAO methods đã có (searchTranscripts, searchTranscriptsInRecording)
+- ✅ UseCase đã có (SearchTranscriptsUseCase)
+- ❌ Chưa có UI search bar trong LibraryScreen/TranscriptScreen
+- ❌ Chưa có highlight search results
 
-### 3. Flashcards
+### 3. Flashcards ⚠️
+- ✅ Entity/DAO/Repository đã có (FlashcardEntity, FlashcardDao, FlashcardRepository)
+- ✅ UseCases đã có (GenerateFlashcardsUseCase, GetFlashcardsUseCase, UpdateFlashcardDifficultyUseCase)
 - ❌ Chưa có StudyScreen implementation
-- ❌ Chưa có flashcard generation logic
-- ❌ Chưa có practice mode
+- ❌ Chưa có practice mode UI
 
 ### 4. Whisper Integration ✅
 - ✅ **Implementation COMPLETE** - Ready for testing
@@ -116,11 +121,11 @@
 ### Tính năng cần hoàn thiện: ~10%
 - Realtime Transcript (cần Whisper streaming + UI)
 
-### Tính năng chưa có: ~10%
-- Bookmarks
-- FTS
-- Flashcards
-- Advanced features
+### Tính năng chưa có UI: ~10%
+- Bookmarks UI (backend đã có)
+- FTS Search UI (backend đã có)
+- Flashcards UI (backend đã có)
+- Advanced features (Template export, SRT jump-to-sentence, Loop playback)
 
 ## 🔧 Cần làm tiếp
 
@@ -138,13 +143,23 @@
    - Kết nối với RealtimeTranscriptUseCase
    - Hiển thị live transcript updates
 
-3. **Bookmarks** (ưu tiên trung bình)
-   - Add BookmarkEntity và DAO
-   - Add UI để add bookmark khi recording
-   - Hiển thị bookmarks trong transcript
+3. **Bookmarks UI** (ưu tiên trung bình)
+   - ✅ Backend đã có (Entity, DAO, Repository, UseCases)
+   - ❌ Add UI để add bookmark khi recording
+   - ❌ Hiển thị bookmarks trong TranscriptScreen
+   - ❌ Click bookmark để seek to timestamp
 
-4. **FTS và Flashcards** (ưu tiên thấp)
-   - Implement FTS trong Room
-   - Implement flashcard generation
-   - Implement practice mode
+4. **FTS Search UI** (ưu tiên trung bình)
+   - ✅ Backend đã có (FTS Entity, DAO methods, UseCase)
+   - ❌ Add search bar trong LibraryScreen
+   - ❌ Add search bar trong TranscriptScreen
+   - ❌ Highlight search results
+   - ❌ Navigate to timestamp on click
+
+5. **Flashcards UI** (ưu tiên trung bình)
+   - ✅ Backend đã có (Entity, DAO, Repository, UseCases)
+   - ❌ Implement StudyScreen với flashcard practice
+   - ❌ Show question, reveal answer
+   - ❌ Difficulty buttons (Easy/Medium/Hard)
+   - ❌ Progress tracking
 
