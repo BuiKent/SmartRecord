@@ -21,6 +21,11 @@ import com.yourname.smartrecorder.data.repository.FlashcardRepositoryImpl
 import com.yourname.smartrecorder.data.repository.NoteRepositoryImpl
 import com.yourname.smartrecorder.data.repository.RecordingRepositoryImpl
 import com.yourname.smartrecorder.data.repository.TranscriptRepositoryImpl
+import com.yourname.smartrecorder.data.stt.AudioConverter
+import com.yourname.smartrecorder.data.stt.WhisperAudioTranscriber
+import com.yourname.smartrecorder.data.stt.WhisperEngine
+import com.yourname.smartrecorder.data.stt.WhisperModelManager
+import com.yourname.smartrecorder.data.stt.WhisperModelProvider
 import com.yourname.smartrecorder.domain.repository.BookmarkRepository
 import com.yourname.smartrecorder.domain.repository.FlashcardRepository
 import com.yourname.smartrecorder.domain.repository.NoteRepository
@@ -128,6 +133,51 @@ object AppModule {
     @Singleton
     fun provideAudioPlayer(): AudioPlayer {
         return AudioPlayerImpl()
+    }
+    
+    // Whisper STT providers
+    @Provides
+    @Singleton
+    fun provideWhisperModelManager(
+        @ApplicationContext context: Context
+    ): WhisperModelManager {
+        return WhisperModelManager(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideWhisperEngine(): WhisperEngine {
+        return WhisperEngine()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideWhisperModelProvider(
+        @ApplicationContext context: Context,
+        modelManager: WhisperModelManager,
+        engine: WhisperEngine
+    ): WhisperModelProvider {
+        return WhisperModelProvider(context, modelManager, engine)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAudioConverter(
+        @ApplicationContext context: Context
+    ): AudioConverter {
+        return AudioConverter(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideWhisperAudioTranscriber(
+        @ApplicationContext context: Context,
+        converter: AudioConverter,
+        modelProvider: WhisperModelProvider,
+        modelManager: WhisperModelManager,
+        engine: WhisperEngine
+    ): WhisperAudioTranscriber {
+        return WhisperAudioTranscriber(context, converter, modelProvider, modelManager, engine)
     }
 }
 

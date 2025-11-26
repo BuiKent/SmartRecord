@@ -26,6 +26,30 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // NDK configuration for Whisper
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
+        
+        // External native build configuration for CMake
+        externalNativeBuild {
+            cmake {
+                cppFlags += listOf("-std=c++17", "-O3")
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
+    }
+    
+    // NDK version
+    ndkVersion = "25.2.9519653"
+    
+    // External native build
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
@@ -118,6 +142,9 @@ dependencies {
     // Coroutines
     implementation(libs.coroutines.android)
     implementation(libs.coroutines.core)
+    
+    // OkHttp for model download
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     
     // Testing
     testImplementation(libs.junit)
