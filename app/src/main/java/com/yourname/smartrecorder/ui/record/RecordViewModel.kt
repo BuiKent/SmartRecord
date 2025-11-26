@@ -30,7 +30,8 @@ class RecordViewModel @Inject constructor(
     private val stopRecordingAndSave: StopRecordingAndSaveUseCase,
     private val pauseRecording: PauseRecordingUseCase,
     private val resumeRecording: ResumeRecordingUseCase,
-    private val addBookmark: AddBookmarkUseCase
+    private val addBookmark: AddBookmarkUseCase,
+    private val audioRecorder: com.yourname.smartrecorder.core.audio.AudioRecorder
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecordUiState())
@@ -153,12 +154,18 @@ class RecordViewModel @Inject constructor(
         timerJob = viewModelScope.launch {
             try {
                 while (true) {
-                    delay(100)
+                    delay(50) // Update more frequently for waveform
                     if (!_uiState.value.isRecording) {
                         break
                     }
                     val elapsed = System.currentTimeMillis() - startTimeMs
-                    _uiState.update { it.copy(durationMs = elapsed) }
+                    // Get amplitude for waveform visualization
+                    val amplitude = try {
+                        audioRecorder.getAmplitude()
+                    } catch (e: Exception) {
+                        0
+                    }
+                    _uiState.update { it.copy(durationMs = elapsed, amplitude = amplitude) }
                 }
             } catch (e: Exception) {
                 // Timer cancelled or error

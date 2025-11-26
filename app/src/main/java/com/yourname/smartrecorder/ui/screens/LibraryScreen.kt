@@ -83,7 +83,12 @@ fun LibraryScreen(
                 items(filteredRecordings) { recording ->
                     RecordingCard(
                         recording = recording,
-                        onClick = { onRecordingClick(recording.id) }
+                        onClick = { onRecordingClick(recording.id) },
+                        isPlaying = uiState.currentlyPlayingId == recording.id && uiState.isPlaying,
+                        onPlayClick = { viewModel.playRecording(recording) },
+                        onPauseClick = { viewModel.playRecording(recording) }, // Toggle pause
+                        onStopClick = { viewModel.stopPlayback() },
+                        onEditTitleClick = { newTitle -> viewModel.updateTitle(recording, newTitle) }
                     )
                 }
             }

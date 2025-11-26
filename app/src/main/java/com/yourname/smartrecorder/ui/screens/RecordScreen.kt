@@ -20,12 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
+import com.yourname.smartrecorder.ui.components.WaveformVisualizer
 
 data class RecordUiState(
     val isRecording: Boolean = false,
     val durationMs: Long = 0L,
     val liveText: String = "",
-    val error: String? = null
+    val error: String? = null,
+    val amplitude: Int = 0  // For waveform visualization
 )
 
 @Composable
@@ -61,29 +63,11 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Waveform placeholder
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .clip(MaterialTheme.shapes.extraLarge)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isRecording) "Recording..." else "Ready to record",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
+        // Waveform visualization
+        WaveformVisualizer(
+            amplitude = uiState.amplitude,
+            isRecording = isRecording
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
