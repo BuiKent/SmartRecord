@@ -9,6 +9,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
@@ -324,6 +327,7 @@ private fun TranscriptTabContent(
                     isCurrent = segment.id == uiState.currentSegmentId,
                     isHighlighted = uiState.searchQuery.isNotEmpty() && 
                         segment.text.lowercase().contains(uiState.searchQuery.lowercase()),
+                    searchQuery = uiState.searchQuery,
                     onClick = { onSegmentClick(segment) }
                 )
             }
@@ -336,6 +340,7 @@ private fun TranscriptLineItem(
     segment: com.yourname.smartrecorder.domain.model.TranscriptSegment,
     isCurrent: Boolean,
     isHighlighted: Boolean = false,
+    searchQuery: String = "",
     onClick: () -> Unit
 ) {
     val bgColor = when {
@@ -357,11 +362,59 @@ private fun TranscriptLineItem(
             color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = segment.text,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        // Highlight search query in text
+        if (isHighlighted && searchQuery.isNotEmpty()) {
+            HighlightedText(
+                text = segment.text,
+                query = searchQuery
+            )
+        } else {
+            Text(
+                text = segment.text,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
+}
+
+@Composable
+private fun HighlightedText(text: String, query: String) {
+    val queryLower = query.lowercase()
+    val textLower = text.lowercase()
+    val parts = mutableListOf<Pair<String, Boolean>>()
+    var lastIndex = 0
+    
+    var index = textLower.indexOf(queryLower, lastIndex)
+    while (index != -1) {
+        if (index > lastIndex) {
+            parts.add(Pair(text.substring(lastIndex, index), false))
+        }
+        parts.add(Pair(text.substring(index, index + query.length), true))
+        lastIndex = index + query.length
+        index = textLower.indexOf(queryLower, lastIndex)
+    }
+    if (lastIndex < text.length) {
+        parts.add(Pair(text.substring(lastIndex), false))
+    }
+    
+    Text(
+        buildAnnotatedString {
+            parts.forEach { (part, isHighlighted) ->
+                withStyle(
+                    style = SpanStyle(
+                        background = if (isHighlighted) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        } else {
+                            Color.Transparent
+                        }
+                    )
+                ) {
+                    append(part)
+                }
+            }
+        },
+        style = MaterialTheme.typography.bodyMedium
+    )
 }
 
 @Composable
