@@ -7,6 +7,8 @@ import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_RECORDING
 import com.yourname.smartrecorder.domain.usecase.AddBookmarkUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
+import com.yourname.smartrecorder.domain.usecase.PauseRecordingUseCase
+import com.yourname.smartrecorder.domain.usecase.ResumeRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StartRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
 import com.yourname.smartrecorder.ui.screens.RecordUiState
@@ -26,6 +28,8 @@ class RecordViewModel @Inject constructor(
     private val getRecordingsDirectory: GetRecordingsDirectoryUseCase,
     private val startRecording: StartRecordingUseCase,
     private val stopRecordingAndSave: StopRecordingAndSaveUseCase,
+    private val pauseRecording: PauseRecordingUseCase,
+    private val resumeRecording: ResumeRecordingUseCase,
     private val addBookmark: AddBookmarkUseCase
 ) : ViewModel() {
 
@@ -41,6 +45,9 @@ class RecordViewModel @Inject constructor(
     
     @Volatile
     private var isStarting: Boolean = false
+    
+    @Volatile
+    private var isPaused: Boolean = false
     
     fun onNavigationHandled() {
         _navigateToTranscript.value = null
@@ -83,12 +90,23 @@ class RecordViewModel @Inject constructor(
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onPauseClick", null)
         viewModelScope.launch {
             try {
-                timerJob?.cancel()
-                // TODO: Implement pause recording - call audioRecorder.pause()
-                _uiState.update { it.copy(isRecording = false) }
-                AppLogger.d(TAG_RECORDING, "Recording paused -> recordingId: %s", currentRecording?.id)
+                if (isPaused) {
+                    // Resume recording
+                    resumeRecording()
+                    isPaused = false
+                    startTimer()
+                    _uiState.update { it.copy(isRecording = true) }
+                    AppLogger.d(TAG_RECORDING, "Recording resumed -> recordingId: %s", currentRecording?.id)
+                } else {
+                    // Pause recording
+                    pauseRecording()
+                    timerJob?.cancel()
+                    isPaused = true
+                    _uiState.update { it.copy(isRecording = false) }
+                    AppLogger.d(TAG_RECORDING, "Recording paused -> recordingId: %s", currentRecording?.id)
+                }
             } catch (e: Exception) {
-                AppLogger.e(TAG_RECORDING, "Failed to pause recording", e)
+                AppLogger.e(TAG_RECORDING, "Failed to pause/resume recording", e)
                 _uiState.update { it.copy(error = e.message) }
             }
         }
@@ -148,6 +166,13 @@ class RecordViewModel @Inject constructor(
         }
     }
     
+    private val _bookmarkAdded = MutableStateFlow(false)
+    val bookmarkAdded: StateFlow<Boolean> = _bookmarkAdded.asStateFlow()
+    
+    fun onBookmarkAddedHandled() {
+        _bookmarkAdded.value = false
+    }
+    
     fun onBookmarkClick(note: String = "") {
         val recording = currentRecording ?: return
         if (!_uiState.value.isRecording) return
@@ -159,6 +184,7 @@ class RecordViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 addBookmark(recording.id, timestampMs, note)
+                _bookmarkAdded.value = true
                 AppLogger.d(TAG_RECORDING, "Bookmark added -> recordingId: %s, timestamp: %d ms", 
                     recording.id, timestampMs)
             } catch (e: Exception) {

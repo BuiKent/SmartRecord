@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,6 +31,7 @@ import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import com.yourname.smartrecorder.ui.record.RecordViewModel
 import com.yourname.smartrecorder.ui.screens.LibraryScreen
 import com.yourname.smartrecorder.ui.screens.RecordScreen
+import com.yourname.smartrecorder.ui.screens.RealtimeTranscriptScreen
 import com.yourname.smartrecorder.ui.screens.StudyScreen
 import com.yourname.smartrecorder.ui.screens.TranscriptScreen
 import com.yourname.smartrecorder.ui.widgets.AppBottomBar
@@ -156,14 +158,21 @@ fun SmartRecorderApp() {
                             importPermissionLauncher.launch(permission)
                         }
                     },
-                    onRealtimeSttClick = { 
-                        // TODO: Implement realtime STT screen
-                        // For now, show a message that this feature is coming soon
+                    onRealtimeSttClick = {
+                        navController.navigate(AppRoutes.REALTIME_TRANSCRIPT)
                     },
                     onBookmarkClick = {
                         viewModel.onBookmarkClick()
                     }
                 )
+                
+                // Show toast when bookmark is added
+                LaunchedEffect(viewModel.bookmarkAdded.collectAsState().value) {
+                    if (viewModel.bookmarkAdded.value) {
+                        Toast.makeText(context, "Bookmark added", Toast.LENGTH_SHORT).show()
+                        viewModel.onBookmarkAddedHandled()
+                    }
+                }
             }
             composable(AppRoutes.LIBRARY) {
                 LibraryScreen(
@@ -188,6 +197,11 @@ fun SmartRecorderApp() {
                     recordingId = recordingId,
                     onBackClick = { navController.popBackStack() },
                     onExportClick = { /* TODO: Export */ }
+                )
+            }
+            composable(AppRoutes.REALTIME_TRANSCRIPT) {
+                RealtimeTranscriptScreen(
+                    onBackClick = { navController.popBackStack() }
                 )
             }
         }

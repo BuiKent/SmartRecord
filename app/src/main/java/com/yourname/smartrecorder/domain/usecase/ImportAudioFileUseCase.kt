@@ -1,6 +1,7 @@
 package com.yourname.smartrecorder.domain.usecase
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_IMPORT
@@ -46,13 +47,27 @@ class ImportAudioFileUseCase @Inject constructor(
         val fileSize = outputFile.length()
         AppLogger.d(TAG_IMPORT, "File saved -> size: %d bytes, path: %s", fileSize, outputFile.absolutePath)
         
+        // Get audio duration using MediaMetadataRetriever
+        var durationMs = 0L
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(outputFile.absolutePath)
+            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            durationMs = durationStr?.toLongOrNull() ?: 0L
+            retriever.release()
+            AppLogger.d(TAG_IMPORT, "Audio duration extracted -> %d ms", durationMs)
+        } catch (e: Exception) {
+            AppLogger.e(TAG_IMPORT, "Failed to extract audio duration", e)
+            durationMs = 0L
+        }
+        
         // Create recording entity
         val recording = Recording(
             id = recordingId,
             title = fileName.substringBeforeLast('.'),
             filePath = outputFile.absolutePath,
             createdAt = System.currentTimeMillis(),
-            durationMs = 0L, // TODO: Get actual duration using MediaMetadataRetriever
+            durationMs = durationMs,
             mode = "IMPORTED",
             isPinned = false,
             isArchived = false

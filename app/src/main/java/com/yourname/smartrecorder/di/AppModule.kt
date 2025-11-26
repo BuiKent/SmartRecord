@@ -15,6 +15,7 @@ import com.yourname.smartrecorder.data.local.dao.NoteDao
 import com.yourname.smartrecorder.data.local.dao.RecordingDao
 import com.yourname.smartrecorder.data.local.dao.TranscriptDao
 import com.yourname.smartrecorder.data.local.db.SmartRecorderDatabase
+import com.yourname.smartrecorder.data.local.db.SmartRecorderDatabaseMigration
 import com.yourname.smartrecorder.data.repository.BookmarkRepositoryImpl
 import com.yourname.smartrecorder.data.repository.FlashcardRepositoryImpl
 import com.yourname.smartrecorder.data.repository.NoteRepositoryImpl
@@ -46,7 +47,14 @@ object AppModule {
             context,
             SmartRecorderDatabase::class.java,
             SmartRecorderDatabase.DATABASE_NAME
-        ).build()
+        )
+            .addMigrations(
+                SmartRecorderDatabaseMigration.MIGRATION_1_2,
+                SmartRecorderDatabaseMigration.MIGRATION_2_3,
+                SmartRecorderDatabaseMigration.MIGRATION_1_3
+            )
+            .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true) // For development only - remove in production
+            .build()
         
         val duration = System.currentTimeMillis() - startTime
         AppLogger.logDatabase(TAG_DATABASE, "DATABASE_INIT", "SmartRecorderDatabase", "duration=${duration}ms")

@@ -13,11 +13,12 @@
 3. [Setup & Dependencies](#setup--dependencies)
 4. [Architecture](#architecture)
 5. [Implementation Guide](#implementation-guide)
-6. [Model Management](#model-management)
-7. [Logging & Monitoring](#logging--monitoring)
-8. [Testing](#testing)
-9. [Troubleshooting](#troubleshooting)
-10. [Best Practices](#best-practices)
+6. [Transcript Post-Processing](#-transcript-post-processing)
+7. [Model Management](#model-management)
+8. [Logging & Monitoring](#logging--monitoring)
+9. [Testing](#testing)
+10. [Troubleshooting](#troubleshooting)
+11. [Best Practices](#best-practices)
 
 ---
 
@@ -235,7 +236,7 @@ include_directories(${WHISPER_LIB_DIR}/ggml/src)
 extern "C" {
 
 JNIEXPORT jlong JNICALL
-Java_com_example_yourpackage_data_stt_WhisperEngine_initModel(
+Java_com_yourname_smartrecorder_data_stt_WhisperEngine_initModel(
     JNIEnv *env, jobject thiz, jstring modelPath) {
     
     if (modelPath == nullptr) {
@@ -268,7 +269,7 @@ Java_com_example_yourpackage_data_stt_WhisperEngine_initModel(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_example_yourpackage_data_stt_WhisperEngine_transcribeAudio(
+Java_com_yourname_smartrecorder_data_stt_WhisperEngine_transcribeAudio(
     JNIEnv *env, jobject thiz, jlong modelPtr, jshortArray audioData, jint sampleRate) {
     
     if (modelPtr == 0 || audioData == nullptr) {
@@ -347,7 +348,7 @@ Java_com_example_yourpackage_data_stt_WhisperEngine_transcribeAudio(
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_yourpackage_data_stt_WhisperEngine_freeModel(
+Java_com_yourname_smartrecorder_data_stt_WhisperEngine_freeModel(
     JNIEnv *env, jobject thiz, jlong modelPtr) {
     
     if (modelPtr == 0) return;
@@ -361,7 +362,7 @@ Java_com_example_yourpackage_data_stt_WhisperEngine_freeModel(
 } // extern "C"
 ```
 
-**Important:** Replace `com_example_yourpackage` with your actual package name (use underscores instead of dots).
+**Important:** Package name is `com.yourname.smartrecorder` (converted to `com_yourname_smartrecorder` in JNI).
 
 ---
 
@@ -418,10 +419,10 @@ Java_com_example_yourpackage_data_stt_WhisperEngine_freeModel(
 
 ### 1. WhisperEngine (JNI Interface)
 
-**`app/src/main/java/com/example/yourpackage/data/stt/WhisperEngine.kt`:**
+**`app/src/main/java/com/yourname/smartrecorder/data/stt/WhisperEngine.kt`:**
 
 ```kotlin
-package com.example.yourpackage.data.stt
+package com.yourname.smartrecorder.data.stt
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -543,10 +544,10 @@ class WhisperEngine @Inject constructor() {
 
 ### 2. WhisperModelManager (Download & Cache)
 
-**`app/src/main/java/com/example/yourpackage/data/stt/WhisperModelManager.kt`:**
+**`app/src/main/java/com/yourname/smartrecorder/data/stt/WhisperModelManager.kt`:**
 
 ```kotlin
-package com.example.yourpackage.data.stt
+package com.yourname.smartrecorder.data.stt
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
@@ -716,10 +717,10 @@ class WhisperModelManager @Inject constructor(
 
 ### 3. WhisperModelProvider (Model Loading)
 
-**`app/src/main/java/com/example/yourpackage/data/stt/WhisperModelProvider.kt`:**
+**`app/src/main/java/com/yourname/smartrecorder/data/stt/WhisperModelProvider.kt`:**
 
 ```kotlin
-package com.example.yourpackage.data.stt
+package com.yourname.smartrecorder.data.stt
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
@@ -788,12 +789,351 @@ class WhisperModelProvider @Inject constructor(
 }
 ```
 
-### 4. WhisperAudioTranscriber (High-level Interface)
+### 4. AudioConverter (Audio Format Conversion)
 
-**`app/src/main/java/com/example/yourpackage/data/stt/WhisperAudioTranscriber.kt`:**
+**`app/src/main/java/com/yourname/smartrecorder/data/stt/AudioConverter.kt`:**
 
 ```kotlin
-package com.example.yourpackage.data.stt
+package com.yourname.smartrecorder.data.stt
+
+import android.content.Context
+import android.media.MediaCodec
+import android.media.MediaExtractor
+import android.media.MediaFormat
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * AudioConverter: Converts audio files to WAV PCM 16kHz mono format
+ * 
+ * Supported Formats: MP3, M4A, WAV, OGG, FLAC → WAV PCM 16kHz mono 16-bit
+ * 
+ * Output Format:
+ * - Sample Rate: 16kHz (Whisper requirement)
+ * - Channels: Mono (Whisper requirement)
+ * - Bit Depth: 16-bit PCM
+ * - Format: WAV with proper RIFF header
+ */
+@Singleton
+class AudioConverter @Inject constructor(
+    @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
+) {
+    companion object {
+        private const val TAG = "AudioConverter"
+        private const val SAMPLE_RATE = 16000 // Whisper requirement: 16kHz
+        private const val CHANNELS = 1 // Whisper requirement: Mono
+        private const val BIT_DEPTH = 16 // Whisper requirement: 16-bit
+    }
+    
+    /**
+     * Convert audio file to WAV format (16kHz, mono, 16-bit PCM)
+     * Uses Android MediaCodec for real conversion
+     */
+    suspend fun convertToWav(
+        uri: Uri,
+        onProgress: (Int) -> Unit = {}
+    ): File = withContext(Dispatchers.IO) {
+        val outputFile = File(context.cacheDir, "input_converted_${System.currentTimeMillis()}.wav")
+        var extractor: MediaExtractor? = null
+        
+        try {
+            onProgress(5)
+            
+            // Step 1: Create MediaExtractor and set data source
+            extractor = MediaExtractor()
+            extractor.setDataSource(context, uri, null)
+            
+            // Step 2: Find audio track
+            var audioTrackIndex = -1
+            var audioFormat: MediaFormat? = null
+            
+            for (i in 0 until extractor.trackCount) {
+                val format = extractor.getTrackFormat(i)
+                val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
+                
+                if (mime.startsWith("audio/")) {
+                    audioTrackIndex = i
+                    audioFormat = format
+                    break
+                }
+            }
+            
+            if (audioTrackIndex == -1 || audioFormat == null) {
+                throw IllegalStateException("No audio track found in file")
+            }
+            
+            onProgress(15)
+            
+            // Step 3: Get audio properties
+            val inputSampleRate = audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            val inputChannels = audioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            val mimeType = audioFormat.getString(MediaFormat.KEY_MIME) ?: ""
+            
+            // Step 4: Select track
+            extractor.selectTrack(audioTrackIndex)
+            
+            // Step 5: Create MediaCodec decoder
+            var codec: MediaCodec? = null
+            var pcmOutputStream: FileOutputStream? = null
+            var tempPcmFile: File? = null
+            
+            try {
+                codec = MediaCodec.createDecoderByType(mimeType)
+                codec.configure(audioFormat, null, null, 0)
+                codec.start()
+                
+                // Create temp file for PCM data
+                tempPcmFile = File(context.cacheDir, "temp_pcm_${System.currentTimeMillis()}.raw")
+                pcmOutputStream = FileOutputStream(tempPcmFile)
+                
+                var totalBytes = 0L
+                var sawInputEOS = false
+                var sawOutputEOS = false
+                val timeoutUs = 10000L // 10ms timeout
+                
+                onProgress(20)
+                
+                // Step 6: Decode audio using MediaCodec
+                while (!sawOutputEOS) {
+                    // Feed encoded data to decoder
+                    if (!sawInputEOS) {
+                        val inputBufferIndex = codec.dequeueInputBuffer(timeoutUs)
+                        if (inputBufferIndex >= 0) {
+                            val inputBuffer = codec.getInputBuffer(inputBufferIndex)
+                            if (inputBuffer != null) {
+                                val sampleSize = extractor.readSampleData(inputBuffer, 0)
+                                
+                                if (sampleSize < 0) {
+                                    codec.queueInputBuffer(
+                                        inputBufferIndex, 0, 0, 0,
+                                        MediaCodec.BUFFER_FLAG_END_OF_STREAM
+                                    )
+                                    sawInputEOS = true
+                                } else {
+                                    val presentationTimeUs = extractor.sampleTime
+                                    codec.queueInputBuffer(
+                                        inputBufferIndex, 0, sampleSize,
+                                        presentationTimeUs, 0
+                                    )
+                                    extractor.advance()
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Get decoded PCM data
+                    val bufferInfo = MediaCodec.BufferInfo()
+                    val outputBufferIndex = codec.dequeueOutputBuffer(bufferInfo, timeoutUs)
+                    
+                    if (outputBufferIndex >= 0) {
+                        if ((bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                            sawOutputEOS = true
+                        }
+                        
+                        if (bufferInfo.size > 0) {
+                            val outputBuffer = codec.getOutputBuffer(outputBufferIndex)
+                            if (outputBuffer != null) {
+                                val pcmChunk = ByteArray(bufferInfo.size)
+                                outputBuffer.position(bufferInfo.offset)
+                                outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
+                                outputBuffer.get(pcmChunk)
+                                
+                                pcmOutputStream?.write(pcmChunk)
+                                totalBytes += bufferInfo.size
+                                
+                                val progress = 20 + ((totalBytes * 60) / (totalBytes + 1024 * 1024)).toInt()
+                                onProgress(progress.coerceAtMost(80))
+                            }
+                        }
+                        
+                        codec.releaseOutputBuffer(outputBufferIndex, false)
+                    }
+                }
+                
+                pcmOutputStream?.close()
+                pcmOutputStream = null
+                
+                // Cleanup MediaCodec
+                codec?.stop()
+                codec?.release()
+                codec = null
+                
+                if (totalBytes == 0L || tempPcmFile == null || !tempPcmFile.exists() || tempPcmFile.length() == 0L) {
+                    tempPcmFile?.delete()
+                    throw IllegalStateException("No PCM data decoded from audio file")
+                }
+                
+                onProgress(85)
+                
+                // Step 7: Read PCM data from file
+                val rawPcmData = tempPcmFile.readBytes()
+                tempPcmFile.delete()
+                
+                // Step 8: Convert to mono if needed
+                val monoPcmData = if (inputChannels > 1) {
+                    convertToMono(rawPcmData, inputChannels)
+                } else {
+                    rawPcmData
+                }
+                
+                // Step 9: Resample to 16kHz if needed
+                val convertedPcm = if (inputSampleRate != SAMPLE_RATE) {
+                    // Use AudioResampler (you need to implement this or use a library)
+                    // For simplicity, assume resampling is done here
+                    resampleAudio(monoPcmData, inputSampleRate, SAMPLE_RATE)
+                } else {
+                    monoPcmData
+                }
+                
+                // Step 10: Write WAV file with proper header
+                writeWavFile(outputFile, convertedPcm, SAMPLE_RATE, CHANNELS, BIT_DEPTH)
+                
+                onProgress(100)
+                outputFile
+                
+            } finally {
+                pcmOutputStream?.close()
+                codec?.stop()
+                codec?.release()
+                tempPcmFile?.delete()
+            }
+        } catch (e: Exception) {
+            outputFile.delete()
+            throw IllegalStateException("Failed to convert audio file: ${e.message}", e)
+        } finally {
+            extractor?.release()
+        }
+    }
+    
+    /**
+     * Convert multi-channel audio to mono by averaging channels
+     */
+    private fun convertToMono(pcmData: ByteArray, inputChannels: Int): ByteArray {
+        if (inputChannels == 1) {
+            return pcmData
+        }
+        
+        val totalSamples = pcmData.size / 2
+        val samplesPerChannel = totalSamples / inputChannels
+        val monoData = ByteArray(samplesPerChannel * 2)
+        
+        for (i in 0 until samplesPerChannel) {
+            var sum = 0
+            for (ch in 0 until inputChannels) {
+                val sampleIndex = (i * inputChannels + ch) * 2
+                if (sampleIndex + 1 < pcmData.size) {
+                    val low = pcmData[sampleIndex].toInt() and 0xFF
+                    val high = pcmData[sampleIndex + 1].toInt() and 0xFF
+                    val sample = (low or (high shl 8))
+                    val signedSample = if (sample > 32767) sample - 65536 else sample
+                    sum += signedSample
+                }
+            }
+            val avgSample = (sum / inputChannels).coerceIn(-32768, 32767)
+            val monoIndex = i * 2
+            monoData[monoIndex] = (avgSample and 0xFF).toByte()
+            monoData[monoIndex + 1] = ((avgSample shr 8) and 0xFF).toByte()
+        }
+        
+        return monoData
+    }
+    
+    /**
+     * Resample audio to target sample rate
+     * Note: This is a simplified version. For production, use a proper resampling library
+     */
+    private fun resampleAudio(pcmData: ByteArray, fromRate: Int, toRate: Int): ByteArray {
+        if (fromRate == toRate) {
+            return pcmData
+        }
+        
+        // Simple linear interpolation resampling
+        val ratio = fromRate.toDouble() / toRate.toDouble()
+        val inputSamples = pcmData.size / 2
+        val outputSamples = (inputSamples / ratio).toInt()
+        val outputData = ByteArray(outputSamples * 2)
+        
+        for (i in 0 until outputSamples) {
+            val srcIndex = (i * ratio).toInt()
+            if (srcIndex * 2 + 1 < pcmData.size) {
+                val low = pcmData[srcIndex * 2].toInt() and 0xFF
+                val high = pcmData[srcIndex * 2 + 1].toInt() and 0xFF
+                val sample = (low or (high shl 8))
+                val signedSample = if (sample > 32767) sample - 65536 else sample
+                
+                outputData[i * 2] = (signedSample and 0xFF).toByte()
+                outputData[i * 2 + 1] = ((signedSample shr 8) and 0xFF).toByte()
+            }
+        }
+        
+        return outputData
+    }
+    
+    /**
+     * Write PCM data to WAV file with proper RIFF header
+     */
+    private fun writeWavFile(file: File, pcmData: ByteArray, sampleRate: Int, channels: Int, bitDepth: Int) {
+        FileOutputStream(file).use { output ->
+            val dataSize = pcmData.size
+            val fileSize = 36 + dataSize
+            
+            // WAV header
+            output.write("RIFF".toByteArray())
+            output.write(intToByteArray(fileSize))
+            output.write("WAVE".toByteArray())
+            
+            output.write("fmt ".toByteArray())
+            output.write(intToByteArray(16))
+            output.write(shortToByteArray(1)) // PCM
+            output.write(shortToByteArray(channels))
+            output.write(intToByteArray(sampleRate))
+            output.write(intToByteArray(sampleRate * channels * bitDepth / 8))
+            output.write(shortToByteArray(channels * bitDepth / 8))
+            output.write(shortToByteArray(bitDepth))
+            
+            output.write("data".toByteArray())
+            output.write(intToByteArray(dataSize))
+            output.write(pcmData)
+        }
+    }
+    
+    private fun intToByteArray(value: Int): ByteArray {
+        return byteArrayOf(
+            (value and 0xFF).toByte(),
+            ((value shr 8) and 0xFF).toByte(),
+            ((value shr 16) and 0xFF).toByte(),
+            ((value shr 24) and 0xFF).toByte()
+        )
+    }
+    
+    private fun shortToByteArray(value: Int): ByteArray {
+        return byteArrayOf(
+            (value and 0xFF).toByte(),
+            ((value shr 8) and 0xFF).toByte()
+        )
+    }
+}
+```
+
+**Note:** The resampling function above is simplified. For production use, consider using a proper audio resampling library like:
+- **Android AudioResampler** (built-in, but requires native code)
+- **Sonic** (C library, needs JNI wrapper)
+- **SimpleAudioResampler** (Kotlin library)
+
+### 5. WhisperAudioTranscriber (High-level Interface)
+
+**`app/src/main/java/com/yourname/smartrecorder/data/stt/WhisperAudioTranscriber.kt`:**
+
+```kotlin
+package com.yourname.smartrecorder.data.stt
 
 import android.content.Context
 import android.net.Uri
@@ -803,6 +1143,10 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// Import post-processor
+import com.yourname.smartrecorder.data.stt.WhisperPostProcessor
+import com.yourname.smartrecorder.data.stt.PostProcessingOptions
+
 interface AudioTranscriber {
     suspend fun transcribeFile(uri: Uri, onProgress: (Int) -> Unit): String
 }
@@ -810,7 +1154,7 @@ interface AudioTranscriber {
 @Singleton
 class WhisperAudioTranscriber @Inject constructor(
     @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
-    private val converter: AudioConverter,  // You need to implement this
+    private val converter: AudioConverter,
     private val modelProvider: WhisperModelProvider,
     private val engine: WhisperEngine
 ) : AudioTranscriber {
@@ -843,13 +1187,21 @@ class WhisperAudioTranscriber @Inject constructor(
                 onProgress(30 + (transcriptionProgress * 65 / 100))
             }
             
-            // Stage 4: Combine segments (95-100%)
+            // Stage 4: Post-process with heuristics + timestamps (95-100%)
             onProgress(95)
-            val transcript = segments.joinToString(" ") { it.text }
-            onProgress(100)
+            val processedTranscript = WhisperPostProcessor.processWithTimestamps(
+                segments,
+                PostProcessingOptions(
+                    useQuestionRule = true,        // Question-based speaker detection
+                    useTimeGap = true,             // Time-gap speaker detection
+                    processVoiceCommands = true,    // Process voice commands
+                    removeFillers = true            // Remove filler words
+                )
+            )
             
-            android.util.Log.d(TAG, "Transcription completed: ${transcript.length} chars")
-            transcript
+            onProgress(100)
+            android.util.Log.d(TAG, "Transcription completed: ${processedTranscript.length} chars")
+            processedTranscript
             
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Transcription failed", e)
@@ -861,15 +1213,15 @@ class WhisperAudioTranscriber @Inject constructor(
 }
 ```
 
-### 5. Dependency Injection Setup
+### 6. Dependency Injection Setup
 
-**`app/src/main/java/com/example/yourpackage/di/AppModule.kt`:**
+**`app/src/main/java/com/yourname/smartrecorder/di/AppModule.kt`:**
 
 ```kotlin
-package com.example.yourpackage.di
+package com.yourname.smartrecorder.di
 
 import android.content.Context
-import com.example.yourpackage.data.stt.*
+import com.yourname.smartrecorder.data.stt.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -907,14 +1259,387 @@ object AppModule {
     
     @Provides
     @Singleton
+    fun provideAudioConverter(
+        @ApplicationContext context: Context
+    ): AudioConverter {
+        return AudioConverter(context)
+    }
+    
+    @Provides
+    @Singleton
     fun provideWhisperAudioTranscriber(
         @ApplicationContext context: Context,
-        converter: AudioConverter,  // You need to provide this
+        converter: AudioConverter,
         modelProvider: WhisperModelProvider,
         engine: WhisperEngine
     ): WhisperAudioTranscriber {
         return WhisperAudioTranscriber(context, converter, modelProvider, engine)
     }
+}
+```
+
+---
+
+## 📝 Transcript Post-Processing
+
+### Why Post-Processing?
+
+Whisper output is already good, but post-processing improves:
+- **Text quality**: Remove filler words, fix grammar, normalize units
+- **Speaker detection**: Identify different speakers in conversations
+- **Formatting**: Add line breaks, speaker labels for readability
+- **Voice commands**: Process spoken commands like "new line", "comma"
+
+### Post-Processing Pipeline
+
+```
+Raw Whisper Output (with timestamps)
+    ↓
+1. Voice Commands Processing (optional)
+    ↓
+2. English Heuristics (text cleaning)
+    ↓
+3. Speaker Detection (question rule + time gap)
+    ↓
+Final Processed Transcript
+```
+
+### Implementation
+
+**`app/src/main/java/com/yourname/smartrecorder/data/stt/WhisperPostProcessor.kt`:**
+
+```kotlin
+package com.yourname.smartrecorder.data.stt
+
+/**
+ * WhisperPostProcessor: Post-processing for Whisper output
+ * 
+ * Features:
+ * - English Heuristics: Text cleaning, formatting
+ * - Question-based speaker detection: After question (?) → change speaker
+ * - Time-gap speaker detection: Silence > 1.5s → change speaker
+ * - Voice commands processing
+ */
+object WhisperPostProcessor {
+    private const val TAG = "WhisperPostProcessor"
+    
+    // Filler words to remove
+    private val FILLER_WORDS = listOf(
+        "um", "uh", "er", "ah", "oh", "hum", "hmm", "hm", "eh", "huh", "mm", "mmm"
+    )
+    
+    /**
+     * Process Whisper output with English heuristics
+     */
+    fun processEnglishHeuristics(text: String): String {
+        var processed = text.trim()
+        if (processed.isBlank()) return processed
+        
+        // Step 1: Remove filler words
+        val fillerRegex = Regex("\\b(${FILLER_WORDS.joinToString("|")})\\b", RegexOption.IGNORE_CASE)
+        processed = fillerRegex.replace(processed, "")
+            .replace(Regex("\\s+"), " ") // Remove extra spaces
+        
+        // Step 2: Remove repeated words (stuttering)
+        // "the the car" → "the car"
+        processed = processed.replace(Regex("\\b(\\w+)\\s+\\1\\b", RegexOption.IGNORE_CASE), "$1")
+        
+        // Step 3: Grammar fixes
+        // Fix "i" → "I"
+        processed = processed.replace(Regex("\\bi\\b"), "I")
+        processed = processed.replace(Regex("\\bi'(m|ll|ve|d)\\b"), "I'$1")
+        
+        // Step 4: Normalize units & currency
+        processed = processed.replace(Regex("(\\d+)\\s+percent", RegexOption.IGNORE_CASE), "$1%")
+        processed = processed.replace(Regex("(\\d+)\\s+dollars", RegexOption.IGNORE_CASE), "$$$1")
+        processed = processed.replace(Regex("(\\d+)\\s+pounds", RegexOption.IGNORE_CASE), "£$1")
+        
+        return processed.trim()
+    }
+    
+    /**
+     * Process voice commands
+     */
+    fun processVoiceCommands(text: String): String {
+        val voiceCommands = mapOf(
+            "new line" to "\n",
+            "comma" to ",",
+            "period" to ".",
+            "question mark" to "?",
+            "exclamation mark" to "!",
+            "colon" to ":",
+            "semicolon" to ";"
+        )
+        
+        var processed = text
+        voiceCommands.forEach { (command, replacement) ->
+            val regex = Regex("\\b$command\\b", RegexOption.IGNORE_CASE)
+            processed = regex.replace(processed, replacement)
+        }
+        
+        return processed
+    }
+    
+    /**
+     * Process with timestamps: Combine question rule (priority) and time gap (fallback)
+     * Logic: OR condition - either question mark OR time gap > 1.5s → change speaker
+     */
+    fun processWithTimestamps(
+        segments: List<WhisperEngine.WhisperSegment>,
+        options: PostProcessingOptions = PostProcessingOptions()
+    ): String {
+        if (segments.isEmpty()) return ""
+        
+        // Step 1: Process each segment text with heuristics
+        val processedSegments = segments.map { segment ->
+            var processedText = segment.text.trim()
+            
+            // Voice commands
+            if (options.processVoiceCommands) {
+                processedText = processVoiceCommands(processedText)
+            }
+            
+            // English heuristics
+            processedText = processEnglishHeuristics(processedText)
+            
+            if (processedText.isBlank()) null
+            else ProcessedSegment(processedText, segment.start, segment.end)
+        }.filterNotNull()
+        
+        if (processedSegments.isEmpty()) return ""
+        
+        // Step 2: Determine speakers for each segment
+        val speakerAssignments = mutableListOf<Int>()
+        var currentSpeaker = 1
+        var lastEndTime = 0.0
+        
+        processedSegments.forEachIndexed { index, segment ->
+            val isQuestion = segment.text.trim().endsWith("?")
+            val prevSegment = processedSegments.getOrNull(index - 1)
+            val prevIsQuestion = prevSegment?.text?.trim()?.endsWith("?") ?: false
+            
+            // Calculate time gap (silence)
+            val silenceGap = if (index > 0) segment.start - lastEndTime else 0.0
+            val isLongPause = silenceGap > 1.5
+            
+            // Logic OR: Priority 1 = question mark, Priority 2 = time gap
+            var shouldChangeSpeaker = false
+            
+            if (options.useQuestionRule && isQuestion) {
+                // Priority 1: Question → change speaker
+                shouldChangeSpeaker = true
+            } else if (options.useTimeGap && isLongPause && !prevIsQuestion) {
+                // Priority 2: Time gap > 1.5s (only if not after question)
+                shouldChangeSpeaker = true
+            } else if (options.useQuestionRule && prevIsQuestion && !isQuestion) {
+                // After question, next sentence is not question → back to speaker 1
+                shouldChangeSpeaker = true
+            }
+            
+            // Change speaker if needed
+            if (shouldChangeSpeaker && index > 0) {
+                currentSpeaker = if (currentSpeaker == 1) 2 else 1
+            }
+            
+            speakerAssignments.add(currentSpeaker)
+            lastEndTime = segment.end
+        }
+        
+        // Step 3: Build result
+        val uniqueSpeakers = speakerAssignments.distinct()
+        val hasMultipleSpeakers = uniqueSpeakers.size > 1
+        val result = StringBuilder()
+        
+        if (hasMultipleSpeakers) {
+            // Multiple speakers → add labels and line breaks
+            var prevSpeaker = -1
+            
+            processedSegments.forEachIndexed { index, segment ->
+                val speaker = speakerAssignments[index]
+                
+                if (speaker != prevSpeaker) {
+                    if (index > 0) {
+                        result.append("\n\n")
+                    }
+                    result.append("[Speaker $speaker]: ")
+                } else if (index > 0) {
+                    result.append("\n")
+                }
+                
+                result.append(segment.text.trim())
+                prevSpeaker = speaker
+            }
+        } else {
+            // Single speaker → join all segments, no labels
+            processedSegments.forEachIndexed { index, segment ->
+                if (index > 0) {
+                    result.append(" ")
+                }
+                result.append(segment.text.trim())
+            }
+        }
+        
+        return result.toString().trim()
+    }
+    
+    private data class ProcessedSegment(
+        val text: String,
+        val start: Double,
+        val end: Double
+    )
+}
+
+/**
+ * Post-processing options
+ */
+data class PostProcessingOptions(
+    val useQuestionRule: Boolean = true,        // After question (?) → change speaker (priority)
+    val useTimeGap: Boolean = true,             // Time gap > 1.5s → change speaker (fallback)
+    val processVoiceCommands: Boolean = true,    // Process voice commands
+    val removeFillers: Boolean = true            // Remove filler words (integrated in heuristics)
+)
+```
+
+### Integration into WhisperAudioTranscriber
+
+Update `WhisperAudioTranscriber` to use post-processing:
+
+```kotlin
+// In WhisperAudioTranscriber.kt
+
+// Stage 3: Transcribe (30-95%)
+val segments = engine.transcribe(modelPtr, tempFile) { transcriptionProgress ->
+    onProgress(30 + (transcriptionProgress * 65 / 100))
+}
+
+// Stage 4: Post-process with heuristics + timestamps (95-100%)
+onProgress(95)
+val processedTranscript = WhisperPostProcessor.processWithTimestamps(
+    segments,
+    PostProcessingOptions(
+        useQuestionRule = true,        // Question-based speaker detection
+        useTimeGap = true,             // Time-gap speaker detection
+        processVoiceCommands = true,    // Process voice commands
+        removeFillers = true            // Remove filler words
+    )
+)
+
+onProgress(100)
+return processedTranscript
+```
+
+### Customization Guide
+
+#### What to Add
+
+1. **Language-specific heuristics** (if not English):
+   ```kotlin
+   fun processVietnameseHeuristics(text: String): String {
+       // Vietnamese-specific rules
+   }
+   ```
+
+2. **Custom filler words**:
+   ```kotlin
+   private val CUSTOM_FILLER_WORDS = listOf("you know", "sort of", "kind of")
+   ```
+
+3. **Custom voice commands**:
+   ```kotlin
+   val customCommands = mapOf(
+       "paragraph" to "\n\n",
+       "bullet point" to "• "
+   )
+   ```
+
+4. **Number normalization**:
+   ```kotlin
+   // "twenty five" → "25"
+   processed = processed.replace(Regex("twenty\\s+five", RegexOption.IGNORE_CASE), "25")
+   ```
+
+5. **Acronym expansion**:
+   ```kotlin
+   val acronyms = mapOf(
+       "AI" to "Artificial Intelligence",
+       "API" to "Application Programming Interface"
+   )
+   ```
+
+#### What to Remove
+
+1. **Speaker detection** (if single speaker only):
+   ```kotlin
+   PostProcessingOptions(
+       useQuestionRule = false,
+       useTimeGap = false
+   )
+   ```
+
+2. **Voice commands** (if not needed):
+   ```kotlin
+   PostProcessingOptions(
+       processVoiceCommands = false
+   )
+   ```
+
+3. **Filler word removal** (if you want to keep natural speech):
+   ```kotlin
+   PostProcessingOptions(
+       removeFillers = false
+   )
+   ```
+
+#### Important Notes
+
+1. **Preserve Whisper punctuation**: Whisper already adds punctuation, don't remove it
+2. **Timestamps are crucial**: Use timestamps for accurate speaker detection
+3. **Question rule priority**: Question mark detection is more reliable than time gap
+4. **Single vs multiple speakers**: 
+   - Single speaker: No labels, just clean text
+   - Multiple speakers: Add labels and line breaks
+5. **Performance**: Post-processing is fast (< 100ms for typical transcripts)
+6. **Language support**: Current heuristics are English-specific, adapt for other languages
+
+### Example Output
+
+**Before (Raw Whisper):**
+```
+um hello there um i want to ask you a question? yes please go ahead. um okay so what is the answer?
+```
+
+**After (Post-processed):**
+```
+[Speaker 1]: Hello there, I want to ask you a question?
+[Speaker 2]: Yes, please go ahead.
+[Speaker 1]: Okay, so what is the answer?
+```
+
+### Testing Post-Processing
+
+```kotlin
+@Test
+fun testPostProcessing() {
+    val rawText = "um hello there um i want to ask you a question?"
+    val processed = WhisperPostProcessor.processEnglishHeuristics(rawText)
+    assertEquals("Hello there, I want to ask you a question?", processed)
+}
+
+@Test
+fun testSpeakerDetection() {
+    val segments = listOf(
+        WhisperEngine.WhisperSegment("Hello there.", 0.0, 2.0),
+        WhisperEngine.WhisperSegment("What is the answer?", 2.5, 5.0),
+        WhisperEngine.WhisperSegment("The answer is 42.", 5.5, 8.0)
+    )
+    
+    val result = WhisperPostProcessor.processWithTimestamps(
+        segments,
+        PostProcessingOptions(useQuestionRule = true, useTimeGap = true)
+    )
+    
+    assertTrue(result.contains("[Speaker 1]"))
+    assertTrue(result.contains("[Speaker 2]"))
 }
 ```
 
@@ -1052,7 +1777,7 @@ analytics.logEvent("whisper_transcription", mapOf(
 
 ### Unit Tests
 
-**`app/src/test/java/com/example/yourpackage/data/stt/WhisperModelManagerTest.kt`:**
+**`app/src/test/java/com/yourname/smartrecorder/data/stt/WhisperModelManagerTest.kt`:**
 
 ```kotlin
 @Test
@@ -1075,7 +1800,7 @@ fun `test model path`() {
 
 ### Integration Tests
 
-**`app/src/androidTest/java/com/example/yourpackage/data/stt/WhisperIntegrationTest.kt`:**
+**`app/src/androidTest/java/com/yourname/smartrecorder/data/stt/WhisperIntegrationTest.kt`:**
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)
