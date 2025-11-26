@@ -17,14 +17,13 @@ fun ExportBottomSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(24.dp)
+            .padding(horizontal = 16.dp, vertical = 20.dp)
     ) {
         Text(
             text = "Export & Share",
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(bottom = 12.dp)
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         ExportOption(
             title = "Plain Text (.txt)",
@@ -44,17 +43,6 @@ fun ExportBottomSheet(
             }
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
-        HorizontalDivider()
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = "Templates",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        
         ExportOption(
             title = "Lecture Template",
             description = "Formatted for lectures with key points",
@@ -63,18 +51,6 @@ fun ExportBottomSheet(
                 onExportClick(ExportFormat.LECTURE) 
             }
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        TextButton(
-            onClick = { 
-                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User cancelled export")
-                onDismiss() 
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Cancel")
-        }
     }
 }
 
@@ -91,12 +67,15 @@ private fun ExportOption(
             .padding(vertical = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
