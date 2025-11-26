@@ -42,6 +42,35 @@ fun ExportBottomSheet(
             onClick = { onExportClick(ExportFormat.SRT) }
         )
         
+        Spacer(modifier = Modifier.height(8.dp))
+        Divider()
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "Templates",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        
+        ExportOption(
+            title = "Meeting Template",
+            description = "Formatted for meetings with action items",
+            onClick = { onExportClick(ExportFormat.MEETING) }
+        )
+        
+        ExportOption(
+            title = "Lecture Template",
+            description = "Formatted for lectures with key points",
+            onClick = { onExportClick(ExportFormat.LECTURE) }
+        )
+        
+        ExportOption(
+            title = "Interview Template",
+            description = "Formatted for interviews with speaker labels",
+            onClick = { onExportClick(ExportFormat.INTERVIEW) }
+        )
+        
         Spacer(modifier = Modifier.height(16.dp))
         
         TextButton(

@@ -13,5 +13,7 @@ interface AudioPlayer {
     fun getDuration(): Int
     fun isPlaying(): Boolean
     fun release()
+    fun setLooping(looping: Boolean)
+    fun isLooping(): Boolean
 }
 

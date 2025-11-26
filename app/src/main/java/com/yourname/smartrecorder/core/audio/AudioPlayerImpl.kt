@@ -17,6 +17,9 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     @Volatile
     private var currentFile: File? = null
     
+    @Volatile
+    private var isLooping: Boolean = false
+    
     override fun play(file: File, onCompletion: () -> Unit) {
         val startTime = System.currentTimeMillis()
         AppLogger.d(TAG_AUDIO, "Playing audio -> file: %s, size: %d bytes", file.absolutePath, file.length())
@@ -32,9 +35,14 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
                     val duration = duration
                     AppLogger.d(TAG_AUDIO, "MediaPlayer prepared -> duration: %d ms", duration)
                     
+                    isLooping = this@AudioPlayerImpl.isLooping
+                    setLooping(isLooping)
+                    
                     setOnCompletionListener {
-                        AppLogger.d(TAG_AUDIO, "Playback completed -> file: %s", file.absolutePath)
-                        onCompletion()
+                        AppLogger.d(TAG_AUDIO, "Playback completed -> file: %s, looping: %b", file.absolutePath, isLooping)
+                        if (!isLooping) {
+                            onCompletion()
+                        }
                     }
                     start()
                 }
@@ -142,6 +150,20 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
         }
     }
     
+    override fun setLooping(looping: Boolean) {
+        AppLogger.d(TAG_AUDIO, "Setting looping: %b", looping)
+        synchronized(this) {
+            isLooping = looping
+            mediaPlayer?.isLooping = looping
+        }
+    }
+    
+    override fun isLooping(): Boolean {
+        return synchronized(this) {
+            isLooping
+        }
+    }
+    
     override fun release() {
         AppLogger.d(TAG_AUDIO, "Releasing audio player")
         synchronized(this) {
@@ -150,11 +172,13 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
                 mediaPlayer?.release()
                 mediaPlayer = null
                 currentFile = null
+                isLooping = false
                 AppLogger.d(TAG_AUDIO, "Audio player released -> file: %s", file)
             } catch (e: Exception) {
                 AppLogger.e(TAG_AUDIO, "Failed to release audio player", e)
                 mediaPlayer = null
                 currentFile = null
+                isLooping = false
             }
         }
     }

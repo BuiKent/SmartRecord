@@ -48,6 +48,7 @@ data class TranscriptUiState(
     val isGeneratingTranscript: Boolean = false,
     val transcriptProgress: Int = 0,
     val isPlaying: Boolean = false,
+    val isLooping: Boolean = false,
     val currentPositionMs: Long = 0L,
     val currentSegmentId: Long? = null,
     val searchQuery: String = "",
@@ -254,10 +255,18 @@ class TranscriptViewModel @Inject constructor(
                 } else {
                     audioPlayer.play(file) {
                         // On completion
-                        AppLogger.d(TAG_TRANSCRIPT, "Playback completed")
-                        _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
-                        positionUpdateJob?.cancel()
+                        AppLogger.d(TAG_TRANSCRIPT, "Playback completed, looping: %b", _uiState.value.isLooping)
+                        if (!_uiState.value.isLooping) {
+                            _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
+                            positionUpdateJob?.cancel()
+                        } else {
+                            // Loop: reset position but keep playing
+                            audioPlayer.seekTo(0)
+                            _uiState.update { it.copy(currentPositionMs = 0L) }
+                        }
                     }
+                    // Set looping state
+                    audioPlayer.setLooping(_uiState.value.isLooping)
                     AppLogger.d(TAG_TRANSCRIPT, "Started new playback")
                 }
                 startPositionUpdates()
@@ -281,8 +290,8 @@ class TranscriptViewModel @Inject constructor(
                     _uiState.update { it.copy(currentPositionMs = position.toLong()) }
                     updateCurrentSegment(position.toLong())
                     
-                    // Check if finished
-                    if (position >= (_uiState.value.recording?.durationMs ?: 0)) {
+                    // Check if finished (only if not looping)
+                    if (!_uiState.value.isLooping && position >= (_uiState.value.recording?.durationMs ?: 0)) {
                         audioPlayer.pause()
                         _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
                         break

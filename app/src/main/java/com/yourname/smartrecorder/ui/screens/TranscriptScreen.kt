@@ -127,10 +127,12 @@ fun TranscriptScreen(
             // Player bar
             PlayerBar(
                 isPlaying = uiState.isPlaying,
+                isLooping = uiState.isLooping,
                 currentPosMs = uiState.currentPositionMs,
                 durationMs = recording?.durationMs ?: 0L,
                 onPlayPauseClick = { viewModel.togglePlayPause() },
-                onSeekTo = { viewModel.seekTo(it.toLong()) }
+                onSeekTo = { viewModel.seekTo(it.toLong()) },
+                onToggleLoop = { viewModel.toggleLoop() }
             )
             
             // Search bar
@@ -219,10 +221,12 @@ fun TranscriptScreen(
 @Composable
 private fun PlayerBar(
     isPlaying: Boolean,
+    isLooping: Boolean = false,
     currentPosMs: Long,
     durationMs: Long,
     onPlayPauseClick: () -> Unit,
-    onSeekTo: (Float) -> Unit
+    onSeekTo: (Float) -> Unit,
+    onToggleLoop: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -236,6 +240,13 @@ private fun PlayerBar(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = "Play/Pause"
+                )
+            }
+            IconButton(onClick = onToggleLoop) {
+                Text(
+                    text = "🔁",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isLooping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(
