@@ -31,26 +31,26 @@
   - `UpdateFlashcardDifficultyUseCase` - Update after review
 - **Status**: Backend complete, UI pending
 
-## ⚠️ Pending UI Implementation
+## ✅ Completed UI Implementation
 
-### 1. Bookmarks UI
-- [ ] Add bookmark button in RecordScreen during recording
-- [ ] Display bookmarks in TranscriptScreen
-- [ ] Click bookmark to seek to timestamp
-- [ ] Add/edit bookmark notes
+### 1. Bookmarks UI ✅
+- [x] Add bookmark button in RecordScreen during recording
+- [x] Display bookmarks in TranscriptScreen (Notes tab)
+- [x] Click bookmark to seek to timestamp
+- [x] Add bookmark dialog with note
 
-### 2. FTS Search UI
-- [ ] Add search bar in LibraryScreen
-- [ ] Add search bar in TranscriptScreen
-- [ ] Highlight search results
-- [ ] Navigate to timestamp on click
+### 2. FTS Search UI ✅
+- [x] Add search bar in LibraryScreen (with FTS search)
+- [x] Add search bar in TranscriptScreen
+- [x] Highlight search results (word-level highlighting)
+- [x] Navigate to timestamp on click
 
-### 3. Flashcards UI
-- [ ] Implement StudyScreen with flashcard practice
-- [ ] Show question, reveal answer
-- [ ] Difficulty buttons (Easy/Medium/Hard)
-- [ ] Progress tracking
-- [ ] Generate flashcards from transcript
+### 3. Flashcards UI ✅
+- [x] Implement StudyScreen with flashcard practice
+- [x] Show question, reveal answer
+- [x] Difficulty buttons (Easy/Medium/Hard)
+- [x] Progress tracking
+- [x] Generate flashcards from transcript (button in TranscriptScreen)
 
 ## 🔄 Complex Features (Require More Work)
 
@@ -87,13 +87,13 @@
   - ✅ FTS implementation
   - ✅ Logging system
   
-- **UI**: ~60% complete
+- **UI**: ~90% complete
   - ✅ RecordScreen, LibraryScreen, TranscriptScreen
-  - ✅ Export functionality
-  - ⚠️ Bookmarks UI (pending)
-  - ⚠️ FTS Search UI (pending)
-  - ⚠️ Flashcards UI (pending)
-  - ⚠️ Realtime transcript UI (pending)
+  - ✅ Export functionality với speaker labels
+  - ✅ Bookmarks UI (complete)
+  - ✅ FTS Search UI (complete với highlight)
+  - ✅ Flashcards UI (StudyScreen complete)
+  - ⚠️ Realtime transcript UI (screen exists but streaming disabled)
 
 - **Advanced Features**: ~50% complete
   - ✅ Whisper integration (COMPLETE - ready for testing)
@@ -101,9 +101,10 @@
 
 ## 🎯 Next Steps
 
-1. **Priority 1**: UI for Bookmarks, FTS Search, Flashcards
+1. **Priority 1**: ✅ UI for Bookmarks, FTS Search, Flashcards (COMPLETE)
 2. **Priority 2**: ✅ Whisper native integration (COMPLETE)
-3. **Priority 3**: Realtime transcript UI and streaming
+3. **Priority 3**: Realtime transcript streaming (needs Whisper streaming API)
+4. **Priority 4**: Advanced features (Template export, SRT jump-to-sentence, Loop playback)
 
 ## 📝 Notes
 

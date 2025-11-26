@@ -75,24 +75,30 @@
 
 ## ❌ Chưa implement
 
-### 1. Bookmarks/Markers ⚠️
+### 1. Bookmarks/Markers ✅
 - ✅ Entity/DAO/Repository đã có (BookmarkEntity, BookmarkDao, BookmarkRepository)
 - ✅ UseCases đã có (AddBookmarkUseCase, GetBookmarksUseCase)
-- ❌ Chưa có UI để add bookmark khi recording
-- ❌ Chưa hiển thị bookmarks trong TranscriptScreen
+- ✅ **UI đã có**: Add bookmark button trong RecordScreen khi recording
+- ✅ **UI đã có**: Hiển thị bookmarks trong TranscriptScreen (Notes tab)
+- ✅ **UI đã có**: Click bookmark để seek to timestamp
 
-### 2. Full-text Search (FTS) ⚠️
+### 2. Full-text Search (FTS) ✅
 - ✅ FTS Entity đã có (TranscriptSegmentFtsEntity với FTS4)
 - ✅ DAO methods đã có (searchTranscripts, searchTranscriptsInRecording)
 - ✅ UseCase đã có (SearchTranscriptsUseCase)
-- ❌ Chưa có UI search bar trong LibraryScreen/TranscriptScreen
-- ❌ Chưa có highlight search results
+- ✅ **UI đã có**: Search bar trong LibraryScreen với FTS search
+- ✅ **UI đã có**: Search bar trong TranscriptScreen
+- ✅ **UI đã có**: Highlight search results (word-level highlighting)
+- ✅ **UI đã có**: Navigate to timestamp khi click segment
 
-### 3. Flashcards ⚠️
+### 3. Flashcards ✅
 - ✅ Entity/DAO/Repository đã có (FlashcardEntity, FlashcardDao, FlashcardRepository)
 - ✅ UseCases đã có (GenerateFlashcardsUseCase, GetFlashcardsUseCase, UpdateFlashcardDifficultyUseCase)
-- ❌ Chưa có StudyScreen implementation
-- ❌ Chưa có practice mode UI
+- ✅ **UI đã có**: StudyScreen với flashcard practice
+- ✅ **UI đã có**: Show question, reveal answer
+- ✅ **UI đã có**: Difficulty buttons (Easy/Medium/Hard)
+- ✅ **UI đã có**: Progress tracking và navigation
+- ✅ **UI đã có**: Generate flashcards từ transcript (button trong TranscriptScreen)
 
 ### 4. Whisper Integration ✅
 - ✅ **Implementation COMPLETE** - Ready for testing
@@ -113,19 +119,19 @@
 
 ## 📊 Tổng kết
 
-### Tính năng hoạt động: ~70%
+### Tính năng hoạt động: ~90%
 - Core features (Recording, Import, Library, Transcript, Export) đã hoạt động
+- Bookmarks UI đã hoàn thiện
+- FTS Search UI đã hoàn thiện
+- Flashcards UI đã hoàn thiện
 - UI/UX đã hoàn thiện
 - Database và architecture đã stable
 
-### Tính năng cần hoàn thiện: ~10%
-- Realtime Transcript (cần Whisper streaming + UI)
+### Tính năng cần hoàn thiện: ~5%
+- Realtime Transcript (cần Whisper streaming API - đã có UI screen nhưng streaming disabled)
 
-### Tính năng chưa có UI: ~10%
-- Bookmarks UI (backend đã có)
-- FTS Search UI (backend đã có)
-- Flashcards UI (backend đã có)
-- Advanced features (Template export, SRT jump-to-sentence, Loop playback)
+### Tính năng chưa có: ~5%
+- Advanced features (Template export, SRT jump-to-sentence, Loop playback, Audio pre-processing)
 
 ## 🔧 Cần làm tiếp
 
@@ -143,23 +149,24 @@
    - Kết nối với RealtimeTranscriptUseCase
    - Hiển thị live transcript updates
 
-3. **Bookmarks UI** (ưu tiên trung bình)
+3. **Bookmarks UI** ✅ **HOÀN THÀNH**
    - ✅ Backend đã có (Entity, DAO, Repository, UseCases)
-   - ❌ Add UI để add bookmark khi recording
-   - ❌ Hiển thị bookmarks trong TranscriptScreen
-   - ❌ Click bookmark để seek to timestamp
+   - ✅ Add UI để add bookmark khi recording (RecordScreen)
+   - ✅ Hiển thị bookmarks trong TranscriptScreen (Notes tab)
+   - ✅ Click bookmark để seek to timestamp
 
-4. **FTS Search UI** (ưu tiên trung bình)
+4. **FTS Search UI** ✅ **HOÀN THÀNH**
    - ✅ Backend đã có (FTS Entity, DAO methods, UseCase)
-   - ❌ Add search bar trong LibraryScreen
-   - ❌ Add search bar trong TranscriptScreen
-   - ❌ Highlight search results
-   - ❌ Navigate to timestamp on click
+   - ✅ Search bar trong LibraryScreen với FTS search
+   - ✅ Search bar trong TranscriptScreen
+   - ✅ Highlight search results (word-level highlighting)
+   - ✅ Navigate to timestamp on click
 
-5. **Flashcards UI** (ưu tiên trung bình)
+5. **Flashcards UI** ✅ **HOÀN THÀNH**
    - ✅ Backend đã có (Entity, DAO, Repository, UseCases)
-   - ❌ Implement StudyScreen với flashcard practice
-   - ❌ Show question, reveal answer
-   - ❌ Difficulty buttons (Easy/Medium/Hard)
-   - ❌ Progress tracking
+   - ✅ StudyScreen với flashcard practice
+   - ✅ Show question, reveal answer
+   - ✅ Difficulty buttons (Easy/Medium/Hard)
+   - ✅ Progress tracking và navigation
+   - ✅ Generate flashcards từ transcript
 
