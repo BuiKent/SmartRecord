@@ -14,6 +14,68 @@ import java.io.File
 import javax.inject.Inject
 
 /**
+ * Detect speakers in transcript segments using question-based and time-gap heuristics.
+ * Similar logic to WhisperPostProcessor.processWithTimestamps() but works with TranscriptSegment.
+ */
+private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSegment> {
+    if (segments.isEmpty()) return segments
+    
+    val speakerAssignments = mutableListOf<Int>()
+    var currentSpeaker = 1
+    var lastEndTime = 0L
+    
+    segments.forEachIndexed { index, segment ->
+        val isQuestion = segment.isQuestion || segment.text.trim().endsWith("?")
+        val prevSegment = segments.getOrNull(index - 1)
+        val prevIsQuestion = prevSegment?.isQuestion ?: false
+        
+        // Calculate time gap (silence) in seconds
+        val silenceGap = if (index > 0) {
+            (segment.startTimeMs - lastEndTime) / 1000.0
+        } else {
+            0.0
+        }
+        val isLongPause = silenceGap > 1.5
+        
+        // Logic: Priority 1 = question mark, Priority 2 = time gap
+        var shouldChangeSpeaker = false
+        
+        if (isQuestion) {
+            // Priority 1: Question → change speaker
+            shouldChangeSpeaker = true
+        } else if (isLongPause && !prevIsQuestion) {
+            // Priority 2: Time gap > 1.5s (only if not after question)
+            shouldChangeSpeaker = true
+        } else if (prevIsQuestion && !isQuestion) {
+            // After question, next sentence is not question → back to speaker 1
+            shouldChangeSpeaker = true
+        }
+        
+        // Change speaker if needed
+        if (shouldChangeSpeaker && index > 0) {
+            currentSpeaker = if (currentSpeaker == 1) 2 else 1
+        }
+        
+        speakerAssignments.add(currentSpeaker)
+        lastEndTime = segment.endTimeMs
+    }
+    
+    // Check if we have multiple speakers
+    val uniqueSpeakers = speakerAssignments.distinct()
+    val hasMultipleSpeakers = uniqueSpeakers.size > 1
+    
+    // Return segments with speaker info (only if multiple speakers detected)
+    return if (hasMultipleSpeakers) {
+        segments.mapIndexed { index, segment ->
+            segment.copy(speaker = speakerAssignments[index])
+        }
+    } else {
+        // Single speaker - no speaker labels needed
+        segments
+    }
+}
+
+/**
  * Use case for generating transcript from audio file using Whisper.
  */
 class GenerateTranscriptUseCase @Inject constructor(
@@ -50,7 +112,7 @@ class GenerateTranscriptUseCase @Inject constructor(
             }
             
             // Convert WhisperEngine.WhisperSegment to TranscriptSegment
-            val segments = whisperSegments.mapIndexed { index, whisperSegment ->
+            val rawSegments = whisperSegments.mapIndexed { index, whisperSegment ->
                 TranscriptSegment(
                     id = index.toLong(),
                     recordingId = recording.id,
@@ -60,8 +122,11 @@ class GenerateTranscriptUseCase @Inject constructor(
                     isQuestion = whisperSegment.text.trim().endsWith("?")
                 )
             }
+            
+            // Apply speaker detection
+            val segments = detectSpeakers(rawSegments)
         
-            AppLogger.d(TAG_TRANSCRIPT, "Generated %d transcript segments", segments.size)
+            AppLogger.d(TAG_TRANSCRIPT, "Generated %d transcript segments with speaker detection", segments.size)
             
             // Save to repository
             AppLogger.d(TAG_TRANSCRIPT, "Saving transcript segments to database")

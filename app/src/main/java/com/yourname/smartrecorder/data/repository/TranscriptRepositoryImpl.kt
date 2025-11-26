@@ -119,7 +119,8 @@ class TranscriptRepositoryImpl @Inject constructor(
             startTimeMs = startTimeMs,
             endTimeMs = endTimeMs,
             text = text,
-            isQuestion = isQuestion
+            isQuestion = isQuestion,
+            speaker = null  // Speaker not stored in DB, will be recalculated when needed
         )
     }
 }
