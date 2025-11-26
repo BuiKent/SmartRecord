@@ -2,6 +2,9 @@ package com.yourname.smartrecorder.ui.record
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_RECORDING
 import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
 import com.yourname.smartrecorder.domain.usecase.StartRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
@@ -43,19 +46,29 @@ class RecordViewModel @Inject constructor(
 
     fun onStartClick() {
         if (isStarting || _uiState.value.isRecording) {
+            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Start rejected - already starting or recording")
             return // Prevent concurrent starts
         }
+        
+        AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStartClick", null)
         
         viewModelScope.launch {
             try {
                 isStarting = true
+                AppLogger.d(TAG_RECORDING, "Getting recordings directory")
                 val outputDir = getRecordingsDirectory()
+                AppLogger.d(TAG_RECORDING, "Starting recording -> outputDir: %s", outputDir.absolutePath)
+                
                 currentRecording = startRecording(outputDir)
                 startTimeMs = System.currentTimeMillis()
+                
+                AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Recording started", 
+                    "recordingId=${currentRecording?.id}, startTime=$startTimeMs")
                 
                 _uiState.update { it.copy(isRecording = true, durationMs = 0L, error = null) }
                 startTimer()
             } catch (e: Exception) {
+                AppLogger.e(TAG_RECORDING, "Failed to start recording", e)
                 _uiState.update { it.copy(error = e.message, isRecording = false) }
                 currentRecording = null
             } finally {
@@ -65,25 +78,39 @@ class RecordViewModel @Inject constructor(
     }
 
     fun onPauseClick() {
+        AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onPauseClick", null)
         viewModelScope.launch {
             try {
                 timerJob?.cancel()
                 // TODO: Implement pause recording - call audioRecorder.pause()
                 _uiState.update { it.copy(isRecording = false) }
+                AppLogger.d(TAG_RECORDING, "Recording paused -> recordingId: %s", currentRecording?.id)
             } catch (e: Exception) {
+                AppLogger.e(TAG_RECORDING, "Failed to pause recording", e)
                 _uiState.update { it.copy(error = e.message) }
             }
         }
     }
 
     fun onStopClick() {
+        AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStopClick", null)
         viewModelScope.launch {
             try {
                 timerJob?.cancel()
-                val recording = currentRecording ?: return@launch
+                val recording = currentRecording ?: run {
+                    AppLogger.w(TAG_RECORDING, "Stop called but no recording in progress")
+                    return@launch
+                }
+                
                 val durationMs = System.currentTimeMillis() - startTimeMs
+                AppLogger.d(TAG_RECORDING, "Stopping recording -> recordingId: %s, duration: %d ms", 
+                    recording.id, durationMs)
                 
                 val saved = stopRecordingAndSave(recording, durationMs)
+                
+                AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Recording saved", 
+                    "recordingId=${saved.id}, title=${saved.title}, duration=${saved.durationMs}ms")
+                
                 _uiState.update { 
                     it.copy(
                         isRecording = false,
@@ -92,7 +119,10 @@ class RecordViewModel @Inject constructor(
                 }
                 currentRecording = null
                 _navigateToTranscript.value = saved.id
+                
+                AppLogger.d(TAG_RECORDING, "Navigation triggered -> transcriptId: %s", saved.id)
             } catch (e: Exception) {
+                AppLogger.e(TAG_RECORDING, "Failed to stop recording", e)
                 _uiState.update { it.copy(error = e.message) }
             }
         }

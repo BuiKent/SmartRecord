@@ -3,6 +3,9 @@ package com.yourname.smartrecorder.ui.importaudio
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_IMPORT
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.usecase.ImportAudioFileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,17 +37,26 @@ class ImportAudioViewModel @Inject constructor(
 
     fun importAudioFile(uri: Uri, fileName: String) {
         if (isImporting) {
+            AppLogger.w(TAG_IMPORT, "Import rejected - already importing")
             return // Prevent concurrent imports
         }
+        
+        AppLogger.logViewModel(TAG_IMPORT, "ImportAudioViewModel", "importAudioFile", 
+            "uri=$uri, fileName=$fileName")
         
         viewModelScope.launch {
             try {
                 isImporting = true
                 _uiState.update { it.copy(isImporting = true, progress = 0, error = null) }
+                AppLogger.d(TAG_IMPORT, "Import started -> uri: %s, fileName: %s", uri.toString(), fileName)
                 
                 _uiState.update { it.copy(progress = 50) }
+                AppLogger.d(TAG_IMPORT, "Import progress: 50%%")
                 
                 val recording: Recording = importAudioFileUseCase(uri, fileName)
+                
+                AppLogger.logViewModel(TAG_IMPORT, "ImportAudioViewModel", "Import completed", 
+                    "recordingId=${recording.id}, title=${recording.title}")
                 
                 _uiState.update { 
                     it.copy(
@@ -54,6 +66,7 @@ class ImportAudioViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                AppLogger.e(TAG_IMPORT, "Import failed -> uri: %s, fileName: %s", e, uri.toString(), fileName)
                 _uiState.update { 
                     it.copy(
                         isImporting = false,
@@ -67,6 +80,7 @@ class ImportAudioViewModel @Inject constructor(
     }
     
     fun onImportHandled() {
+        AppLogger.d(TAG_IMPORT, "Import handled - clearing navigation state")
         _uiState.update { it.copy(importedRecordingId = null) }
     }
 }

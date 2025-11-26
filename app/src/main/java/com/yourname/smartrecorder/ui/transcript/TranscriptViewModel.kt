@@ -3,6 +3,9 @@ package com.yourname.smartrecorder.ui.transcript
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.core.audio.AudioPlayer
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_TRANSCRIPT
 import com.yourname.smartrecorder.domain.model.Note
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.model.TranscriptSegment
@@ -62,12 +65,18 @@ class TranscriptViewModel @Inject constructor(
     val uiState: StateFlow<TranscriptUiState> = _uiState.asStateFlow()
 
     fun loadRecording(recordingId: String) {
+        val startTime = System.currentTimeMillis()
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "loadRecording", 
+            "recordingId=$recordingId")
+        
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
+                AppLogger.d(TAG_TRANSCRIPT, "Loading recording details -> recordingId: %s", recordingId)
                 val recording = getRecordingDetail(recordingId)
                 if (recording == null) {
+                    AppLogger.w(TAG_TRANSCRIPT, "Recording not found -> recordingId: %s", recordingId)
                     _uiState.update { 
                         it.copy(
                             error = "Recording not found",
@@ -76,6 +85,9 @@ class TranscriptViewModel @Inject constructor(
                     }
                     return@launch
                 }
+                
+                AppLogger.d(TAG_TRANSCRIPT, "Recording loaded -> id: %s, title: %s, duration: %d ms, file: %s", 
+                    recording.id, recording.title, recording.durationMs, recording.filePath)
 
                 // Load transcript segments
                 var segmentsLoaded = false
@@ -86,12 +98,24 @@ class TranscriptViewModel @Inject constructor(
                 fun updateStateIfReady() {
                     if (segmentsLoaded && notesLoaded) {
                         val fullText = currentSegments.joinToString(" ") { it.text }
+                        AppLogger.d(TAG_TRANSCRIPT, "All data loaded -> segments: %d, notes: %d, textLength: %d", 
+                            currentSegments.size, currentNotes.size, fullText.length)
+                        
+                        val summaryStartTime = System.currentTimeMillis()
                         val summary = generateSummary(fullText)
+                        AppLogger.logPerformance(TAG_TRANSCRIPT, "GenerateSummary", 
+                            System.currentTimeMillis() - summaryStartTime)
+                        
+                        val keywordsStartTime = System.currentTimeMillis()
                         val keywords = extractKeywords(fullText, topN = 10)
+                        AppLogger.logPerformance(TAG_TRANSCRIPT, "ExtractKeywords", 
+                            System.currentTimeMillis() - keywordsStartTime, "count=${keywords.size}")
+                        
                         val questions = currentSegments.filter { 
                             it.text.trim().endsWith("?") || 
                             it.isQuestion 
                         }
+                        AppLogger.d(TAG_TRANSCRIPT, "Questions detected: %d", questions.size)
                         
                         _uiState.update {
                             it.copy(
@@ -104,6 +128,11 @@ class TranscriptViewModel @Inject constructor(
                                 isLoading = false
                             )
                         }
+                        
+                        val duration = System.currentTimeMillis() - startTime
+                        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "loadRecording completed", 
+                            "duration=${duration}ms, segments=${currentSegments.size}, notes=${currentNotes.size}")
+                        AppLogger.logPerformance(TAG_TRANSCRIPT, "loadRecording", duration)
                     }
                 }
                 
@@ -150,9 +179,12 @@ class TranscriptViewModel @Inject constructor(
         val recording = _uiState.value.recording ?: return
         val file = File(recording.filePath)
         if (file.exists()) {
+            AppLogger.d(TAG_TRANSCRIPT, "Seeking to position: %d ms", positionMs)
             audioPlayer.seekTo(positionMs.toInt())
             _uiState.update { it.copy(currentPositionMs = positionMs) }
             updateCurrentSegment(positionMs)
+        } else {
+            AppLogger.w(TAG_TRANSCRIPT, "Seek rejected - file not found: %s", file.absolutePath)
         }
     }
 
@@ -160,12 +192,19 @@ class TranscriptViewModel @Inject constructor(
     private var isToggling: Boolean = false
     
     fun togglePlayPause() {
-        if (isToggling) return // Prevent concurrent toggles
+        if (isToggling) {
+            AppLogger.w(TAG_TRANSCRIPT, "Toggle play/pause rejected - already toggling")
+            return // Prevent concurrent toggles
+        }
         
-        val recording = _uiState.value.recording ?: return
+        val recording = _uiState.value.recording ?: run {
+            AppLogger.w(TAG_TRANSCRIPT, "Toggle play/pause rejected - no recording")
+            return
+        }
         val file = File(recording.filePath)
         
         if (!file.exists()) {
+            AppLogger.e(TAG_TRANSCRIPT, "Audio file not found -> path: %s", null, recording.filePath)
             _uiState.update { it.copy(error = "Audio file not found") }
             return
         }
@@ -173,23 +212,29 @@ class TranscriptViewModel @Inject constructor(
         isToggling = true
         try {
             if (_uiState.value.isPlaying) {
+                AppLogger.d(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", _uiState.value.currentPositionMs)
                 audioPlayer.pause()
                 positionUpdateJob?.cancel()
                 _uiState.update { it.copy(isPlaying = false) }
             } else {
+                AppLogger.d(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s", file.absolutePath)
                 if (audioPlayer.isPlaying()) {
                     audioPlayer.resume()
+                    AppLogger.d(TAG_TRANSCRIPT, "Resumed existing playback")
                 } else {
                     audioPlayer.play(file) {
                         // On completion
+                        AppLogger.d(TAG_TRANSCRIPT, "Playback completed")
                         _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
                         positionUpdateJob?.cancel()
                     }
+                    AppLogger.d(TAG_TRANSCRIPT, "Started new playback")
                 }
                 startPositionUpdates()
                 _uiState.update { it.copy(isPlaying = true) }
             }
         } catch (e: Exception) {
+            AppLogger.e(TAG_TRANSCRIPT, "Failed to toggle play/pause", e)
             _uiState.update { it.copy(error = e.message, isPlaying = false) }
         } finally {
             isToggling = false

@@ -2,6 +2,8 @@ package com.yourname.smartrecorder.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.usecase.GetRecordingListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,17 +31,22 @@ class LibraryViewModel @Inject constructor(
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
     init {
+        AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "Initialized", null)
         loadRecordings()
     }
 
     fun loadRecordings() {
+        AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "loadRecordings", null)
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             getRecordingList()
                 .catch { e ->
+                    AppLogger.e(TAG_VIEWMODEL, "Failed to load recordings", e)
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
                 .collect { recordings ->
+                    AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "Recordings loaded", 
+                        "count=${recordings.size}")
                     _uiState.update { 
                         it.copy(
                             recordings = recordings,
@@ -51,6 +58,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun updateSearchQuery(query: String) {
+        AppLogger.d(TAG_VIEWMODEL, "Search query updated: %s", query)
         _uiState.update { it.copy(searchQuery = query) }
     }
 
@@ -59,10 +67,12 @@ class LibraryViewModel @Inject constructor(
         if (query.isEmpty()) {
             return _uiState.value.recordings
         }
-        return _uiState.value.recordings.filter { recording ->
+        val filtered = _uiState.value.recordings.filter { recording ->
             recording.title.lowercase().contains(query) ||
             recording.id.lowercase().contains(query)
         }
+        AppLogger.d(TAG_VIEWMODEL, "Filtered recordings -> query: %s, results: %d", query, filtered.size)
+        return filtered
     }
 }
 

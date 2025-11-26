@@ -7,6 +7,8 @@ import com.yourname.smartrecorder.core.audio.AudioPlayer
 import com.yourname.smartrecorder.core.audio.AudioPlayerImpl
 import com.yourname.smartrecorder.core.audio.AudioRecorder
 import com.yourname.smartrecorder.core.audio.AudioRecorderImpl
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_DATABASE
 import com.yourname.smartrecorder.data.local.dao.NoteDao
 import com.yourname.smartrecorder.data.local.dao.RecordingDao
 import com.yourname.smartrecorder.data.local.dao.TranscriptDao
@@ -31,11 +33,20 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): SmartRecorderDatabase {
-        return Room.databaseBuilder(
+        AppLogger.d(TAG_DATABASE, "Initializing Room database -> name: %s", SmartRecorderDatabase.DATABASE_NAME)
+        val startTime = System.currentTimeMillis()
+        
+        val database = Room.databaseBuilder(
             context,
             SmartRecorderDatabase::class.java,
             SmartRecorderDatabase.DATABASE_NAME
         ).build()
+        
+        val duration = System.currentTimeMillis() - startTime
+        AppLogger.logDatabase(TAG_DATABASE, "DATABASE_INIT", "SmartRecorderDatabase", "duration=${duration}ms")
+        AppLogger.logPerformance(TAG_DATABASE, "Database initialization", duration)
+        
+        return database
     }
     
     @Provides

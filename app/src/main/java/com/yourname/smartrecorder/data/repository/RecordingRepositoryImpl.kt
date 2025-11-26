@@ -1,5 +1,7 @@
 package com.yourname.smartrecorder.data.repository
 
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_REPOSITORY
 import com.yourname.smartrecorder.data.local.dao.RecordingDao
 import com.yourname.smartrecorder.data.local.entity.RecordingEntity
 import com.yourname.smartrecorder.domain.model.Recording
@@ -15,19 +17,36 @@ class RecordingRepositoryImpl @Inject constructor(
 ) : RecordingRepository {
     
     override suspend fun insertRecording(recording: Recording) {
+        val startTime = System.currentTimeMillis()
+        AppLogger.logDatabase(TAG_REPOSITORY, "INSERT", "recordings", 
+            "id=${recording.id}, title=${recording.title}, duration=${recording.durationMs}ms")
+        
         recordingDao.insertRecording(recording.toEntity())
+        
+        val duration = System.currentTimeMillis() - startTime
+        AppLogger.logDatabase(TAG_REPOSITORY, "INSERT_COMPLETE", "recordings", 
+            "id=${recording.id}, duration=${duration}ms")
     }
     
     override suspend fun updateRecording(recording: Recording) {
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE", "recordings", "id=${recording.id}")
         recordingDao.updateRecording(recording.toEntity())
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE_COMPLETE", "recordings", "id=${recording.id}")
     }
     
     override suspend fun getRecording(id: String): Recording? {
-        return recordingDao.getRecordingById(id)?.toDomain()
+        AppLogger.logDatabase(TAG_REPOSITORY, "SELECT", "recordings", "id=$id")
+        val result = recordingDao.getRecordingById(id)?.toDomain()
+        AppLogger.logDatabase(TAG_REPOSITORY, "SELECT_COMPLETE", "recordings", 
+            "id=$id, found=${result != null}")
+        return result
     }
     
     override fun getRecordingsFlow(): Flow<List<Recording>> {
+        AppLogger.logFlow(TAG_REPOSITORY, "getRecordingsFlow", "Subscribed")
         return recordingDao.getAllRecordings().map { entities ->
+            AppLogger.logFlow(TAG_REPOSITORY, "getRecordingsFlow", "Emitted", 
+                "count=${entities.size}")
             entities.map { it.toDomain() }
         }
     }
@@ -45,21 +64,30 @@ class RecordingRepositoryImpl @Inject constructor(
     }
     
     override fun searchRecordings(query: String): Flow<List<Recording>> {
+        AppLogger.logFlow(TAG_REPOSITORY, "searchRecordings", "Subscribed", "query=$query")
         return recordingDao.searchRecordings(query).map { entities ->
+            AppLogger.logFlow(TAG_REPOSITORY, "searchRecordings", "Emitted", 
+                "query=$query, count=${entities.size}")
             entities.map { it.toDomain() }
         }
     }
     
     override suspend fun deleteRecording(recording: Recording) {
+        AppLogger.logDatabase(TAG_REPOSITORY, "DELETE", "recordings", "id=${recording.id}")
         recordingDao.deleteRecording(recording.toEntity())
+        AppLogger.logDatabase(TAG_REPOSITORY, "DELETE_COMPLETE", "recordings", "id=${recording.id}")
     }
     
     override suspend fun updatePinnedStatus(id: String, isPinned: Boolean) {
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE", "recordings", "id=$id, isPinned=$isPinned")
         recordingDao.updatePinnedStatus(id, isPinned)
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE_COMPLETE", "recordings", "id=$id")
     }
     
     override suspend fun updateArchivedStatus(id: String, isArchived: Boolean) {
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE", "recordings", "id=$id, isArchived=$isArchived")
         recordingDao.updateArchivedStatus(id, isArchived)
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE_COMPLETE", "recordings", "id=$id")
     }
     
     private fun Recording.toEntity(): RecordingEntity {
