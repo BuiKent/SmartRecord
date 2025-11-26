@@ -147,6 +147,9 @@ dependencies {
     // OkHttp for model download
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     
+    // DataStore Preferences
+    implementation("androidx.datastore:datastore-preferences:1.1.2")
+    
     // Testing
     testImplementation(libs.junit)
     testImplementation("org.mockito:mockito-core:5.11.0")

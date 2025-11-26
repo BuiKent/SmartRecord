@@ -38,6 +38,8 @@ import com.yourname.smartrecorder.ui.screens.RecordScreen
 import com.yourname.smartrecorder.ui.screens.RealtimeTranscriptScreen
 import com.yourname.smartrecorder.ui.screens.StudyScreen
 import com.yourname.smartrecorder.ui.screens.TranscriptScreen
+import com.yourname.smartrecorder.ui.settings.SettingsScreen
+import com.yourname.smartrecorder.ui.settings.SettingsTopBar
 import com.yourname.smartrecorder.ui.widgets.AppBottomBar
 
 @Composable
@@ -48,32 +50,43 @@ fun SmartRecorderApp() {
         ?: AppRoutes.RECORD
 
     Scaffold(
-        bottomBar = {
-            AppBottomBar(
-                currentRoute = currentRoute,
-                onLibraryClick = {
-                    // Always navigate to Library main screen, clear back stack
-                    navController.navigate(AppRoutes.LIBRARY) {
-                        // Pop to root and clear all intermediate screens
-                        popUpTo(AppRoutes.LIBRARY) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-                onRecordClick = {
-                    // Always navigate to Record main screen, clear back stack
-                    navController.navigate(AppRoutes.RECORD) {
-                        popUpTo(AppRoutes.RECORD) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-                onStudyClick = {
-                    // Always navigate to Study main screen, clear back stack
-                    navController.navigate(AppRoutes.STUDY) {
-                        popUpTo(AppRoutes.STUDY) { inclusive = true }
-                        launchSingleTop = true
-                    }
+        topBar = {
+            when (currentRoute) {
+                AppRoutes.SETTINGS -> {
+                    SettingsTopBar(
+                        onBack = { navController.popBackStack() }
+                    )
                 }
-            )
+            }
+        },
+        bottomBar = {
+            if (currentRoute != AppRoutes.SETTINGS) {
+                AppBottomBar(
+                    currentRoute = currentRoute,
+                    onLibraryClick = {
+                        // Always navigate to Library main screen, clear back stack
+                        navController.navigate(AppRoutes.LIBRARY) {
+                            // Pop to root and clear all intermediate screens
+                            popUpTo(AppRoutes.LIBRARY) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onRecordClick = {
+                        // Always navigate to Record main screen, clear back stack
+                        navController.navigate(AppRoutes.RECORD) {
+                            popUpTo(AppRoutes.RECORD) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onStudyClick = {
+                        // Always navigate to Study main screen, clear back stack
+                        navController.navigate(AppRoutes.STUDY) {
+                            popUpTo(AppRoutes.STUDY) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
     ) { innerPadding ->
         NavHost(
@@ -229,7 +242,19 @@ fun SmartRecorderApp() {
                 LibraryScreen(
                     onRecordingClick = { recordingId ->
                         navController.navigate(AppRoutes.transcriptDetail(recordingId))
+                    },
+                    onSettingsClick = {
+                        navController.navigate(AppRoutes.SETTINGS)
                     }
+                )
+            }
+            composable(AppRoutes.SETTINGS) {
+                SettingsScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onNavigateToPremium = { /* TODO: Navigate to Premium screen */ },
+                    onNavigateToAbout = { /* TODO: Navigate to About screen */ },
+                    onNavigateToPrivacyPolicy = { /* TODO: Navigate to Privacy Policy */ },
+                    onNavigateToTermsOfService = { /* TODO: Navigate to Terms of Service */ }
                 )
             }
             composable(AppRoutes.STUDY) {

@@ -25,17 +25,17 @@ fun AppBottomBar(
     onStudyClick: () -> Unit
 ) {
     NavigationBar {
-        // LEFT: Library
+        // LEFT: Study
         NavigationBarItem(
-            selected = currentRoute == AppRoutes.LIBRARY,
-            onClick = onLibraryClick,
+            selected = currentRoute == AppRoutes.STUDY,
+            onClick = onStudyClick,
             icon = {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
-                    contentDescription = "Library"
+                    imageVector = Icons.Default.School,
+                    contentDescription = "Study"
                 )
             },
-            label = { Text("Library") },
+            label = { Text("Study") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color.White,
@@ -65,17 +65,17 @@ fun AppBottomBar(
             )
         )
 
-        // RIGHT: Study
+        // RIGHT: Library
         NavigationBarItem(
-            selected = currentRoute == AppRoutes.STUDY,
-            onClick = onStudyClick,
+            selected = currentRoute == AppRoutes.LIBRARY,
+            onClick = onLibraryClick,
             icon = {
                 Icon(
-                    imageVector = Icons.Default.School,
-                    contentDescription = "Study"
+                    imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
+                    contentDescription = "Library"
                 )
             },
-            label = { Text("Study") },
+            label = { Text("Library") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color.White,

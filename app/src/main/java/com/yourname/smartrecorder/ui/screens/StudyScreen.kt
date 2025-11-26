@@ -33,18 +33,21 @@ fun StudyScreen(
         }
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Title
-        Text(
-            text = "Flashcards Practice",
-            style = MaterialTheme.typography.headlineMedium
-        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Study") }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         
         if (uiState.isLoading) {
             CircularProgressIndicator()
@@ -206,6 +209,7 @@ fun StudyScreen(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
+        }
         }
     }
 }

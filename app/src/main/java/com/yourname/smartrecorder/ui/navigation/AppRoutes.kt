@@ -4,6 +4,7 @@ object AppRoutes {
     const val RECORD = "record"
     const val LIBRARY = "library"
     const val STUDY = "study"
+    const val SETTINGS = "settings"
     const val TRANSCRIPT_DETAIL = "transcript_detail/{recordingId}"
     const val REALTIME_TRANSCRIPT = "realtime_transcript"
     

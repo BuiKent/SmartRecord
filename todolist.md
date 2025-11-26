@@ -701,6 +701,277 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ---
 
+## 🎯 Onboarding & Settings Implementation (Priority: Medium-High)
+
+### 📋 Đánh Giá Áp Dụng Onboarding.md
+
+**Tài liệu tham khảo:** `Onboarding.md` (dựa trên NumerologyApp)  
+**Ngày đánh giá:** 2025-01-27
+
+#### ✅ Nên Áp Dụng (Recommended)
+
+**1. Onboarding Screen - CẦN THIẾT**
+- **Lý do:** App hiện tại không có onboarding, user mới có thể bối rối
+- **Lợi ích:**
+  - Giới thiệu tính năng chính (Recording, Transcription, Study)
+  - Request permissions đúng cách (RECORD_AUDIO, FOREGROUND_SERVICE)
+  - Tăng user engagement
+  - Professional appearance
+- **Áp dụng:** 80-90% (adapt cho SmartRecorder context)
+
+**2. Settings Screen - CẦN THIẾT**
+- **Lý do:** User đã hỏi về Settings icon placement, cần có Settings screen
+- **Lợi ích:**
+  - Quản lý preferences (notifications, auto-save, etc.)
+  - About/Privacy/Terms links
+  - Version info
+  - Professional appearance
+- **Áp dụng:** 90-100% (có thể reuse hầu hết patterns)
+
+**3. DataStore Pattern - NÊN MIGRATE**
+- **Lý do:** App đang dùng SharedPreferences (deprecated pattern)
+- **Files hiện tại dùng SharedPreferences:**
+  - `GoogleASRManager.kt`
+  - `WhisperModelManager.kt`
+  - `RecordingStateManager.kt`
+  - `SmartRecorderApplication.kt`
+- **Áp dụng:** 100% (migrate từ SharedPreferences → DataStore)
+
+**4. Permission Handling Pattern - ÁP DỤNG MỘT PHẦN**
+- **Lý do:** App đã có permission handling nhưng chưa có onboarding flow
+- **Áp dụng:** 70% (onboarding permission flow, giữ logic hiện tại)
+
+**5. Navigation Patterns - ÁP DỤNG MỘT PHẦN**
+- **Lý do:** App đã có navigation, chỉ cần thêm onboarding check
+- **Áp dụng:** 50% (onboarding check pattern, giữ navigation hiện tại)
+
+#### ⚠️ Cần Adapt (Not 100% Direct Copy)
+
+**1. Onboarding Content - CẦN TÙY CHỈNH**
+- **NumerologyApp:** 4 pages (giới thiệu, tính năng, notification permission, CTA với Donation/Rate)
+- **SmartRecorder cần:**
+  - Page 0: Giới thiệu app (Recording, Transcription, Study)
+  - Page 1: Tính năng chính (Real-time transcription, Whisper offline, Flashcards)
+  - Page 2: Request RECORD_AUDIO permission (quan trọng hơn notification)
+  - Page 3: CTA (Start, Rate, có thể bỏ Donation nếu không cần)
+- **Adapt:** Content khác, structure giống
+
+**2. Settings Categories - CẦN TÙY CHỈNH**
+- **NumerologyApp:** TTS auto, Notifications, Premium, About, Privacy, Terms
+- **SmartRecorder cần:**
+  - Notifications (foreground service notifications)
+  - Auto-save settings
+  - Transcription settings (Whisper model, quality)
+  - About, Privacy, Terms
+  - Có thể bỏ Premium nếu không có
+- **Adapt:** Categories khác, UI pattern giống
+
+**3. Permission Priority - KHÁC**
+- **NumerologyApp:** Notification permission (Android 13+)
+- **SmartRecorder:** RECORD_AUDIO permission (quan trọng hơn, cần request sớm)
+- **Adapt:** Request RECORD_AUDIO trong onboarding, notification trong settings
+
+#### ❌ Không Nên Áp Dụng (Not Applicable)
+
+**1. Donation Screen từ Onboarding**
+- **Lý do:** SmartRecorder có thể không có donation feature
+- **Action:** Bỏ hoặc thay bằng feature khác
+
+**2. Premium Upgrade Card**
+- **Lý do:** Nếu không có premium feature
+- **Action:** Bỏ hoặc thay bằng feature khác
+
+**3. TTS Auto Toggle**
+- **Lý do:** SmartRecorder không có TTS feature
+- **Action:** Bỏ, thay bằng settings khác
+
+---
+
+### 🎯 Task ONB.1: Implement Onboarding Screen
+- **Files cần tạo:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/data/preferences/SettingsStore.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/data/preferences/PrefKeys.kt`
+- **Mô tả:**
+  - Implement onboarding screen với 4 pages (adapt từ Onboarding.md)
+  - Check onboarding status trong SmartRecorderApp
+  - **Request NOTIFICATION permission ở page 2** (để hiện notification khi recording)
+  - **Các quyền khác (RECORD_AUDIO, STORAGE) hỏi khi dùng** (không trong onboarding)
+  - Save completion state vào DataStore
+- **Cách làm:**
+  1. **Setup DataStore:**
+     - Add dependency: `androidx.datastore:datastore-preferences:1.1.2` (đã có trong architure.md)
+     - Tạo `SettingsStore` với `onboardingCompleted` key
+     - Tạo `PrefKeys` object
+  2. **Create OnboardingViewModel:**
+     - Inject `SettingsStore`
+     - Method `completeOnboarding()` để save state
+  3. **Create OnboardingScreen:**
+     - HorizontalPager với 4 pages
+     - Page 0: Giới thiệu app (SmartRecorder - Record, Transcribe, Study)
+     - Page 1: Tính năng chính (Real-time ASR, Whisper offline, Flashcards)
+     - Page 2: **Request NOTIFICATION permission** (Android 13+) - giải thích: để hiện notification khi recording
+     - Page 3: CTA (Start, Rate, có thể thêm Premium nếu cần)
+     - Page indicators
+     - Navigation buttons
+  4. **Update SmartRecorderApp:**
+     - Check onboarding status trong LaunchedEffect
+     - Show OnboardingScreen nếu chưa complete
+     - Navigate to main app nếu đã complete
+  5. **Permission handling:**
+     - **Request NOTIFICATION permission ở page 2** (Android 13+)
+     - Auto-navigate sau khi grant/deny
+     - Không block nếu user deny
+     - **RECORD_AUDIO và STORAGE:** Hỏi khi dùng (không trong onboarding)
+- **Priority:** Medium-High
+- **Estimated Time:** 4-5 giờ
+- **Dependencies:**
+  - DataStore Preferences (check if already in dependencies)
+  - Horizontal Pager (Compose Foundation)
+- **Test Cases:**
+  1. First launch → Show onboarding
+  2. Complete onboarding → Save state, navigate to main
+  3. Restart app → Skip onboarding (đã complete)
+  4. Request permission → Handle grant/deny
+  5. Skip onboarding (nếu có option)
+
+### 🎯 Task ONB.2: Migrate SharedPreferences to DataStore
+- **Files cần sửa:**
+  - `app/src/main/java/com/yourname/smartrecorder/core/speech/GoogleASRManager.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/data/stt/WhisperModelManager.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/core/service/RecordingStateManager.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/SmartRecorderApplication.kt`
+- **Mô tả:**
+  - Migrate từ SharedPreferences sang DataStore
+  - Tạo `SettingsStore` central để quản lý tất cả preferences
+  - Maintain backward compatibility (read old SharedPreferences, migrate to DataStore)
+- **Cách làm:**
+  1. **Create SettingsStore:**
+     ```kotlin
+     @Singleton
+     class SettingsStore @Inject constructor(
+         @ApplicationContext private val ctx: Context
+     ) {
+         private val ds = ctx.dataStore
+         
+         // Onboarding
+         val onboardingCompleted: Flow<Boolean> = ds.data.map {
+             it[PrefKeys.ONBOARDING_COMPLETED] ?: false
+         }
+         suspend fun setOnboardingCompleted(v: Boolean) { ... }
+         
+         // Other settings...
+     }
+     ```
+  2. **Migrate từng file:**
+     - GoogleASRManager: Migrate ASR preferences
+     - WhisperModelManager: Migrate model download state
+     - RecordingStateManager: Migrate recording state
+     - SmartRecorderApplication: Migrate app-level preferences
+  3. **Backward compatibility:**
+     - Read old SharedPreferences lần đầu
+     - Migrate values to DataStore
+     - Delete old SharedPreferences sau khi migrate
+  4. **Update ViewModels:**
+     - Inject SettingsStore
+     - Use Flow-based reads
+     - Use suspend functions cho writes
+- **Priority:** Medium
+- **Estimated Time:** 3-4 giờ
+- **Dependencies:**
+  - DataStore Preferences
+  - Migration logic
+- **Test Cases:**
+  1. First launch after migration → Read old prefs, migrate
+  2. After migration → Use DataStore only
+  3. Verify all preferences work correctly
+  4. Test backward compatibility
+
+### 🎯 Task ONB.3: Implement Settings Screen (PRIORITY: HIGH - User đã thêm icon)
+- **Files cần tạo:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsTopBar.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/core/permissions/NotificationPermissionManager.kt`
+- **Mô tả:**
+  - Implement Settings screen theo pattern từ Onboarding.md
+  - **GIỮ Premium Upgrade Card** (rất cần cho tương lai)
+  - Toggles: Notifications, Auto-save
+  - Navigation cards: **Premium**, About, Privacy Policy, Terms of Service
+  - Footer: Copyright, Version info
+- **Cách làm:**
+  1. **Create SettingsViewModel:**
+     - Inject SettingsStore, NotificationPermissionManager
+     - System notification state as source of truth
+     - Event-based communication (SharedFlow)
+     - Initialize/refresh state pattern
+  2. **Create SettingsScreen:**
+     - LazyColumn với contentPadding
+     - Toggle rows (Notifications, Auto-save)
+     - Navigation cards (About, Privacy, Terms)
+     - Footer với version info
+  3. **Create SettingsTopBar:**
+     - TopAppBar với title "Settings"
+     - Back button (nếu cần)
+  4. **Update SmartRecorderApp:**
+     - Add Settings route
+     - Inject SettingsTopBar vào Scaffold
+     - Navigate từ Settings icon (Task NAV.4)
+  5. **Notification permission handling:**
+     - Toggle ON → Request permission dialog
+     - Toggle OFF → Open system settings
+     - Retry logic cho Samsung/Xiaomi delay
+- **Priority:** High (vì user đã hỏi về Settings)
+- **Estimated Time:** 3-4 giờ
+- **Dependencies:**
+  - SettingsStore (Task ONB.2)
+  - NotificationPermissionManager
+- **Test Cases:**
+  1. Open Settings → Verify UI correct
+  2. Toggle notifications ON → Request permission
+  3. Toggle notifications OFF → Open system settings
+  4. Navigate to About/Privacy/Terms → Verify navigation
+  5. Verify version info correct
+
+### 🎯 Task ONB.4: Add Settings Icon và Navigation
+- **Files cần sửa:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/LibraryScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/StudyScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/SmartRecorderApp.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/navigation/AppRoutes.kt`
+- **Mô tả:**
+  - Thêm Settings icon vào TopAppBar của các màn hình chính
+  - Add Settings route
+  - Navigate to Settings khi click icon
+- **Cách làm:**
+  1. **Add Settings route:**
+     ```kotlin
+     object AppRoutes {
+         const val SETTINGS = "settings"
+         // ... existing routes
+     }
+     ```
+  2. **Add TopAppBar với Settings icon:**
+     - RecordScreen: TopAppBar với Settings icon
+     - LibraryScreen: TopAppBar với Settings icon
+     - StudyScreen: TopAppBar với Settings icon
+  3. **Update SmartRecorderApp:**
+     - Add Settings composable route
+     - Handle navigation từ Settings icon
+  4. **Settings icon placement:**
+     - Góc phải TopAppBar (actions)
+     - Icon: `Icons.Default.Settings`
+- **Priority:** High (vì user đã hỏi)
+- **Estimated Time:** 1 giờ
+- **Test Cases:**
+  1. Click Settings icon → Navigate to Settings
+  2. Verify Settings icon hiển thị trên tất cả main screens
+  3. Back từ Settings → Return to previous screen
+
+---
+
 ## 🔄 Navigation & User Flow (Priority: High)
 
 ### 🎯 Task NAV.1: Thay đổi Navigation sau khi Record xong

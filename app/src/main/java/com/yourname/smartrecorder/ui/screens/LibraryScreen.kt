@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,6 +18,8 @@ import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.RecordingCard
 import com.yourname.smartrecorder.ui.library.LibraryViewModel
@@ -24,6 +27,7 @@ import com.yourname.smartrecorder.ui.library.LibraryViewModel
 @Composable
 fun LibraryScreen(
     onRecordingClick: (String) -> Unit,
+    onSettingsClick: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -40,10 +44,33 @@ fun LibraryScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("History") },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            AppLogger.d(TAG_VIEWMODEL, "[LibraryScreen] User clicked settings icon")
+                            onSettingsClick()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
             // Search bar
         OutlinedTextField(
             value = uiState.searchQuery,
@@ -125,6 +152,7 @@ fun LibraryScreen(
             onErrorShown = { viewModel.clearError() },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+        }
     }
 }
 

@@ -341,11 +341,9 @@ fun RecordScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Spacer to push cards to bottom (only when not recording and not live transcribe)
-        if (!hasActiveRecording && !isLiveTranscribe) {
+        // Spacer to push cards to bottom - keep position even when recording
+        if (!isLiveTranscribe) {
             Spacer(modifier = Modifier.weight(1f))
-        } else if (!isLiveTranscribe) {
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // Import / Realtime cards - hide in live transcribe mode
