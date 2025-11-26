@@ -99,16 +99,16 @@ fun RecordScreen(
             modifier = Modifier.height(if (isLiveTranscribe) 60.dp else 120.dp)
         )
 
-        Spacer(modifier = Modifier.height(if (isLiveTranscribe) 8.dp else 32.dp))
+        Spacer(modifier = Modifier.height(if (isLiveTranscribe) 8.dp else 16.dp))
 
         // Timer display - smaller in live transcribe mode
         if (!isLiveTranscribe) {
             Text(
                 text = formatDuration(uiState.durationMs),
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         } else {
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -145,63 +145,71 @@ fun RecordScreen(
                         )
                     }
                 } else {
-                    // Normal recording mode: Big mic button
-                    FloatingActionButton(
-                        onClick = when {
-                            isRecording -> onPauseRecordClick
-                            isPaused -> onPauseRecordClick
-                            else -> onStartRecordClick
-                        },
-                        modifier = Modifier.size(80.dp),
-                        shape = CircleShape,
-                        containerColor = MaterialTheme.colorScheme.primary
+                    // Normal recording mode: Bookmark (left) - Mic (center, large) - Stop (right)
+                    // All buttons are FloatingActionButton, circular
+                    // Mic stays in center, bookmark and stop are symmetric on both sides
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = when {
-                                isRecording -> Icons.Default.Pause
-                                isPaused -> Icons.Default.PlayArrow
-                                else -> Icons.Default.Mic
+                        // Bookmark button (left, small)
+                        FloatingActionButton(
+                            onClick = { showBookmarkDialog = true },
+                            modifier = Modifier.size(56.dp),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bookmark,
+                                contentDescription = "Add Bookmark",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        
+                        // Mic button (center, large) - stays in center
+                        FloatingActionButton(
+                            onClick = when {
+                                isRecording -> onPauseRecordClick
+                                isPaused -> onPauseRecordClick
+                                else -> onStartRecordClick
                             },
-                            contentDescription = when {
-                                isRecording -> "Pause"
-                                isPaused -> "Resume"
-                                else -> "Start Record"
-                            },
-                            modifier = Modifier.size(40.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    // Bookmark and Stop buttons
-                    OutlinedButton(
-                        onClick = { showBookmarkDialog = true },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Bookmark,
-                            contentDescription = "Add Bookmark",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Bookmark",
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1
-                        )
-                    }
-                    
-                    OutlinedButton(
-                        onClick = onStopRecordClick,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Stop,
-                            contentDescription = "Stop"
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Stop")
+                            modifier = Modifier.size(80.dp),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    isRecording -> Icons.Default.Pause
+                                    isPaused -> Icons.Default.Mic
+                                    else -> Icons.Default.Mic
+                                },
+                                contentDescription = when {
+                                    isRecording -> "Pause"
+                                    isPaused -> "Resume"
+                                    else -> "Start Record"
+                                },
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                        
+                        // Stop button (right, small) - symmetric with bookmark
+                        FloatingActionButton(
+                            onClick = onStopRecordClick,
+                            modifier = Modifier.size(56.dp),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Stop,
+                                contentDescription = "Stop",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
             }

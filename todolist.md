@@ -701,6 +701,155 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ---
 
+## 🔄 Navigation & User Flow (Priority: High)
+
+### 🎯 Task NAV.1: Thay đổi Navigation sau khi Record xong
+- **Files:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/record/RecordViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/SmartRecorderApp.kt`
+- **Mô tả:**
+  - **Hiện tại:** Khi record xong → navigate đến màn hình Transcript
+  - **Yêu cầu:** Khi record xong → navigate đến màn hình Library (History)
+  - **Lý do:** User muốn xem file trong History trước, sau đó mới quyết định có transcript hay không
+- **Cách làm:**
+  1. **Sửa RecordViewModel.onStopClick():**
+     - Thay vì `_navigateToTranscript.value = saved.id`
+     - Thêm `_navigateToLibrary.value = true` hoặc navigate trực tiếp
+     - Hoặc remove navigation, để user tự navigate đến Library
+  2. **Sửa SmartRecorderApp.kt:**
+     - Thêm LaunchedEffect để handle navigation to Library
+     - Navigate đến `AppRoutes.LIBRARY` sau khi record saved
+  3. **Optional:** Highlight recording vừa tạo trong Library
+- **Priority:** High
+- **Estimated Time:** 30 phút
+- **Test Cases:**
+  1. Record xong → Verify navigate to Library
+  2. Verify recording mới xuất hiện trong Library
+  3. Verify có thể click vào recording để xem transcript (nếu có)
+
+### 🎯 Task NAV.2: Implement Transcript Button/Card trong Library Screen
+- **Files:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/components/RecordingCard.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/LibraryScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/library/LibraryViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/domain/usecase/GenerateTranscriptUseCase.kt`
+- **Mô tả:**
+  - **Yêu cầu:** 
+    1. Thêm button/card "Transcript" trong mỗi RecordingCard trong Library
+    2. Khi ấn "Transcript":
+       - **Nếu đã có transcript:** Navigate đến TranscriptScreen (gọi lại - đã có sẵn)
+       - **Nếu chưa có transcript:** 
+         - Hiện UI transcribing (dùng card transcript trong History, tương tự card "Transcribing..." trong RecordScreen)
+         - Gọi Whisper để transcribe (giống như ấn "Upload audio file" trong RecordScreen)
+         - Khi có kết quả → Navigate đến TranscriptScreen
+  3. Logic này áp dụng cho cả:
+     - File upload (đã có sẵn - OK)
+     - File ghi âm thường (cần implement)
+- **Cách làm:**
+  1. **Thêm Transcript button vào RecordingCard:**
+     - Thêm icon/button "Transcript" bên cạnh Play/Edit/Delete buttons
+     - Hiển thị state: "Transcript" (nếu chưa có) hoặc "View Transcript" (nếu đã có)
+  2. **Thêm state vào LibraryViewModel:**
+     - `transcribingRecordingId: String?` - Recording đang transcribe
+     - `transcriptionProgress: Int` - Progress của transcription
+     - `isTranscribing: Boolean` - Flag đang transcribe
+  3. **Implement logic trong LibraryViewModel:**
+     ```kotlin
+     fun onTranscriptClick(recording: Recording) {
+         // Check if transcript exists
+         if (hasTranscript(recording.id)) {
+             // Navigate to transcript screen
+             navigateToTranscript(recording.id)
+         } else {
+             // Start transcription
+             startTranscription(recording)
+         }
+     }
+     
+     private suspend fun startTranscription(recording: Recording) {
+         _uiState.update { it.copy(
+             transcribingRecordingId = recording.id,
+             isTranscribing = true,
+             transcriptionProgress = 0
+         ) }
+         
+         // Call GenerateTranscriptUseCase (same as Upload audio file)
+         generateTranscriptUseCase(
+             recordingId = recording.id,
+             onProgress = { progress ->
+                 _uiState.update { it.copy(transcriptionProgress = progress) }
+             }
+         )
+         
+         // After completion, navigate to transcript
+         _uiState.update { it.copy(
+             isTranscribing = false,
+             transcribingRecordingId = null
+         ) }
+         navigateToTranscript(recording.id)
+     }
+     ```
+  4. **Update RecordingCard UI:**
+     - Thêm transcript button với icon
+     - Show progress card khi đang transcribe (tương tự RecordScreen)
+     - Disable button khi đang transcribe
+  5. **Update LibraryScreen:**
+     - Pass `onTranscriptClick` callback
+     - Show progress card khi transcribing (tương tự RecordScreen progress card)
+  6. **Reuse logic từ ImportAudioViewModel:**
+     - Logic transcribe đã có trong ImportAudioViewModel
+     - Có thể reuse hoặc extract thành shared UseCase
+- **Priority:** High
+- **Estimated Time:** 3-4 giờ
+- **Dependencies:**
+  - GenerateTranscriptUseCase (đã có)
+  - WhisperModelManager (đã có)
+  - TranscriptRepository (đã có)
+- **Test Cases:**
+  1. Click "Transcript" trên file đã có transcript → Navigate to TranscriptScreen
+  2. Click "Transcript" trên file chưa có transcript → Show transcribing UI
+  3. Verify progress card hiển thị đúng
+  4. Verify sau khi transcribe xong → Navigate to TranscriptScreen
+  5. Test với file upload và file ghi âm thường
+
+### 🎯 Task NAV.3: Reuse Transcription UI Component
+- **Files:**
+  - Tạo mới: `app/src/main/java/com/yourname/smartrecorder/ui/components/TranscribingProgressCard.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/LibraryScreen.kt`
+- **Mô tả:**
+  - **Yêu cầu:** Tạo reusable component cho transcribing progress card
+  - Hiện tại: Progress card logic nằm trong RecordScreen (line 295-335)
+  - Cần extract thành component để reuse trong LibraryScreen
+- **Cách làm:**
+  1. **Tạo TranscribingProgressCard composable:**
+     ```kotlin
+     @Composable
+     fun TranscribingProgressCard(
+         progress: Int,
+         isTranscribing: Boolean,
+         modifier: Modifier = Modifier
+     ) {
+         // Logic từ RecordScreen line 295-335
+         // Color interpolation from blue to red
+         // Show "Transcribing... X%" or "Uploading... X%"
+     }
+     ```
+  2. **Update RecordScreen:**
+     - Replace inline progress card với `TranscribingProgressCard`
+  3. **Update LibraryScreen:**
+     - Sử dụng `TranscribingProgressCard` khi transcribing
+  4. **Consistent styling:**
+     - Đảm bảo UI giống nhau giữa RecordScreen và LibraryScreen
+- **Priority:** Medium
+- **Estimated Time:** 1 giờ
+- **Test Cases:**
+  1. Verify progress card hiển thị đúng trong RecordScreen
+  2. Verify progress card hiển thị đúng trong LibraryScreen
+  3. Verify color interpolation hoạt động đúng
+
+---
+
 ## 🏠 1. Màn Hình Home (RecordScreen)
 
 ### 1.1. UI Improvements
