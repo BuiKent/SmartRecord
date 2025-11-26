@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -35,7 +36,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
+import com.yourname.smartrecorder.ui.components.DeleteConfirmDialog
 import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
@@ -49,23 +53,46 @@ fun TranscriptScreen(
     viewModel: TranscriptViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val navigateBack by viewModel.navigateBack.collectAsState()
     var currentTab by remember { mutableStateOf(TranscriptTab.TRANSCRIPT) }
     var showExportSheet by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    
+    // Handle navigation back after deletion
+    LaunchedEffect(navigateBack) {
+        if (navigateBack) {
+            viewModel.onNavigationHandled()
+            onBackClick()
+        }
+    }
 
     LaunchedEffect(recordingId) {
+        AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Screen loaded -> recordingId: %s", recordingId)
         viewModel.loadRecording(recordingId)
+    }
+    
+    // Log tab changes
+    LaunchedEffect(currentTab) {
+        AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User switched tab -> tab: %s", currentTab.name)
     }
     
     if (showExportSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showExportSheet = false }
+            onDismissRequest = { 
+                AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Export sheet dismissed")
+                showExportSheet = false 
+            }
         ) {
             ExportBottomSheet(
-                onDismiss = { showExportSheet = false },
+                onDismiss = { 
+                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Export sheet dismissed")
+                    showExportSheet = false 
+                },
                 onExportClick = { format ->
+                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User requested export -> format: %s", format)
                     val exportedText = viewModel.exportTranscript(format)
                     if (exportedText != null) {
                         // Copy to clipboard
@@ -73,8 +100,12 @@ fun TranscriptScreen(
                         val clip = ClipData.newPlainText("Transcript", exportedText)
                         clipboard.setPrimaryClip(clip)
                         
+                        AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Export copied to clipboard -> format: %s, length: %d chars", 
+                            format, exportedText.length)
                         Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                         showExportSheet = false
+                    } else {
+                        AppLogger.w(TAG_VIEWMODEL, "[TranscriptScreen] Export failed -> format: %s", format)
                     }
                 }
             )
@@ -115,6 +146,15 @@ fun TranscriptScreen(
                     }
                     IconButton(onClick = { showExportSheet = true }) {
                         Icon(Icons.Default.Share, contentDescription = "Export")
+                    }
+                    IconButton(
+                        onClick = { showDeleteDialog = true }
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete Recording",
+                            tint = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             )
@@ -220,6 +260,20 @@ fun TranscriptScreen(
             onConfirm = { note ->
                 viewModel.addBookmark(note)
                 showBookmarkDialog = false
+            }
+        )
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog && uiState.recording != null) {
+        DeleteConfirmDialog(
+            title = "Delete Recording?",
+            message = "This action cannot be undone. The recording and all related data (transcript, notes, bookmarks) will be permanently deleted.",
+            itemName = uiState.recording?.title?.takeIf { it.isNotBlank() },
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                viewModel.deleteRecording()
+                showDeleteDialog = false
             }
         )
     }

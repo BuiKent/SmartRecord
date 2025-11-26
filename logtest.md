@@ -1,632 +1,515 @@
-2025-11-26 15:22:39.501  1198-3876  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=0: from pid 22195
-2025-11-26 15:22:39.507  1198-3876  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=95: from pid 22195
-2025-11-26 15:22:39.512  1198-3876  ActivityManager         system_server                        W  Invalid packageName: com.yourname.smartrecorder
-2025-11-26 15:22:39.517  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onHandleForceStop: [com.yourname.smartrecorder]
-2025-11-26 15:22:39.524  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onHandleForceStop: [com.yourname.smartrecorder]
-2025-11-26 15:22:40.837  1198-1375  PackageManager          system_server                        I  START INSTALL PACKAGE: observer{135508521}
-                                                                                                              stagedDir{/data/app/vmdl1203364948.tmp}
-                                                                                                              stagedCid{null}
-                                                                                                              pkg{com.yourname.smartrecorder}
-                                                                                                              Request from{null}
-2025-11-26 15:22:40.867  1198-1294  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=-1: installPackageLI
-2025-11-26 15:22:40.872  1198-1376  PackageManager          system_server                        I  Update package com.yourname.smartrecorder code path from /data/app/~~P-znPXta17lm1Gaz-ChROg==/com.yourname.smartrecorder-AaNziLZ8YAaPlKjPC6uUyQ== to /data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==; Retain data and using new
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{43e7d61 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{43e7d61 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{43e7d61 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{43e7d61 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{43e7d61 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{43e7d61 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.876  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.877  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.877  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.877  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.877  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:40.905  1198-1376  ApplicationPolicy       system_server                        D  getApplicationStateEnabled : pkg = com.yourname.smartrecorder userId : 0
-2025-11-26 15:22:41.464  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:41.464  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:41.464  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{3e17d04 com.marketsnap.app/10910} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:41.464  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{f5f8125 com.app.numerology/10906} -> PackageSetting{a9a1262 com.yourname.smartrecorder/10909} BLOCKED
-2025-11-26 15:22:41.473  1198-1376  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=95: pkg removed
-2025-11-26 15:22:41.480  1198-1293  SGM:GameManager         system_server                        I  PkgUpdateReceiver, onPackageRemoved : com.yourname.smartrecorder userHandle : UserHandle{95} userID : 95
-2025-11-26 15:22:41.480  1198-1540  SGM:GosNotifyThread     system_server                        D  notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 1, pkgName:com.yourname.smartrecorder, userHandleId:95
-2025-11-26 15:22:41.480  1198-1293  MetaDataCollector       system_server                        D  onReceive: done pkgName=com.yourname.smartrecorder
-2025-11-26 15:22:41.481  1198-1446  OverlayManager          system_server                        D  reconcileSettingsForPackage pkgName=com.yourname.smartrecorder userId=95
-2025-11-26 15:22:41.481  1198-1446  OverlayManager          system_server                        I  updateOverlaysForTarget() called with: targetPackage = [com.yourname.smartrecorder], userId = [95], flags = [2], skipUpdateState = [false]
-2025-11-26 15:22:41.483  1198-1376  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=0: pkg removed
-2025-11-26 15:22:41.484 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) packageName: com.yourname.smartrecorder
-2025-11-26 15:22:41.484 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) Packages changed: [com.yourname.smartrecorder]
-2025-11-26 15:22:41.502  1198-1446  OverlayManager          system_server                        D  reconcileSettingsForPackage pkgName=com.yourname.smartrecorder userId=0
-2025-11-26 15:22:41.502  1198-1446  OverlayManager          system_server                        I  updateOverlaysForTarget() called with: targetPackage = [com.yourname.smartrecorder], userId = [0], flags = [2], skipUpdateState = [false]
-2025-11-26 15:22:41.504  4089-4089  MediaProvider           com...ndroid.providers.media.module  W  WorkProfileOwnerApps cache miss for package com.yourname.smartrecorder
-2025-11-26 15:22:41.517 14719-14719 SpayFw_Pac...teReceiver com.samsung.android.spayfw           I  PackageName : com.yourname.smartrecorder
-2025-11-26 15:22:41.521 22947-22947 FaceWidget...cViewModel com.android.systemui                 D  onPackageRemoved() pkg = com.yourname.smartrecorder, r = true
-2025-11-26 15:22:41.521 22947-22947 FaceWidget...dataParser com.android.systemui                 D  removePackage() key = com.yourname.smartrecorder
-2025-11-26 15:22:41.526  2712-2779  PackageInfoManager_FLP  com.sec.location.nsflp2              I  action : ACTION_PACKAGE_REMOVED, packageName = com.yourname.smartrecorder
-2025-11-26 15:22:41.534 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) packageName: com.yourname.smartrecorder
-2025-11-26 15:22:41.539 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) Packages changed: [com.yourname.smartrecorder]
-2025-11-26 15:22:41.548  1706-1706  VvmPkgInstalledRcvr     com.android.phone                    I  packageName: com.yourname.smartrecorder, systemDialer: com.samsung.android.dialer
-2025-11-26 15:22:41.552  1706-1706  VvmPkgInstalledRcvr     com.android.phone                    I   NOT contains : com.yourname.smartrecorder
-2025-11-26 15:22:41.565  1706-1706  VvmPkgInstalledRcvr     com.android.phone                    I   NOT contains : com.yourname.smartrecorder
-2025-11-26 15:22:41.570  1198-1293  SGM:GameManager         system_server                        I  PkgUpdateReceiver, onPackageRemoved : com.yourname.smartrecorder userHandle : UserHandle{0} userID : 0
-2025-11-26 15:22:41.576  1198-1540  SGM:GosNotifyThread     system_server                        D  notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 1, pkgName:com.yourname.smartrecorder, userHandleId:0
-2025-11-26 15:22:41.576  1198-1293  MetaDataCollector       system_server                        D  onReceive: done pkgName=com.yourname.smartrecorder
-2025-11-26 15:22:41.577  1198-1198  DomainFilter            system_server                        I  packageRemoved() - packageName: com.yourname.smartrecorder uid: 95
-2025-11-26 15:22:41.581  4879-4879  Routine@Co...gedHandler com.samsung.android.app.routines     I  Should not remove data true com.yourname.smartrecorder
-2025-11-26 15:22:41.586  1198-1293  LauncherAppsService     system_server                        D  Calling onPackageRemoved: com.yourname.smartrecorder, EXTRA_REPLACING: true
-2025-11-26 15:22:41.586  1198-1293  LauncherAppsService     system_server                        D  Calling onPackageRemoved: com.yourname.smartrecorder, EXTRA_REPLACING: true
-2025-11-26 15:22:41.605  1198-1446  OverlayManager          system_server                        D  reconcileSettingsForPackage pkgName=com.yourname.smartrecorder userId=0
-2025-11-26 15:22:41.605  1198-1446  OverlayManager          system_server                        I  updateOverlaysForTarget() called with: targetPackage = [com.yourname.smartrecorder], userId = [0], flags = [0], skipUpdateState = [false]
-2025-11-26 15:22:41.605  1198-1446  SWT_ThemeManager        system_server                        I  com.yourname.smartrecorder doesn't have metadata
-2025-11-26 15:22:41.610  1198-1647  SdkSandboxManager       system_server                        I  No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10909, mPackageName='com.yourname.smartrecorder, mAppProcessToken='null'}
-2025-11-26 15:22:41.615 29350-29350 Finsky                  com.android.vending                  I  [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.yourname.smartrecorder]
-2025-11-26 15:22:41.626  2712-2779  PackageInfoManager_FLP  com.sec.location.nsflp2              I  action : ACTION_PACKAGE_ADDED, packageName = com.yourname.smartrecorder
-2025-11-26 15:22:41.629 29350-29397 Finsky                  com.android.vending                  I  [7692] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.yourname.smartrecorder]
-2025-11-26 15:22:41.630 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_QS_FACTORY
-2025-11-26 15:22:41.630 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PEOPLE_HUB_PERSON_EXTRACTOR
-2025-11-26 15:22:41.630 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_GLOBAL_ACTIONS
-2025-11-26 15:22:41.630 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
-2025-11-26 15:22:41.630 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_QS
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_CLOCK
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_RIGHT_BUTTON
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_RIGHT_BUTTON
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_LEFT_BUTTON
-2025-11-26 15:22:41.631  4158-4158  [AirCmd]_R...ionManager com...ng.android.service.aircommand  I  onPackageChangeDetected : com.yourname.smartrecorder
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_LEFT_BUTTON
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_ASSISTANT
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_OVERLAY
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_CLOCK
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.samsung.systemui.action.PLUGIN_FACE_WIDGET
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_SENSOR_MANAGER
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_TOAST
-2025-11-26 15:22:41.631 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_VOLUME
-2025-11-26 15:22:41.634 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) packageName: com.yourname.smartrecorder
-2025-11-26 15:22:41.634 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) Packages changed: [com.yourname.smartrecorder]
-2025-11-26 15:22:41.645 22947-22947 FaceWidget...dataParser com.android.systemui                 D  updatePackage() com.yourname.smartrecorder true
-2025-11-26 15:22:41.648  1198-1198  SdpManagerImpl.receiver system_server                        D  On android.intent.action.PACKAGE_REMOVED : DATA = package:com.yourname.smartrecorder, UID = 10909, UserId = 0, Is replacing? true
-2025-11-26 15:22:41.648  1198-1198  DomainFilter            system_server                        I  packageRemoved() - packageName: com.yourname.smartrecorder uid: 0
-2025-11-26 15:22:41.650 22947-22947 FaceWidget...dataParser com.android.systemui                 D  removePackage() key = com.yourname.smartrecorder
-2025-11-26 15:22:41.668  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onPackageUpdateFinished: com.yourname.smartrecorder
-2025-11-26 15:22:41.668  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onPackageModified: com.yourname.smartrecorder
-2025-11-26 15:22:41.677  1706-1706  VvmPkgInstalledRcvr     com.android.phone                    I  packageName: com.yourname.smartrecorder, systemDialer: com.samsung.android.dialer
-2025-11-26 15:22:41.710  1198-1198  Telecom                 system_server                        I  CarModeTracker: Package com.yourname.smartrecorder is not tracked.: SSH.oR@NYs
-2025-11-26 15:22:41.711  1198-1707  Pageboost               system_server                        I  remove app @ runtime : com.yourname.smartrecorder
-2025-11-26 15:22:41.712  1198-1446  OverlayManager          system_server                        D  reconcileSettingsForPackage pkgName=com.yourname.smartrecorder userId=95
-2025-11-26 15:22:41.712  1198-1446  OverlayManager          system_server                        I  updateOverlaysForTarget() called with: targetPackage = [com.yourname.smartrecorder], userId = [95], flags = [0], skipUpdateState = [false]
-2025-11-26 15:22:41.712  1198-1446  SWT_ThemeManager        system_server                        I  com.yourname.smartrecorder doesn't have metadata
-2025-11-26 15:22:41.722 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) packageName: com.yourname.smartrecorder
-2025-11-26 15:22:41.722 21536-21536 SCS@AiSearch user 0     com.samsung.android.scs              I  (PackageBroadcastReceiver) Packages changed: [com.yourname.smartrecorder]
-2025-11-26 15:22:41.723  1198-1647  SdkSandboxManager       system_server                        I  No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=9510909, mPackageName='com.yourname.smartrecorder, mAppProcessToken='null'}
-2025-11-26 15:22:41.724  1198-1647  SdkSandboxManager       system_server                        I  No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10909, mPackageName='com.yourname.smartrecorder, mAppProcessToken='null'}
-2025-11-26 15:22:41.745  1706-1706  VvmPkgInstalledRcvr     com.android.phone                    I   NOT contains : com.yourname.smartrecorder
-2025-11-26 15:22:41.748  4879-4879  Routine@Co...LoaderImpl com.samsung.android.app.routines     I  collectInBackground - packageName:com.yourname.smartrecorder
-2025-11-26 15:22:41.748  4879-4879  Routine@Co...yncBacklog com.samsung.android.app.routines     I  add: null + com.yourname.smartrecorder
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_QS_FACTORY
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PEOPLE_HUB_PERSON_EXTRACTOR
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_GLOBAL_ACTIONS
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_QS
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_CLOCK
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_RIGHT_BUTTON
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_RIGHT_BUTTON
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_LEFT_BUTTON
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_LOCKSCREEN_LEFT_BUTTON
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_ASSISTANT
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_OVERLAY
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_CLOCK
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.samsung.systemui.action.PLUGIN_FACE_WIDGET
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_SENSOR_MANAGER
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_TOAST
-2025-11-26 15:22:41.751 22947-23121 PluginInstanceManager   com.android.systemui                 D  queryPkg com.yourname.smartrecorder com.android.systemui.action.PLUGIN_VOLUME
-2025-11-26 15:22:41.755  1198-1198  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:41.755  1198-1198  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:41.755  1198-1198  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:41.755  1198-1198  AppWidgetServiceImpl    system_server                        I  Received broadcast: android.intent.action.PACKAGE_ADDED, Updates all providers with com.yourname.smartrecorder, userId: 0
-2025-11-26 15:22:41.756  1198-1198  DomainFilter            system_server                        I  packageAdded() - packageName: com.yourname.smartrecorder, uid: 0
-2025-11-26 15:22:41.757  1198-1198  DualDARComnService      system_server                        D  reConnectAgentsByPkgName:: package: com.yourname.smartrecorder
-2025-11-26 15:22:41.761  1706-1706  VvmPkgInstalledRcvr     com.android.phone                    I   NOT contains : com.yourname.smartrecorder
-2025-11-26 15:22:41.761  1706-1706  ImsResolver             com.android.phone                    D  maybeAddedImsService, packageName: com.yourname.smartrecorder
-2025-11-26 15:22:41.765  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onPackageUpdateFinished: com.yourname.smartrecorder
-2025-11-26 15:22:41.766  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onPackageModified: com.yourname.smartrecorder
-2025-11-26 15:22:41.766  1706-1706  ImsResolver             com.android.phone                    D  maybeAddedImsService, packageName: com.yourname.smartrecorder
-2025-11-26 15:22:41.785  1198-1634  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:41.785  1198-1634  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:41.785  1198-1634  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:41.792 29350-29350 Finsky                  com.android.vending                  I  [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.yourname.smartrecorder]
-2025-11-26 15:22:41.795 29350-29383 Finsky                  com.android.vending                  I  [7680] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.yourname.smartrecorder]
-2025-11-26 15:22:41.803  1198-1198  Telecom:Sa...stReceiver system_server                        I  action : android.intent.action.PACKAGE_ADDED / packageName : com.yourname.smartrecorder
-2025-11-26 15:22:41.818 26823-22276 SQLiteLog               com.google.android.gms               W  (28) double-quoted string literal: "com.yourname.smartrecorder"
-2025-11-26 15:22:41.826  1198-1707  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:41.826  1198-1707  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:41.826  1198-1707  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:41.826  1198-1707  Pageboost               system_server                        I  appinfo : com.yourname.smartrecorder 0 0 0 0
-2025-11-26 15:22:41.829  1198-1707  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:41.829  1198-1707  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:41.829  1198-1707  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:41.829  1198-1707  Pageboost               system_server                        I  Reset this app info : com.yourname.smartrecorder 
-2025-11-26 15:22:41.839  1198-1707  Pageboost               system_server                        I  add app to global @ runtime: com.yourname.smartrecorder
-2025-11-26 15:22:41.852 26784-22286 ProximityAuth           com.google.android.gms.persistent    I  [RecentAppsMediator] Package added: (user=UserHandle{0}) com.yourname.smartrecorder
-2025-11-26 15:22:41.861  1198-1647  SdkSandboxManager       system_server                        I  No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=9510909, mPackageName='com.yourname.smartrecorder, mAppProcessToken='null'}
-2025-11-26 15:22:41.871  1198-1198  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:41.871  1198-1198  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:41.871  1198-1198  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:41.871  1198-1198  AppWidgetServiceImpl    system_server                        I  Received broadcast: android.intent.action.PACKAGE_ADDED, Updates all providers with com.yourname.smartrecorder, userId: 95
-2025-11-26 15:22:41.872  1198-1198  DomainFilter            system_server                        I  packageAdded() - packageName: com.yourname.smartrecorder, uid: 95
-2025-11-26 15:22:41.872  1198-1198  DualDARComnService      system_server                        D  reConnectAgentsByPkgName:: package: com.yourname.smartrecorder
-2025-11-26 15:22:41.882  1198-1198  Telecom:Sa...stReceiver system_server                        I  action : android.intent.action.PACKAGE_ADDED / packageName : com.yourname.smartrecorder
-2025-11-26 15:22:41.893  1198-1198  DomainFilter            system_server                        I  packageReplaced() - packageName: com.yourname.smartrecorder oldUid: 10909 newUid:10909
-2025-11-26 15:22:41.897  1198-1198  AlarmManager            system_server                        W  Package com.yourname.smartrecorder, uid 10909 lost permission to set exact alarms!
-2025-11-26 15:22:41.902  1198-1198  ApplicationPolicy       system_server                        D  No updatable permission to DENY found for com.yourname.smartrecorder(0)
-2025-11-26 15:22:41.903  1198-1198  ApplicationPolicy       system_server                        D  No updatable permission to GRANT found for com.yourname.smartrecorder(0)
-2025-11-26 15:22:41.909  1198-1198  DomainFilter            system_server                        I  packageReplaced() - packageName: com.yourname.smartrecorder oldUid: 9510909 newUid:9510909
-2025-11-26 15:22:41.910  1198-1363  VerityUtils             system_server                        E  Failed to measure fs-verity, errno 25: /data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/base.apk
-2025-11-26 15:22:41.914  1198-1198  AlarmManager            system_server                        W  Package com.yourname.smartrecorder, uid 9510909 lost permission to set exact alarms!
-2025-11-26 15:22:41.935  4879-4879  Routine@Co...LoaderImpl com.samsung.android.app.routines     I  collectInBackground - packageName:com.yourname.smartrecorder
-2025-11-26 15:22:41.936  4879-4879  Routine@Co...yncBacklog com.samsung.android.app.routines     I  add: com.yourname.smartrecorder + com.yourname.smartrecorder
-2025-11-26 15:22:41.951  1198-1363  VerityUtils             system_server                        E  Failed to measure fs-verity, errno 25: /data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/base.apk
-2025-11-26 15:22:41.951  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  onStartJob: collectPackageInBG - com.yourname.smartrecorder
-2025-11-26 15:22:41.953  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  packageName : com.yourname.smartrecorder, forced : true
-2025-11-26 15:22:41.957  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  onStartJob: collectPackageInBG - com.yourname.smartrecorder
-2025-11-26 15:22:41.957 17044-22320 SQLiteLog               com.google.android.gms               W  (28) double-quoted string literal: "com.yourname.smartrecorder"
-2025-11-26 15:22:41.958  4879-18272 Routine@Co...oadManager com.samsung.android.app.routines     I  collect: com.yourname.smartrecorder
-2025-11-26 15:22:41.958  4879-18272 Routine@Co...oadManager com.samsung.android.app.routines     I  collectWithCollectors - com.yourname.smartrecorder
-2025-11-26 15:22:41.959  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  packageName : com.yourname.smartrecorder, forced : true
-2025-11-26 15:22:41.962  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  onStopJob: collectPackageInBG - com.yourname.smartrecorder
-2025-11-26 15:22:41.969 25538-22280 ProximityAuth           com.google.android.gms.persistent    I  [RecentAppsMediator] Package added: (user=UserHandle{95}) com.yourname.smartrecorder
-2025-11-26 15:22:42.019  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  metadataLoadingFinished: collectPackageInBG - com.yourname.smartrecorder
-2025-11-26 15:22:42.114  1198-4342  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=0: from pid 22382
-2025-11-26 15:22:42.146  1198-4342  ActivityManager         system_server                        I  Force stopping com.yourname.smartrecorder appid=10909 user=95: from pid 22382
-2025-11-26 15:22:42.147  1198-1634  SemWifiTra...LayerUtils system_server                        W  getApplicationCategory - IOException com.yourname.smartrecorder
-2025-11-26 15:22:42.148  1198-1634  System.err              system_server                        W  java.io.FileNotFoundException: https://play.google.com/store/apps/details?id=com.yourname.smartrecorder&hl=en
-2025-11-26 15:22:42.150  1198-4342  ActivityManager         system_server                        W  Invalid packageName: com.yourname.smartrecorder
-2025-11-26 15:22:42.173  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onHandleForceStop: [com.yourname.smartrecorder]
-2025-11-26 15:22:42.197  1198-1634  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:42.197  1198-1634  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:42.197  1198-1634  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:42.230  1706-1706  CarrierSvcBindHelper    com.android.phone                    D  onHandleForceStop: [com.yourname.smartrecorder]
-2025-11-26 15:22:42.249  1198-1363  VerityUtils             system_server                        E  Failed to measure fs-verity, errno 25: /data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/base.apk
-2025-11-26 15:22:42.364  1198-3312  Pageboost               system_server                        I  onAppLaunch : com.yourname.smartrecorder
-2025-11-26 15:22:42.364  1198-1287  ChimeraSys...ntListener system_server                        I  appLaunchIntent package name is: com.yourname.smartrecorder
-2025-11-26 15:22:42.364  1198-3312  ActivityTaskManager     system_server                        I  START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.yourname.smartrecorder/.MainActivity} from uid 2000
-2025-11-26 15:22:42.364  1198-1707  Pageboost               system_server                        I  Record App IO : com.yourname.smartrecorder pid 0
-2025-11-26 15:22:42.373  1198-3312  ActivityTaskManager     system_server                        D  TaskLaunchParamsModifier:task=null activity=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} display-id=0 display-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@72262064
-2025-11-26 15:22:42.373  1198-3312  [secipm]                system_server                        D  mSecIpmManager Preload com.yourname.smartrecorder dex files
-2025-11-26 15:22:42.373  1198-3312  ActivityTaskManager     system_server                        D  TaskLaunchParamsModifier:task=null activity=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t-1} display-id=0 display-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@72262064 non-freeform-display display-area=DefaultTaskDisplayArea@72262064 maximized-bounds
-2025-11-26 15:22:42.377 22232-22402 GOS:GameServiceReceiver com.samsung.android.game.gos         I   PkgInstallStarted for com.yourname.smartrecorder UserID : 0
-2025-11-26 15:22:42.377  1198-3312  ActivityTaskManager     system_server                        D  TaskLaunchParamsModifier:task=Task{6b8d423 #22361 type=standard A=10909:com.yourname.smartrecorder U=0 visible=false visibleRequested=false mode=fullscreen translucent=true sz=0} activity=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t-1} display-from-task=0 display-id=0 display-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@72262064 non-freeform-display display-area=DefaultTaskDisplayArea@72262064 maximized-bounds
-2025-11-26 15:22:42.379   858-886   SurfaceFlinger          surfaceflinger                       I  id=14219 createSurf flag=80004, ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}#14219
-2025-11-26 15:22:42.380  1198-1363  VerityUtils             system_server                        E  Failed to measure fs-verity, errno 25: /data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/base.apk
-2025-11-26 15:22:42.386  1198-3312  WindowManager           system_server                        V  Added starting ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}: startingWindow=null startingView=com.android.server.wm.StartingSurfaceController$StartingSurface@f35498a
-2025-11-26 15:22:42.430   858-886   SurfaceFlinger          surfaceflinger                       I  id=14220 createSurf flag=80004, f8379ab Splash Screen com.yourname.smartrecorder#14220
-2025-11-26 15:22:42.431  1198-1747  WindowManager           system_server                        V  addWindow: ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361} startingWindow=Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}
-2025-11-26 15:22:42.433 22947-22995 InsetsController        com.android.systemui                 D  onStateChanged: InsetsState: {mDisplayFrame=Rect(0, 0 - 1440, 3088), mDisplayCutout=DisplayCutout{insets=Rect(0, 89 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(685, 0 - 755, 89), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1440 displayHeight=3088 physicalDisplayWidth=1440 physicalDisplayHeight=3088 density={3.5} cutoutSpec={M 0,0 H -10 V 25.42857142857143 H 10 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=112, center=Point(112, 112)}, RoundedCorner{position=TopRight, radius=112, center=Point(1328, 112)}, RoundedCorner{position=BottomRight, radius=112, center=Point(1328, 2976)}, RoundedCorner{position=BottomLeft, radius=112, center=Point(112, 2976)}]}  mRoundedCornerFrame=Rect(0, 0 - 1440, 3088), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(1286, 0 - 1440, 90) rotation=0}, mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_GESTURES, mFrame=[0,0][0,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_GESTURES, mFrame=[1440,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_MANDATORY_GESTURES, mFrame=[0,0][1440,131], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_MANDATORY_GESTURES, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_DISPLAY_CUTOUT, mFrame=[0,0][-100000,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_DISPLAY_CUTOUT, mFrame=[0,0][1440,89], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_DISPLAY_CUTOUT, mFrame=[100000,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_DISPLAY_CUTOUT, mFrame=[0,100000][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_TAPPABLE_ELEMENT, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_TAPPABLE_ELEMENT, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false} } host=Splash Screen com.yourname.smartrecorder from=android.view.ViewRootImpl.setView:1732
-2025-11-26 15:22:42.438  1198-1901  MARsPolicyManager       system_server                        D  onPackageResumedFG pkgName = com.yourname.smartrecorder, userId = 0
-2025-11-26 15:22:42.444  1198-1901  WindowManagerServiceExt system_server                        D  notifyOccludeChangeNotice: cn=ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} occludesParent=true inMultiWindow=false styleFloating=false caller=com.android.server.wm.WindowManagerServiceExt.updateOccludeTargetIfNeeded:1402 com.android.server.wm.DisplayContent.ensureActivitiesVisible:7532 com.android.server.wm.RootWindowContainer.ensureActivitiesVisible:2248 com.android.server.wm.RootWindowContainer.ensureActivitiesVisible:2229 com.android.server.wm.TaskFragment.completePause:2076 
-2025-11-26 15:22:42.448  1198-4344  WindowManager           system_server                        V  Relayout Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}: viewVisibility=0 req=1440x3088 d0
-2025-11-26 15:22:42.449   858-886   SurfaceFlinger          surfaceflinger                       I  id=14221 createSurf flag=40004, Splash Screen com.yourname.smartrecorder$_22947#14221
-2025-11-26 15:22:42.450  1198-4344  WindowManager           system_server                        D  makeSurface duration=2 name=Splash Screen com.yourname.smartrecorder$_22947
-2025-11-26 15:22:42.458  1198-2582  CoreBackPreview         system_server                        D  Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@31119d6, mPriority=0}
-2025-11-26 15:22:42.458 22947-22995 InsetsController        com.android.systemui                 D  onStateChanged: InsetsState: {mDisplayFrame=Rect(0, 0 - 1440, 3088), mDisplayCutout=DisplayCutout{insets=Rect(0, 89 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(685, 0 - 755, 89), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1440 displayHeight=3088 physicalDisplayWidth=1440 physicalDisplayHeight=3088 density={3.5} cutoutSpec={M 0,0 H -10 V 25.42857142857143 H 10 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=112, center=Point(112, 112)}, RoundedCorner{position=TopRight, radius=112, center=Point(1328, 112)}, RoundedCorner{position=BottomRight, radius=112, center=Point(1328, 2976)}, RoundedCorner{position=BottomLeft, radius=112, center=Point(112, 2976)}]}  mRoundedCornerFrame=Rect(0, 0 - 1440, 3088), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(1286, 0 - 1440, 90) rotation=0}, mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_GESTURES, mFrame=[0,0][0,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_GESTURES, mFrame=[1440,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_MANDATORY_GESTURES, mFrame=[0,0][1440,131], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_MANDATORY_GESTURES, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_DISPLAY_CUTOUT, mFrame=[0,0][-100000,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_DISPLAY_CUTOUT, mFrame=[0,0][1440,89], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_DISPLAY_CUTOUT, mFrame=[100000,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_DISPLAY_CUTOUT, mFrame=[0,100000][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_TAPPABLE_ELEMENT, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_TAPPABLE_ELEMENT, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,0][0,0], mVisibleFrame=[0,1886][1440,3088], mVisible=false, mInsetsRoundedCornerFrame=false} } host=Splash Screen com.yourname.smartrecorder from=android.view.ViewRootImpl.relayoutWindow:9802
-2025-11-26 15:22:42.475  1198-1293  SGM:GameManager         system_server                        I  PkgUpdateReceiver, onPackageAdded : com.yourname.smartrecorder userHandle : UserHandle{0} userId : 0
-2025-11-26 15:22:42.479  1198-1540  SGM:GosNotifyThread     system_server                        D  notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 0, pkgName:com.yourname.smartrecorder, userHandleId:0
-2025-11-26 15:22:42.495  1198-1909  WindowManager           system_server                        D  finishDrawingWindow: Window{f8379ab u0 Splash Screen com.yourname.smartrecorder} mDrawState=DRAW_PENDING seqId=0
-2025-11-26 15:22:42.495  1198-1909  WindowManager           system_server                        V  Finishing drawing window Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}: mDrawState=DRAW_PENDING
-2025-11-26 15:22:42.495  1198-1909  WindowManager           system_server                        V  Draw state now committed in Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}
-2025-11-26 15:22:42.497  1198-1288  WindowManager           system_server                        D  performShow logReadyForDisplay win=Window{f8379ab u0 Splash Screen com.yourname.smartrecorder} mToken.waitingToShow:true isTransitionSet:true
-2025-11-26 15:22:42.527  1198-1288  WindowManager           system_server                        V  performShowLocked: mDrawState=HAS_DRAWN in Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}
-2025-11-26 15:22:42.545   858-886   SurfaceFlinger          surfaceflinger                       I  id=14226 createSurf flag=80000, a4628d ActivityRecordInputSink com.yourname.smartrecorder/.MainActivity#14226
-2025-11-26 15:22:42.550   858-858   Layer                   surfaceflinger                       I  Layer [Splash Screen com.yourname.smartrecorder$_22947#14221] hidden!! flag(0)
-2025-11-26 15:22:42.582  1198-1634  SemWifiTra...LayerUtils system_server                        W  getApplicationCategory - IOException com.yourname.smartrecorder
-2025-11-26 15:22:42.582  1198-1634  System.err              system_server                        W  java.io.FileNotFoundException: https://play.google.com/store/apps/details?id=com.yourname.smartrecorder&hl=en
-2025-11-26 15:22:42.613 22232-22466 GOS:GameIntentService   com.samsung.android.game.gos         I  onPackageChanged(). extras: Bundle[{changeType=2, userId=0, type=15, packageName=com.yourname.smartrecorder}]
-2025-11-26 15:22:42.613 22232-22466 GOS:GameIntentService   com.samsung.android.game.gos         I  onPackageChanged(). changeType(INSTALL_STARTED), pkgName(com.yourname.smartrecorder), UserHandle(0), userId(0), Installed(true)
-2025-11-26 15:22:42.631  1198-1295  ActivityManager         system_server                        I  Start proc 22484:com.yourname.smartrecorder/u0a909 for next-top-activity {com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:22:42.633   858-858   SurfaceFlinger          surfaceflinger                       D  Display 4633128672291735937 HWC layers:
-                                                                                                         CLIENT | 0x70f52a0050 | 0102 | RGBA_8888    |    0.0    0.0    0.0    0.0 |    0 3079 1440 3088 | bbq-wrapper#14232
-                                                                                                         CLIENT | 0x70f52d8b10 | 0100 | 0x32315659   |    0.0 1147.0  720.0 1280.0 |   42    0  954  169 | bbq-wrapper#14207
-                                                                                                         DEVICE | 0x70f52c84f0 | 0100 | 0x32315659   |    0.0    0.0 1080.0 1080.0 |    0  880 1440 2320 | bbq-wrapper#14217
-                                                                                                         DEVICE | 0x70f52e97f0 | 0100 | RGBA_8888    |    0.0    9.0 1440.0 3088.0 |    0    0 1440 3079 | com.facebook.katana/com.facebook.katana.LoginActivity$_6083#14164
-                                                                                                         DEVICE | 0x70f52ee6b0 | 0102 | RGBA_8888    |    0.0    0.0 1440.0    1.0 |    0    0 1440  518 | bbq-wrapper#14229
-                                                                                                         DEVICE | 0x70f52d87b0 | 0100 | RGBA_8888    |    0.0    0.0 1440.0 2570.0 |    0  518 1440 3088 | Splash Screen com.yourname.smartrecorder$_22947#14221
-                                                                                                         DEVICE | 0x70f52d7250 | 0100 | RGBA_8888    |    0.0    0.0 1440.0   90.0 |    0    0 1440   90 | StatusBar$_22947#4630
-                                                                                                         DEVICE | 0x70f52e8170 | 0100 | RGBA_8888   
-2025-11-26 15:22:42.643   858-858   SurfaceFlinger          surfaceflinger                       D  Display 4633128672291735937 HWC layers:
-                                                                                                         CLIENT | 0x70f52a0050 | 0102 | RGBA_8888    |    0.0    0.0    0.0    0.0 |    0 3065 1440 3088 | bbq-wrapper#14232
-                                                                                                         CLIENT | 0x70f52d8b10 | 0100 | 0x32315659   |    0.0 1158.0  720.0 1280.0 |   42    0  954  155 | bbq-wrapper#14207
-                                                                                                         DEVICE | 0x70f52c84f0 | 0100 | 0x32315659   |    0.0    0.0 1080.0 1080.0 |    0  866 1440 2306 | bbq-wrapper#14217
-                                                                                                         DEVICE | 0x70f52e97f0 | 0100 | RGBA_8888    |    0.0   23.0 1440.0 3088.0 |    0    0 1440 3065 | com.facebook.katana/com.facebook.katana.LoginActivity$_6083#14164
-                                                                                                         DEVICE | 0x70f52ee6b0 | 0102 | RGBA_8888    |    0.0    0.0 1440.0    1.0 |    0    0 1440  429 | bbq-wrapper#14229
-                                                                                                     SOLID_COLOR |              | 0000 |  Unknown  |    0.0    0.0    0.0    0.0 |    0    0 1440 3088 | DimAnimationLayer for Task=22361#14223
-                                                                                                         DEVICE | 0x70f52d87b0 | 0100 | RGBA_8888    |    0.0    0.0 1440.0 2659.0 |    0  429 1440 3088 | Splash Screen com.yourname.smartrecorder$_22947#14221
-                                                                                                         DEVICE | 0x70f52d7250 | 0100
-2025-11-26 15:22:42.674  1198-1895  ActivityManager         system_server                        I  DSS OFF for com.yourname.smartrecorder
-2025-11-26 15:22:42.678  1198-1895  DexController           system_server                        I  getTaskHasActivityIsWaitingToRun: r=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}, app=ProcessRecord{8b41535 22484:com.yourname.smartrecorder/u0a909}
-2025-11-26 15:22:42.680  1198-1895  WindowManager           system_server                        D  rotationForOrientation, orientationSource=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}
-2025-11-26 15:22:42.685  1198-1895  SGM:PkgDataHelper       system_server                        D  notifyAppCreate(), pkgName: com.yourname.smartrecorder, userId: 0, sendRet: true
-2025-11-26 15:22:42.685  1198-1895  MARsPolicyManager       system_server                        D  onPackageResumedFG pkgName = com.yourname.smartrecorder, userId = 0
-2025-11-26 15:22:42.685  1198-1895  ActivityTaskManager     system_server                        D  scheduleTopResumedActivityChanged, onTop=true r=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361} caller=com.android.server.wm.ActivityTaskSupervisor.scheduleTopResumedActivityStateIfNeeded:2535 com.android.server.wm.ActivityTaskSupervisor.updateTopResumedActivityIfNeeded:2527 com.android.server.wm.TaskFragment.setResumedActivity:493 com.android.server.wm.TaskFragment.onActivityStateChanged:805 com.android.server.wm.ActivityRecord.setState:6428 com.android.server.wm.Task.minimalResumeActivityLocked:6155 
-2025-11-26 15:22:42.685  1198-1895  InputDispatcher         system_server                        D  Focused application(0): ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}
----------------------------- PROCESS STARTED (22484) for package com.yourname.smartrecorder ----------------------------
-2025-11-26 15:22:42.686  1198-1539  SGM:FgCheckThread       system_server                        D  onLooperPrepared(), msg: MSG_APP_CREATE, pkgName: com.yourname.smartrecorder, userId: 0
-2025-11-26 15:22:42.687  1198-1895  SGM:FgCheckThread       system_server                        D    sendRunningComponentFocus(), pkgName: com.yourname.smartrecorder, userId: 0
-2025-11-26 15:22:42.688  1198-1539  SGM:FgCheckThread       system_server                        D  onLooperPrepared(), msg: MSG_TASK_FOCUSED, pkgName: com.yourname.smartrecorder, userId: 0
-2025-11-26 15:22:42.688  1198-1539  SGM:FgCheckThread       system_server                        D    handleTaskFocused(), pkgName: com.yourname.smartrecorder, userID:0
-2025-11-26 15:22:42.689 22232-22466 GOS:GameIntentService   com.samsung.android.game.gos         I  onHandleIntent. GameIntentService. type: 15, pkgName: com.yourname.smartrecorder
-2025-11-26 15:22:42.690 22232-22466 GOS:GameIntentService   com.samsung.android.game.gos         I  onPackageChanged(). extras: Bundle[{changeType=0, userId=0, pkgName=com.yourname.smartrecorder, type=15, packageName=com.yourname.smartrecorder}]
-2025-11-26 15:22:42.690 22232-22466 GOS:GameIntentService   com.samsung.android.game.gos         I  onPackageChanged(). changeType(INSTALLED), pkgName(com.yourname.smartrecorder), UserHandle(0), userId(0), Installed(true)
-2025-11-26 15:22:42.691 22232-22466 GOS:GameIntentService   com.samsung.android.game.gos         I  onPkgInstalled(), appInfoCategory: -1, packageName: com.yourname.smartrecorder
-2025-11-26 15:22:42.691  1198-1539  SGM:FgCheckThread       system_server                        D    handleResume(). pkgName: com.yourname.smartrecorder, userId: 0, isTunableApp: null
-2025-11-26 15:22:42.691  1198-1539  SGM:FgCheckThread       system_server                        D  notifyFocusInOut(). of pkg: com.yourname.smartrecorder, type: 4, isTunableApp: false, userId: 0
-2025-11-26 15:22:42.702 22484-22484 Compatibil...geReporter com.yourname.smartrecorder           D  Compat change id reported: 171979766; UID 10909; state: ENABLED
-2025-11-26 15:22:42.708   858-858   SurfaceFlinger          surfaceflinger                       D  Display 4633128672291735937 HWC layers:
-                                                                                                         CLIENT | 0x70f52a0050 | 0102 | RGBA_8888    |    0.0    0.0 1440.0    1.0 |    0 3021 1440 3088 | bbq-wrapper#14232
-                                                                                                         CLIENT | 0x70f52c84f0 | 0100 | 0x32315659   |    0.0    0.0 1080.0 1080.0 |    0  822 1440 2262 | bbq-wrapper#14217
-                                                                                                         CLIENT | 0x70f52e97f0 | 0100 | RGBA_8888    |    0.0   67.0 1440.0 3088.0 |    0    0 1440 3021 | com.facebook.katana/com.facebook.katana.LoginActivity$_6083#14164
-                                                                                                         CLIENT | 0x70f52ee6b0 | 0102 | RGBA_8888    |    0.0    0.0    0.0    0.0 |    0    0 1440  141 | bbq-wrapper#14229
-                                                                                                     SOLID_COLOR |              | 0000 |  Unknown  |    0.0    0.0    0.0    0.0 |    0    0 1440 3088 | DimAnimationLayer for Task=22361#14223
-                                                                                                         DEVICE | 0x70f52d87b0 | 0100 | RGBA_8888    |    0.0    0.0 1440.0 2947.0 |    0  141 1440 3088 | Splash Screen com.yourname.smartrecorder$_22947#14221
-                                                                                                         DEVICE | 0x70f52d7250 | 0100 | RGBA_8888    |    0.0    0.0 1440.0   90.0 |    0    0 1440   90 | StatusBar$_22947#4630
-                                                                                                         DEVICE | 0x70f52e8170 | 
-2025-11-26 15:22:42.741   858-858   SurfaceFlinger          surfaceflinger                       D  Display 4633128672291735937 HWC layers:
-                                                                                                         CLIENT | 0x70f52a0050 | 0102 | RGBA_8888    |    0.0    0.0 1440.0    1.0 |    0 3014 1440 3088 | bbq-wrapper#14232
-                                                                                                         CLIENT | 0x70f52d8b10 | 0100 | 0x32315659   |    0.0 1198.0  720.0 1280.0 |   42    0  954  104 | bbq-wrapper#14207
-                                                                                                         CLIENT | 0x70f52c84f0 | 0100 | 0x32315659   |    0.0    0.0 1080.0 1080.0 |    0  815 1440 2255 | bbq-wrapper#14217
-                                                                                                         CLIENT | 0x70f52e97f0 | 0100 | RGBA_8888    |    0.0   74.0 1440.0 3088.0 |    0    0 1440 3014 | com.facebook.katana/com.facebook.katana.LoginActivity$_6083#14164
-                                                                                                         CLIENT | 0x70f52ee6b0 | 0102 | RGBA_8888    |    0.0    0.0    0.0    0.0 |    0    0 1440   92 | bbq-wrapper#14229
-                                                                                                     SOLID_COLOR |              | 0000 |  Unknown  |    0.0    0.0    0.0    0.0 |    0    0 1440 3088 | DimAnimationLayer for Task=22361#14223
-                                                                                                         DEVICE | 0x70f52d87b0 | 0100 | RGBA_8888    |    0.0    0.0 1440.0 2996.0 |    0   92 1440 3088 | Splash Screen com.yourname.smartrecorder$_22947#14221
-                                                                                                         DEVICE | 0x70f52d7250 | 0100
-2025-11-26 15:22:42.827  1198-1287  GameSDK@LifeCycle       system_server                        I  noteResumeComponent(): package name  : com.yourname.smartrecorder
-2025-11-26 15:22:42.829  4533-4533  ActivityUtils           com...ndroid.app.cocktailbarservice  I  HomePackage : com.sec.android.app.launcher, resumePackageName : com.yourname.smartrecorder
-2025-11-26 15:22:42.832  1198-1287  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.android.server.ssrm.SortingMachine.isGame(SortingMachine.java:162)
-2025-11-26 15:22:42.832  1198-1287  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:42.832  1198-1287  SGM:FgCheckThread       system_server                        D  noteResumeComponent(), received pkgName: com.yourname.smartrecorder, userId: 0
-2025-11-26 15:22:42.832  4879-27030 Routine@Co...stenerImpl com.samsung.android.app.routines     I  onResumeComponent: componentName - ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:22:42.835  1198-1539  SGM:FgCheckThread       system_server                        D  onLooperPrepared(), msg: MSG_APP_RESUME, pkgName: com.yourname.smartrecorder, userid: 0
-2025-11-26 15:22:42.839  1198-2005  MdnieScena...rolService system_server                        D   packageName : com.yourname.smartrecorder    className : com.yourname.smartrecorder.MainActivity
-2025-11-26 15:22:42.846  1198-1287  SGM:GameManager         system_server                        D  identifyGamePackage. com.yourname.smartrecorder, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:104)
-2025-11-26 15:22:42.846  1198-1287  SGM:PkgDataHelper       system_server                        D  getGamePkgData(). com.yourname.smartrecorder
-2025-11-26 15:22:42.846  1198-1287  SGM:SemGameManager      system_server                        D  isGamePackage(), pkgName=com.yourname.smartrecorder, ret=false
-2025-11-26 15:22:42.979  4879-4879  Routine@Co...JobService com.samsung.android.app.routines     I  metadataLoadingFinished: collectPackageInBG - com.yourname.smartrecorder
-2025-11-26 15:22:42.993   858-858   SurfaceFlinger          surfaceflinger                       D  Display 4633128672291735937 HWC layers:
-                                                                                                         CLIENT | 0x70f52a0050 | 0102 | RGBA_8888    |    0.0    0.0 1440.0    1.0 |    0 3000 1440 3088 | bbq-wrapper#14232
-                                                                                                         CLIENT | 0x70f52d8b10 | 0100 | 0x32315659   |    0.0 1209.0  720.0 1280.0 |   42    0  954   90 | bbq-wrapper#14207
-                                                                                                         DEVICE | 0x70f52c84f0 | 0100 | 0x32315659   |    0.0    0.0 1080.0 1080.0 |    0  801 1440 2241 | bbq-wrapper#14217
-                                                                                                         DEVICE | 0x70f52e97f0 | 0100 | RGBA_8888    |    0.0   88.0 1440.0 3088.0 |    0    0 1440 3000 | com.facebook.katana/com.facebook.katana.LoginActivity$_6083#14164
-                                                                                                     SOLID_COLOR |              | 0000 |  Unknown  |    0.0    0.0    0.0    0.0 |    0    0 1440 3088 | DimAnimationLayer for Task=22361#14223
-                                                                                                         DEVICE | 0x70f52d87b0 | 0100 | RGBA_8888    |    0.0    0.0 1440.0 3088.0 |    0    0 1440 3088 | Splash Screen com.yourname.smartrecorder$_22947#14221
-                                                                                                         DEVICE | 0x70f52d7250 | 0100 | RGBA_8888    |    0.0    0.0 1440.0   90.0 |    0    0 1440   90 | StatusBar$_22947#4630
-                                                                                                         DEVICE | 0x70f52e8170 | 
-2025-11-26 15:22:43.006   858-858   SurfaceFlinger          surfaceflinger                       D  Display 4633128672291735937 HWC layers:
-                                                                                                         DEVICE | 0x70f52d87b0 | 0100 | RGBA_8888    |    0.0    0.0 1440.0 3088.0 |    0    0 1440 3088 | Splash Screen com.yourname.smartrecorder$_22947#14221
-                                                                                                         DEVICE | 0x70f52d7250 | 0100 | RGBA_8888    |    0.0    0.0 1440.0   90.0 |    0    0 1440   90 | StatusBar$_22947#4630
-                                                                                                         DEVICE | 0x70f52e8170 | 0100 | RGBA_8888    |    0.0    0.0   67.0  708.0 | 1373  391 1440 1099 | com.samsung.android.app.cocktailbars[...]rvice.CocktailBarService$_4533#14161
-                                                                                                         DEVICE | 0x70f52d8d50 | 0100 | RGBA_8888    |    0.0    0.0 1440.0  168.0 |    0 2920 1440 3088 | NavigationBar0$_22947#4625
-2025-11-26 15:22:43.047  1198-1293  Enterprise...gerService system_server                        D  onPackageUpdateFinished - packageName: com.yourname.smartrecorder, uid: 10909
-2025-11-26 15:22:43.050  2188-2188  Launcher.Model          com.sec.android.app.launcher         I  package changed received : com.yourname.smartrecorder
-2025-11-26 15:22:43.050  1198-1293  MetaDataCollector       system_server                        D  onReceive: done pkgName=com.yourname.smartrecorder
-2025-11-26 15:22:43.062  2188-2465  PackageUpdatedTask      com.sec.android.app.launcher         I  mAllAppsList.updatePackage com.yourname.smartrecorder
-2025-11-26 15:22:43.075  1198-1293  SGM:GameManager         system_server                        I  PkgUpdateReceiver, onPackageAdded : com.yourname.smartrecorder userHandle : UserHandle{95} userId : 95
-2025-11-26 15:22:43.077  1198-1540  SGM:GosNotifyThread     system_server                        D  notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 0, pkgName:com.yourname.smartrecorder, userHandleId:95
-2025-11-26 15:22:43.098  1198-1293  Enterprise...gerService system_server                        D  onPackageUpdateFinished - packageName: com.yourname.smartrecorder, uid: 9510909
-2025-11-26 15:22:43.101  1198-1293  MetaDataCollector       system_server                        D  onReceive: done pkgName=com.yourname.smartrecorder
-2025-11-26 15:22:43.101  2188-2188  Launcher.Model          com.sec.android.app.launcher         I  package changed received : com.yourname.smartrecorder
-2025-11-26 15:22:43.102  1198-1293  SGM:GameManager         system_server                        I  PkgUpdateReceiver, onPackageReplaced : com.yourname.smartrecorder userID : UserHandle{0}
-2025-11-26 15:22:43.102  1198-1540  SGM:GosNotifyThread     system_server                        D  notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 8, pkgName:com.yourname.smartrecorder, userHandleId:0
-2025-11-26 15:22:43.102  1198-1293  MetaDataCollector       system_server                        D  onReceive: done pkgName=com.yourname.smartrecorder
-2025-11-26 15:22:43.109  1198-1293  SGM:GameManager         system_server                        I  PkgUpdateReceiver, onPackageReplaced : com.yourname.smartrecorder userID : UserHandle{95}
-2025-11-26 15:22:43.109  1198-1540  SGM:GosNotifyThread     system_server                        D  notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 8, pkgName:com.yourname.smartrecorder, userHandleId:95
-2025-11-26 15:22:43.109  1198-1293  MetaDataCollector       system_server                        D  onReceive: done pkgName=com.yourname.smartrecorder
-2025-11-26 15:22:43.116 22232-22570 GOS:GameIntentService   com.samsung.android.game.gos         I  onHandleIntent. GameIntentService. type: 15, pkgName: com.yourname.smartrecorder
-2025-11-26 15:22:43.170 22484-22484 nativeloader            com.yourname.smartrecorder           D  Configuring clns-4 for other apk /data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/lib/arm64:/data/app/~~8DnFdD7GBIg1ja8wFCxvww==/com.yourname.smartrecorder-OdpV3d9xiZjR5AOD1zhODQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.yourname.smartrecorder
-2025-11-26 15:22:43.186 22484-22484 nativeloader            com.yourname.smartrecorder           D  Load libframework-connectivity-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity.jar: ok
-2025-11-26 15:22:43.188  2188-2465  AppIconSolution         com.sec.android.app.launcher         I  getThemeIconWithBG called with public API, pkg = com.yourname.smartrecorder, mode = 48
-2025-11-26 15:22:43.189  2188-2465  AppIconSolution         com.sec.android.app.launcher         I  return adaptive icon for com.yourname.smartrecorder, isNight = true
-2025-11-26 15:22:43.189 22232-22570 GOS:GameIntentService   com.samsung.android.game.gos         I  onPackageChanged(). extras: Bundle[{changeType=8, userId=0, pkgName=com.yourname.smartrecorder, type=15, packageName=com.yourname.smartrecorder}]
-2025-11-26 15:22:43.190 22232-22570 GOS:GameIntentService   com.samsung.android.game.gos         I  onPackageChanged(). changeType(REPLACED), pkgName(com.yourname.smartrecorder), UserHandle(0), userId(0), Installed(true)
-2025-11-26 15:22:43.192  2188-2465  LauncherActivityInfo    com.sec.android.app.launcher         I  packageName: com.yourname.smartrecorder, useThemeIcon: false, height: 252, width: 252, density: 640
-2025-11-26 15:22:43.192 22484-22484 GraphicsEnvironment     com.yourname.smartrecorder           V  ANGLE Developer option for 'com.yourname.smartrecorder' set to: 'default'
-2025-11-26 15:22:43.193 22484-22484 GraphicsEnvironment     com.yourname.smartrecorder           V  ANGLE GameManagerService for com.yourname.smartrecorder: false
-2025-11-26 15:22:43.193 22484-22484 GraphicsEnvironment     com.yourname.smartrecorder           V  App is not on the allowlist for updatable production driver.
-2025-11-26 15:22:43.197 22484-22484 NetworkSecurityConfig   com.yourname.smartrecorder           D  No Network Security Config specified, using platform default
-2025-11-26 15:22:43.235  2188-2465  HsAllAppsList           com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:22:43.241  2188-2465  AppIconSolution         com.sec.android.app.launcher         I  return adaptive icon for com.yourname.smartrecorder, isNight = true
-2025-11-26 15:22:43.244 22484-22484 NetworkSecurityConfig   com.yourname.smartrecorder           D  No Network Security Config specified, using platform default
-2025-11-26 15:22:43.277  2188-2465  PackageUpdatedTask      com.sec.android.app.launcher         I  modified, appInfo : AppInfo(id=1608 type=APP hidden=0 container=all_apps screen=4 rank=8 rankOfList=-1 user=UserHandle{0} title=Smart Recorder componentName=ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} screenType=0 runtimeStatusFlags=384 status=0)
-2025-11-26 15:22:43.291 22484-22588 OpenGLRenderer          com.yourname.smartrecorder           D  RenderThread::requireGlContext()
-2025-11-26 15:22:43.314 22484-22588 OpenGLRenderer          com.yourname.smartrecorder           D  RenderThread::setGrContext()
-2025-11-26 15:22:43.321 22484-22484 DecorView               com.yourname.smartrecorder           I  [INFO] isPopOver=false config=true
-2025-11-26 15:22:43.321 22484-22484 DecorView               com.yourname.smartrecorder           I  updateCaptionType: isFloating=false isApplication=true hasWindowDecorCaption=false this=DecorView@e29ab74[]
-2025-11-26 15:22:43.321 22484-22484 DecorView               com.yourname.smartrecorder           D  setCaptionType = 0, this = DecorView@e29ab74[]
-2025-11-26 15:22:43.324 22484-22484 DecorView               com.yourname.smartrecorder           I  getCurrentDensityDpi: from real metrics. densityDpi=560 msg=resources_loaded
-2025-11-26 15:22:43.324 22484-22484 DecorView               com.yourname.smartrecorder           I  setWindowBackground: isPopOver=false color=fffafafa d=android.graphics.drawable.ColorDrawable@b7f3112
-2025-11-26 15:22:43.348 22484-22484 MSHandlerLifeCycle      com.yourname.smartrecorder           I  check: return. pkg=com.yourname.smartrecorder parent=null callers=com.android.internal.policy.DecorView.setVisibility:4412 android.app.ActivityThread.handleResumeActivity:5476 android.app.servertransaction.ResumeActivityItem.execute:54 android.app.servertransaction.ActivityTransactionItem.execute:45 android.app.servertransaction.TransactionExecutor.executeLifecycleState:176 
-2025-11-26 15:22:43.348 22484-22484 MSHandlerLifeCycle      com.yourname.smartrecorder           I  removeMultiSplitHandler: no exist. decor=DecorView@e29ab74[]
-2025-11-26 15:22:43.355 22484-22588 NativeCust...ncyManager com.yourname.smartrecorder           D  [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
-2025-11-26 15:22:43.358 22484-22484 DecorView               com.yourname.smartrecorder           I  notifyKeepScreenOnChanged: keepScreenOn=false
-2025-11-26 15:22:43.361   858-1169  SurfaceFlinger          surfaceflinger                       I  id=14233 createSurf flag=80004, b4a81fb com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity#14233
-2025-11-26 15:22:43.362  2188-2465  PackageUpdatedTask      com.sec.android.app.launcher         I  mAllAppsList.updatePackage com.yourname.smartrecorder
-2025-11-26 15:22:43.364 22484-22484 InsetsController        com.yourname.smartrecorder           D  onStateChanged: InsetsState: {mDisplayFrame=Rect(0, 0 - 1440, 3088), mDisplayCutout=DisplayCutout{insets=Rect(0, 89 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(685, 0 - 755, 89), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1440 displayHeight=3088 physicalDisplayWidth=1440 physicalDisplayHeight=3088 density={3.5} cutoutSpec={M 0,0 H -10 V 25.42857142857143 H 10 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=112, center=Point(112, 112)}, RoundedCorner{position=TopRight, radius=112, center=Point(1328, 112)}, RoundedCorner{position=BottomRight, radius=112, center=Point(1328, 2976)}, RoundedCorner{position=BottomLeft, radius=112, center=Point(112, 2976)}]}  mRoundedCornerFrame=Rect(0, 0 - 1440, 3088), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(1286, 0 - 1440, 90) rotation=0}, mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_GESTURES, mFrame=[0,0][0,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_GESTURES, mFrame=[1440,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_MANDATORY_GESTURES, mFrame=[0,0][1440,131], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_MANDATORY_GESTURES, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_DISPLAY_CUTOUT, mFrame=[0,0][-100000,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_DISPLAY_CUTOUT, mFrame=[0,0][1440,89], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_DISPLAY_CUTOUT, mFrame=[100000,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_DISPLAY_CUTOUT, mFrame=[0,100000][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_TAPPABLE_ELEMENT, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_TAPPABLE_ELEMENT, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false} } host=com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity from=android.view.ViewRootImpl.setView:1732
-2025-11-26 15:22:43.366  1198-4344  CoreBackPreview         system_server                        D  Window{b4a81fb u0 com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@e726471, mPriority=0}
-2025-11-26 15:22:43.366 22484-22484 ViewRootIm...nActivity] com.yourname.smartrecorder           I  setView = com.android.internal.policy.DecorView@e29ab74 TM=true
-2025-11-26 15:22:43.367 22484-22484 MSHandlerLifeCycle      com.yourname.smartrecorder           I  removeMultiSplitHandler: no exist. decor=DecorView@e29ab74[MainActivity]
-2025-11-26 15:22:43.387  2188-2465  AppIconSolution         com.sec.android.app.launcher         I  getThemeIconWithBG called with public API, pkg = com.yourname.smartrecorder, mode = 48
-2025-11-26 15:22:43.388  2188-2465  AppIconSolution         com.sec.android.app.launcher         I  return adaptive icon for com.yourname.smartrecorder, isNight = true
-2025-11-26 15:22:43.419  2188-2465  LauncherActivityInfo    com.sec.android.app.launcher         I  packageName: com.yourname.smartrecorder, useThemeIcon: false, height: 252, width: 252, density: 640
-2025-11-26 15:22:43.465  2188-2465  HsAllAppsList           com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:22:43.469  2188-2465  AppIconSolution         com.sec.android.app.launcher         I  return adaptive icon for com.yourname.smartrecorder, isNight = true
-2025-11-26 15:22:43.487  2188-2465  PackageUpdatedTask      com.sec.android.app.launcher         I  modified, appInfo : AppInfo(id=1609 type=APP hidden=0 container=all_apps screen=4 rank=9 rankOfList=-1 user=UserHandle{95} title=Smart Recorder componentName=ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} screenType=0 runtimeStatusFlags=128 status=0)
-2025-11-26 15:22:43.521  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  DPS items : Smart Recorder, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:22:43.522 22484-22484 e.smartrecorder         com.yourname.smartrecorder           I  hiddenapi: Accessing hidden method Landroid/os/SystemProperties;->addChangeCallback(Ljava/lang/Runnable;)V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/compose/ui/platform/AndroidComposeView$Companion; (domain=app) using reflection: allowed
-2025-11-26 15:22:43.675 22610-22610 FILP/Packa...ntReceiver com...droid.provider.filterprovider  I  pkgName : com.yourname.smartrecorder
-2025-11-26 15:22:43.697 22610-22627 FILP/b                  com...droid.provider.filterprovider  I  removeFromFS : com.yourname.smartrecorder, cursor size : 0
-2025-11-26 15:22:43.702 22610-22627 FILP/b                  com...droid.provider.filterprovider  I  Delete DB result : com.yourname.smartrecorder, 0
-2025-11-26 15:22:43.868 22484-22484 AndroidRuntime          com.yourname.smartrecorder           D  Shutting down VM
-2025-11-26 15:22:43.871 22484-22484 AndroidRuntime          com.yourname.smartrecorder           E  FATAL EXCEPTION: main (Ask Gemini)
-                                                                                                    Process: com.yourname.smartrecorder, PID: 22484
-                                                                                                    java.lang.RuntimeException: Cannot create an instance of class com.yourname.smartrecorder.ui.import.ImportAudioViewModel
-                                                                                                    	at androidx.lifecycle.viewmodel.internal.JvmViewModelProviders.createViewModel(JvmViewModelProviders.kt:42)
-                                                                                                    	at androidx.lifecycle.ViewModelProvider$NewInstanceFactory.create(ViewModelProvider.android.kt:185)
-                                                                                                    	at androidx.lifecycle.ViewModelProvider$AndroidViewModelFactory.create(ViewModelProvider.android.kt:309)
-                                                                                                    	at androidx.lifecycle.ViewModelProvider$AndroidViewModelFactory.create(ViewModelProvider.android.kt:269)
-                                                                                                    	at androidx.lifecycle.SavedStateViewModelFactory.create(SavedStateViewModelFactory.android.kt:142)
-                                                                                                    	at dagger.hilt.android.internal.lifecycle.HiltViewModelFactory.create(HiltViewModelFactory.java:172)
-                                                                                                    	at androidx.lifecycle.ViewModelProvider$Factory.create(ViewModelProvider.android.kt:153)
-                                                                                                    	at androidx.lifecycle.viewmodel.ViewModelProviderImpl_androidKt.createViewModel(ViewModelProviderImpl.android.kt:34)
-                                                                                                    	at androidx.lifecycle.viewmodel.ViewModelProviderImpl.getViewModel$lifecycle_viewmodel_release(ViewModelProviderImpl.kt:60)
-                                                                                                    	at androidx.lifecycle.viewmodel.ViewModelProviderImpl.getViewModel$lifecycle_viewmodel_release$default(ViewModelProviderImpl.kt:43)
-                                                                                                    	at androidx.lifecycle.ViewModelProvider.get(ViewModelProvider.android.kt:92)
-                                                                                                    	at androidx.lifecycle.viewmodel.compose.ViewModelKt__ViewModelKt.get(ViewModel.kt:172)
-                                                                                                    	at androidx.lifecycle.viewmodel.compose.ViewModelKt.get(Unknown Source:1)
-                                                                                                    	at androidx.lifecycle.viewmodel.compose.ViewModelKt__ViewModel_androidKt.viewModel(ViewModel.android.kt:119)
-                                                                                                    	at androidx.lifecycle.viewmodel.compose.ViewModelKt.viewModel(Unknown Source:1)
-                                                                                                    	at com.yourname.smartrecorder.ui.SmartRecorderAppKt.SmartRecorderApp$lambda$2$0$0$0(SmartRecorderApp.kt:243)
-                                                                                                    	at com.yourname.smartrecorder.ui.SmartRecorderAppKt.$r8$lambda$pOmA0nAFFnRbcTJtu57hnPrKQU4(Unknown Source:0)
-                                                                                                    	at com.yourname.smartrecorder.ui.SmartRecorderAppKt$$ExternalSyntheticLambda24.invoke(D8$$SyntheticClass:0)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:142)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.navigation.compose.NavHostKt$NavHost$32$1.invoke(NavHost.kt:720)
-                                                                                                    	at androidx.navigation.compose.NavHostKt$NavHost$32$1.invoke(NavHost.kt:719)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:370)
-                                                                                                    	at androidx.compose.runtime.saveable.SaveableStateHolderImpl.SaveableStateProvider(SaveableStateHolder.kt:82)
-                                                                                                    	at androidx.navigation.compose.NavBackStackEntryProviderKt.SaveableStateProvider(NavBackStackEntryProvider.kt:69)
-                                                                                                    	at androidx.navigation.compose.NavBackStackEntryProviderKt.access$SaveableStateProvider(NavBackStackEntryProvider.kt:1)
-                                                                                                    	at androidx.navigation.compose.NavBackStackEntryProviderKt$LocalOwnersProvider$1.invoke(NavBackStackEntryProvider.kt:56)
-                                                                                                    	at androidx.navigation.compose.NavBackStackEntryProviderKt$LocalOwnersProvider$1.invoke(NavBackStackEntryProvider.kt:55)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:370)
-                                                                                                    	at androidx.navigation.compose.NavBackStackEntryProviderKt.LocalOwnersProvider(NavBackStackEntryProvider.kt:51)
-                                                                                                    	at androidx.navigation.compose.NavHostKt$NavHost$32.invoke(NavHost.kt:719)
-                                                                                                    	at androidx.navigation.compose.NavHostKt$NavHost$32.invoke(NavHost.kt:699)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:142)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-2025-11-26 15:22:43.873 22484-22484 AndroidRuntime          com.yourname.smartrecorder           E  	at androidx.compose.animation.AnimatedContentKt$AnimatedContent$6$1$5.invoke(AnimatedContent.kt:863) (Ask Gemini)
-                                                                                                    	at androidx.compose.animation.AnimatedContentKt$AnimatedContent$6$1$5.invoke(AnimatedContent.kt:853)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:130)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.compose.animation.AnimatedVisibilityKt.AnimatedEnterExitImpl(AnimatedVisibility.kt:752)
-                                                                                                    	at androidx.compose.animation.AnimatedContentKt$AnimatedContent$6$1.invoke(AnimatedContent.kt:835)
-                                                                                                    	at androidx.compose.animation.AnimatedContentKt$AnimatedContent$6$1.invoke(AnimatedContent.kt:818)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.compose.animation.AnimatedContentKt.AnimatedContent(AnimatedContent.kt:873)
-                                                                                                    	at androidx.navigation.compose.NavHostKt.NavHost(NavHost.kt:671)
-                                                                                                    	at androidx.navigation.compose.NavHostKt.NavHost(NavHost.kt:213)
-                                                                                                    	at com.yourname.smartrecorder.ui.SmartRecorderAppKt.SmartRecorderApp$lambda$2(SmartRecorderApp.kt:78)
-                                                                                                    	at com.yourname.smartrecorder.ui.SmartRecorderAppKt.$r8$lambda$h5LV8e0ZxJzAQljzNW8B_i-gzvc(Unknown Source:0)
-                                                                                                    	at com.yourname.smartrecorder.ui.SmartRecorderAppKt$$ExternalSyntheticLambda9.invoke(D8$$SyntheticClass:0)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:130)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.compose.material3.ScaffoldKt$ScaffoldLayout$bodyContent$1$1.invoke(Scaffold.kt:163)
-                                                                                                    	at androidx.compose.material3.ScaffoldKt$ScaffoldLayout$bodyContent$1$1.invoke(Scaffold.kt:163)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
-                                                                                                    	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
-                                                                                                    	at androidx.compose.runtime.internal.Expect_jvmKt.invokeComposable(Expect.jvm.kt:24)
-                                                                                                    	at androidx.compose.runtime.ComposerImpl.doCompose-aFTiNEg(Composer.kt:3843)
-                                                                                                    	at androidx.compose.runtime.ComposerImpl.composeContent--ZbOJvo$runtime(Composer.kt:3747)
-                                                                                                    	at androidx.compose.runtime.CompositionImpl.composeContent(Composition.kt:832)
-                                                                                                    	at androidx.compose.runtime.Recomposer.composeInitial$runtime(Recomposer.kt:1233)
-                                                                                                    	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime(Composer.kt:4186)
-                                                                                                    	at androidx.compose.runtime.CompositionImpl.composeInitial(Composition.kt:672)
-                                                                                                    	at androidx.compose.runtime.CompositionImpl.setContent(Composition.kt:639)
-                                                                                                    	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:698)
-                                                                                                    	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:641)
-                                                                                                    	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:607)
-                                                                                                    	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$Scope.subcompose(SubcomposeLayout.kt:1231)
-                                                                                                    	at androidx.compose.material3.ScaffoldKt.ScaffoldLayout_FMILGgc$lambda$15$lambda$14(Scaffold.kt:274)
-                                                                                                    	at androidx.compose.material3.ScaffoldKt.$r8$lambda$n3ZDRTwsbOQZyh1HxLLs768icxc(Unknown Source:0)
-                                                                                                    	at androidx.compose.material3.ScaffoldKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
-                                                                                                    	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:914)
-                                                                                                    	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:128)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:173)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:172)
-                                                                                                    	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:502)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:464)
-2025-11-26 15:22:43.876 22484-22484 AndroidRuntime          com.yourname.smartrecorder           E  	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:248) (Ask Gemini)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:107)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.performMeasure-BRTryo0$ui_release(MeasurePassDelegate.kt:426)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:477)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:454)
-                                                                                                    	at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
-                                                                                                    	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:128)
-                                                                                                    	at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:794)
-                                                                                                    	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:173)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:172)
-                                                                                                    	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:502)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:464)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:248)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:107)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.performMeasure-BRTryo0$ui_release(MeasurePassDelegate.kt:426)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:477)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:454)
-                                                                                                    	at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
-                                                                                                    	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:128)
-                                                                                                    	at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:794)
-                                                                                                    	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
-                                                                                                    	at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
-                                                                                                    	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:173)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:172)
-                                                                                                    	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:502)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:464)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:248)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:107)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.performMeasure-BRTryo0$ui_release(MeasurePassDelegate.kt:426)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:477)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:454)
-                                                                                                    	at androidx.compose.ui.layout.RootMeasurePolicy.measure-3p2s80s(RootMeasurePolicy.kt:37)
-                                                                                                    	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:128)
-                                                                                                    	at androidx.compose.ui.layout.RulerProviderModifierNode.measure-3p2s80s(WindowInsetsRulers.android.kt:210)
-2025-11-26 15:22:43.885 22484-22484 AndroidRuntime          com.yourname.smartrecorder           E  	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190) (Ask Gemini)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:173)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:172)
-                                                                                                    	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:2495)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:464)
-                                                                                                    	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:248)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
-                                                                                                    	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:107)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.performMeasure-BRTryo0$ui_release(MeasurePassDelegate.kt:426)
-                                                                                                    	at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:477)
-                                                                                                    	at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui_release(LayoutNode.kt:1283)
-                                                                                                    	at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:378)
-                                                                                                    	at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureOnly(MeasureAndLayoutDelegate.kt:658)
-                                                                                                    	at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureOnly(MeasureAndLayoutDelegate.kt:446)
-                                                                                                    	at androidx.compose.ui.platform.AndroidComposeView.onMeasure(AndroidComposeView.android.kt:1671)
-                                                                                                    	at android.view.View.measure(View.java:27731)
-                                                                                                    	at androidx.compose.ui.platform.AbstractComposeView.internalOnMeasure$ui_release(ComposeView.android.kt:299)
-                                                                                                    	at androidx.compose.ui.platform.AbstractComposeView.onMeasure(ComposeView.android.kt:286)
-                                                                                                    	at android.view.View.measure(View.java:27731)
-                                                                                                    	at android.view.ViewGroup.measureChildWithMargins(ViewGroup.java:7352)
-                                                                                                    	at android.widget.FrameLayout.onMeasure(FrameLayout.java:194)
-                                                                                                    	at android.view.View.measure(View.java:27731)
-                                                                                                    	at android.view.ViewGroup.measureChildWithMargins(ViewGroup.java:7352)
-                                                                                                    	at android.widget.LinearLayout.measureChildBeforeLayout(LinearLayout.java:1552)
-                                                                                                    	at android.widget.LinearLayout.measureVertical(LinearLayout.java:842)
-                                                                                                    	at android.widget.LinearLayout.onMeasure(LinearLayout.java:721)
-                                                                                                    	at android.view.View.measure(View.java:27731)
-                                                                                                    	at android.view.ViewGroup.measureChildWithMargins(ViewGroup.java:7352)
-                                                                                                    	at android.widget.FrameLayout.onMeasure(FrameLayout.java:194)
-                                                                                                    	at com.android.internal.policy.DecorView.onMeasure(DecorView.java:1379)
-                                                                                                    	at android.view.View.measure(View.java:27731)
-                                                                                                    	at android.view.ViewRootImpl.performMeasure(ViewRootImpl.java:4841)
-                                                                                                    	at android.view.ViewRootImpl.measureHierarchy(ViewRootImpl.java:3426)
-                                                                                                    	at android.view.ViewRootImpl.performTraversals(ViewRootImpl.java:3732)
-                                                                                                    	at android.view.ViewRootImpl.doTraversal(ViewRootImpl.java:3116)
-                                                                                                    	at android.view.ViewRootImpl$TraversalRunnable.run(ViewRootImpl.java:10885)
-                                                                                                    	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1301)
-                                                                                                    	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1309)
-                                                                                                    	at android.view.Choreographer.doCallbacks(Choreographer.java:923)
-                                                                                                    	at android.view.Choreographer.doFrame(Choreographer.java:852)
-                                                                                                    	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1283)
-                                                                                                    	at android.os.Handler.handleCallback(Handler.java:942)
-                                                                                                    	at android.os.Handler.dispatchMessage(Handler.java:99)
-                                                                                                    	at android.os.Looper.loopOnce(Looper.java:226)
-                                                                                                    	at android.os.Looper.loop(Looper.java:313)
-                                                                                                    	at android.app.ActivityThread.main(ActivityThread.java:8762)
-                                                                                                    	at java.lang.reflect.Method.invoke(Native Method)
-                                                                                                    	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:604)
-                                                                                                    	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1067)
-                                                                                                    Caused by: java.lang.NoSuchMethodException: com.yourname.smartrecorder.ui.import.ImportAudioViewModel.<init> []
-                                                                                                    	at java.lang.Class.getConstructor0(Class.java:3385)
-2025-11-26 15:22:43.885 22484-22484 AndroidRuntime          com.yourname.smartrecorder           E  	at java.lang.Class.getDeclaredConstructor(Class.java:3067) (Ask Gemini)
-                                                                                                    	at androidx.lifecycle.viewmodel.internal.JvmViewModelProviders.createViewModel(JvmViewModelProviders.kt:40)
-                                                                                                    	... 167 more
-2025-11-26 15:22:43.910  1198-4178  ActivityManager         system_server                        W  crash : com.yourname.smartrecorder,10909
-2025-11-26 15:22:43.911  1198-4178  ActivityTaskManager     system_server                        W    Force finishing activity com.yourname.smartrecorder/.MainActivity
-2025-11-26 15:22:43.913  1198-4178  ActivityTaskManager     system_server                        D  scheduleTopResumedActivityChanged, onTop=false r=ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361 f}} caller=com.android.server.wm.ActivityTaskSupervisor.updateTopResumedActivityIfNeeded:2510 com.android.server.wm.TaskDisplayArea.positionChildTaskAt:602 com.android.server.wm.TaskDisplayArea.positionChildAt:537 com.android.server.wm.Task.moveToFrontInner:6053 com.android.server.wm.Task.moveToFront:6019 com.android.server.wm.Task.moveToFront:5953 
-2025-11-26 15:22:43.938 22484-22484 Process                 com.yourname.smartrecorder           I  Sending signal. PID: 22484 SIG: 9
-2025-11-26 15:22:43.972  4356-4356  SDHMS:BarT...r:AppError com.sec.android.sdhms                I  update AppError : uid=10909, pkg=com.yourname.smartrecorder, errorType=crash
-2025-11-26 15:22:43.983  4356-4356  SDHMS:BarT...r:AppError com.sec.android.sdhms                I  analyze app error : uid=10909, pkg=com.yourname.smartrecorder, appErrorCount=3
-2025-11-26 15:22:43.990  1198-1853  WindowManager           system_server                        I  WIN DEATH: Window{b4a81fb u0 com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:22:43.990  1198-4344  ActivityManager         system_server                        I  Process com.yourname.smartrecorder (pid 22484) has died: fg  TOP (412,3809)
-2025-11-26 15:22:43.990  1198-1853  InputManager-JNI        system_server                        W  Input channel object 'b4a81fb com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity (client)' was disposed without first being removed with the input manager!
-2025-11-26 15:22:43.990  1198-1853  WindowManager           system_server                        V  Remove Window{b4a81fb u0 com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}: mSurfaceController=null mAnimatingExit=false mRemoveOnExit=false mHasSurface=false surfaceShowing=false animating=true app-animation=true mWillReplaceWindow=false mDisplayFrozen=false callers=com.android.server.wm.WindowState.-$$Nest$mremoveIfPossible:0 com.android.server.wm.WindowState$DeathRecipient.binderDied:3821 android.os.IBinder$DeathRecipient.binderDied:323 android.os.BinderProxy.sendDeathNotice:781 <bottom of call stack> <bottom of call stack> 
----------------------------- PROCESS ENDED (22484) for package com.yourname.smartrecorder ----------------------------
-2025-11-26 15:22:43.991  1198-1853  WindowManager           system_server                        V  Last window, removing starting window Window{b4a81fb u0 com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:22:43.991  1198-1853  WindowManager           system_server                        V  Schedule remove starting ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361 f}} startingWindow=null startingView=null Callers=com.android.server.wm.ActivityRecord.removeStartingWindow:3246 com.android.server.wm.ActivityRecord.postWindowRemoveStartingWindowCleanup:8230 com.android.server.wm.WindowManagerService.postWindowRemoveCleanupLocked:2336 com.android.server.wm.WindowState.removeImmediately:3041 com.android.server.wm.WindowState.removeIfPossible:3234 
-2025-11-26 15:22:44.001   858-858   Layer                   surfaceflinger                       I  id=14233 removeFromCurrentState b4a81fb com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity#14233 (141)
-2025-11-26 15:22:44.001   858-858   SurfaceFlinger          surfaceflinger                       I  id=14233 Removed b4a81fb com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity#14233 (141)
-2025-11-26 15:22:44.001   858-858   Layer                   surfaceflinger                       I  id=14233 Destroyed b4a81fb com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity#14233
-2025-11-26 15:22:44.010  1198-1853  WindowManager           system_server                        D  updateSystemBarAttributes: displayId=0, win=Window{53c456b u95 com.facebook.katana/com.facebook.katana.LoginActivity}, navColorWin=Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}, focusedCanBeNavColorWin=false, behavior=1, appearance=24, statusBarAppearanceRegions=[AppearanceRegion{LIGHT_STATUS_BARS bounds=[0,0][1440,3088]}], requestedVisibilities=, from=com.android.server.wm.DisplayPolicy.focusChangedLw:3251 com.android.server.wm.DisplayContent.updateFocusedWindowLocked:4632 com.android.server.wm.RootWindowContainer.updateFocusedWindowLocked:595 
-2025-11-26 15:22:44.015  1198-1747  WindowManager           system_server                        V  Relayout Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}: viewVisibility=0 req=1440x3088 d0
-2025-11-26 15:22:44.016  1198-1747  WindowManager           system_server                        D  updateSystemBarAttributes: displayId=0, win=Window{53c456b u95 com.facebook.katana/com.facebook.katana.LoginActivity}, navColorWin=Window{f8379ab u0 Splash Screen com.yourname.smartrecorder}, focusedCanBeNavColorWin=false, behavior=1, appearance=8, statusBarAppearanceRegions=[AppearanceRegion{ bounds=[0,0][1440,3088]}], requestedVisibilities=, from=com.android.server.wm.DisplayPolicy.finishPostLayoutPolicyLw:2531 com.android.server.wm.DisplayContent.applySurfaceChangesTransaction:5713 com.android.server.wm.RootWindowContainer.applySurfaceChangesTransaction:1234 
-2025-11-26 15:22:44.019 22947-22995 InsetsController        com.android.systemui                 D  onStateChanged: InsetsState: {mDisplayFrame=Rect(0, 0 - 1440, 3088), mDisplayCutout=DisplayCutout{insets=Rect(0, 89 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(685, 0 - 755, 89), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1440 displayHeight=3088 physicalDisplayWidth=1440 physicalDisplayHeight=3088 density={3.5} cutoutSpec={M 0,0 H -10 V 25.42857142857143 H 10 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=112, center=Point(112, 112)}, RoundedCorner{position=TopRight, radius=112, center=Point(1328, 112)}, RoundedCorner{position=BottomRight, radius=112, center=Point(1328, 2976)}, RoundedCorner{position=BottomLeft, radius=112, center=Point(112, 2976)}]}  mRoundedCornerFrame=Rect(0, 0 - 1440, 3088), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(1286, 0 - 1440, 90) rotation=0}, mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_GESTURES, mFrame=[0,0][0,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_GESTURES, mFrame=[1440,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_MANDATORY_GESTURES, mFrame=[0,0][1440,131], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_MANDATORY_GESTURES, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_LEFT_DISPLAY_CUTOUT, mFrame=[0,0][-100000,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_DISPLAY_CUTOUT, mFrame=[0,0][1440,89], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_RIGHT_DISPLAY_CUTOUT, mFrame=[100000,0][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_DISPLAY_CUTOUT, mFrame=[0,100000][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_TOP_TAPPABLE_ELEMENT, mFrame=[0,0][1440,90], mVisible=true, mInsetsRoundedCornerFrame=false}, InsetsSource: {mType=ITYPE_BOTTOM_TAPPABLE_ELEMENT, mFrame=[0,2920][1440,3088], mVisible=true, mInsetsRoundedCornerFrame=false} } host=Splash Screen com.yourname.smartrecorder from=android.view.ViewRootImpl.relayoutWindow:9802
-2025-11-26 15:22:44.025  4879-22862 Routine@Co...stenerImpl com.samsung.android.app.routines     I  onStopComponent: componentName - ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:22:44.045  4879-4879  Routine@Co...overHelper com.samsung.android.app.routines     I  setLastResumedPackageForCover mLastResumedPackage = com.yourname.smartrecorder
-2025-11-26 15:22:44.045  4879-4879  Routine@Co...cleWatcher com.samsung.android.app.routines     I  notifyLifecycleChanged mCurResumedComponent=com.yourname.smartrecorder
-2025-11-26 15:22:44.056  1198-1288  WindowManager           system_server                        E  win=Window{f8379ab u0 Splash Screen com.yourname.smartrecorder EXITING} destroySurfaces: appStopped=false cleanupOnResume=false win.mWindowRemovalAllowed=true win.mRemoveOnExit=true win.mViewVisibility=0 caller=com.android.server.wm.WindowState.onExitAnimationDone:6017 com.android.server.wm.ActivityRecord$$ExternalSyntheticLambda10.accept:2 java.util.ArrayList.forEach:1613 com.android.server.wm.ActivityRecord.onAnimationFinished:8633 com.android.server.wm.ActivityRecord.postApplyAnimation:6274 com.android.server.wm.ActivityRecord.commitVisibility:6246 com.android.server.wm.ActivityRecord.commitVisibility:6250 
-2025-11-26 15:22:44.057  1198-1288  WindowManager           system_server                        I  Destroying surface Surface(name=Splash Screen com.yourname.smartrecorder$_22947)/@0x4d9edc7 called by com.android.server.wm.WindowStateAnimator.destroySurface:947 com.android.server.wm.WindowStateAnimator.destroySurfaceLocked:537 com.android.server.wm.WindowState.destroySurfaceUnchecked:4326 com.android.server.wm.WindowState.destroySurface:4300 com.android.server.wm.WindowState.onExitAnimationDone:6017 com.android.server.wm.ActivityRecord$$ExternalSyntheticLambda10.accept:2 java.util.ArrayList.forEach:1613 com.android.server.wm.ActivityRecord.onAnimationFinished:8633 
-2025-11-26 15:22:44.057  1198-1288  InputManager-JNI        system_server                        W  Input channel object 'f8379ab Splash Screen com.yourname.smartrecorder (client)' was disposed without first being removed with the input manager!
-2025-11-26 15:22:44.067   858-858   Layer                   surfaceflinger                       I  id=14221 removeFromCurrentState Splash Screen com.yourname.smartrecorder$_22947#14221 (146)
-2025-11-26 15:22:44.068   858-858   Layer                   surfaceflinger                       I  Layer [Splash Screen com.yourname.smartrecorder$_22947#14221] hidden!! flag(1)
-2025-11-26 15:22:44.068   858-858   Layer                   surfaceflinger                       I  id=14220 removeFromCurrentState f8379ab Splash Screen com.yourname.smartrecorder#14220 (146)
-2025-11-26 15:22:44.068   858-858   SurfaceFlinger          surfaceflinger                       I  id=14220 Removed f8379ab Splash Screen com.yourname.smartrecorder#14220 (146)
-2025-11-26 15:22:44.069   858-858   Layer                   surfaceflinger                       I  id=14220 Destroyed f8379ab Splash Screen com.yourname.smartrecorder#14220
-2025-11-26 15:22:44.069   858-884   SurfaceFlinger          surfaceflinger                       I  id=14226 Removed a4628d ActivityRecordInputSink com.yourname.smartrecorder/.MainActivity#14226 (141)
-2025-11-26 15:22:44.081 22947-22995 InsetsController        com.android.systemui                 D  onStateChanged: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mDisplayCutout=DisplayCutout{insets=Rect(0, 0 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=0 displayHeight=0 physicalDisplayWidth=0 physicalDisplayHeight=0 density={0.0} cutoutSpec={} rotation={0} scale={0.0} physicalPixelDisplaySizeRatio={0.0}}}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=0, center=Point(0, 0)}, RoundedCorner{position=TopRight, radius=0, center=Point(0, 0)}, RoundedCorner{position=BottomRight, radius=0, center=Point(0, 0)}, RoundedCorner{position=BottomLeft, radius=0, center=Point(0, 0)}]}  mRoundedCornerFrame=Rect(0, 0 - 0, 0), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=null rotation=0}, mSources= {  } host=Splash Screen com.yourname.smartrecorder from=android.view.ViewRootImpl.relayoutWindow:9802
-2025-11-26 15:22:44.084   858-858   Layer                   surfaceflinger                       I  id=14219 removeFromCurrentState ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}#14219 (142)
-2025-11-26 15:22:44.084   858-858   Layer                   surfaceflinger                       I  id=14226 removeFromCurrentState a4628d ActivityRecordInputSink com.yourname.smartrecorder/.MainActivity#14226 (142)
-2025-11-26 15:22:44.084   858-858   SurfaceFlinger          surfaceflinger                       I  id=14219 Removed ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}#14219 (142)
-2025-11-26 15:22:44.084   858-858   Layer                   surfaceflinger                       I  id=14219 Destroyed ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t22361}#14219
-2025-11-26 15:22:44.085   858-858   Layer                   surfaceflinger                       I  id=14226 Destroyed a4628d ActivityRecordInputSink com.yourname.smartrecorder/.MainActivity#14226
-2025-11-26 15:22:44.117   858-858   SurfaceFlinger          surfaceflinger                       I  id=14221 Removed Splash Screen com.yourname.smartrecorder$_22947#14221 (139)
-2025-11-26 15:22:44.118   858-858   Layer                   surfaceflinger                       I  id=14221 Destroyed Splash Screen com.yourname.smartrecorder$_22947#14221
-2025-11-26 15:22:44.138 14462-14767 SAMSUNGWALLET           com.samsung.android.spay             I  [Hint_SimpleHintProcessMonitor] package changed : com.yourname.smartrecorder , execute : true
-2025-11-26 15:22:44.138 14462-14767 SAMSUNGWALLET           com.samsung.android.spay             I  [Hint_SimpleHintProcessMonitor] package changed : com.yourname.smartrecorder , execute : false
-2025-11-26 15:22:44.414  1198-1287  ActivityTaskManager     system_server                        W  Activity top resumed state loss timeout for ActivityRecord{1cb5453 u0 com.yourname.smartrecorder/.MainActivity} t-1 f}}
-2025-11-26 15:22:44.619 22610-22610 FILP/Packa...ntReceiver com...droid.provider.filterprovider  I  pkgName : com.yourname.smartrecorder
-2025-11-26 15:22:45.238  4879-4879  Routine@Co...overHelper com.samsung.android.app.routines     I  setLastResumedPackageForCover mLastResumedPackage = com.yourname.smartrecorder
-2025-11-26 15:22:45.238  4879-4879  Routine@Co...cleWatcher com.samsung.android.app.routines     I  notifyLifecycleChanged mCurResumedComponent=com.yourname.smartrecorder
-2025-11-26 15:22:45.265  1198-1284  CompanionD...gerService system_server                        I  onPackageModified() u0/com.yourname.smartrecorder
-2025-11-26 15:22:45.265  1198-1284  CompanionD...gerService system_server                        I  onPackageModified() u95/com.yourname.smartrecorder
-2025-11-26 15:22:47.815  1198-1707  Pageboost               system_server                        I  db update :com.yourname.smartrecorder ret 1
-2025-11-26 15:32:01.893  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{610ef88 com.yourname.smartrecorder/10909} -> PackageSetting{956cb7a com.facebook.appmanager/10217} BLOCKED
-2025-11-26 15:33:46.076  2188-2465  AppInfo                 com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:33:46.094  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  DPS items : Smart Recorder, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:33:46.959  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:33:49.402  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:40:09.855  2188-2465  AppInfo                 com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:40:09.864  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  DPS items : Smart Recorder, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:40:11.386  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:40:18.569  2188-2465  AppInfo                 com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:40:18.583  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  DPS items : Smart Recorder, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:40:19.343  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:41:47.761  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:41:54.159  2188-2188  ApplyLoadP...rationImpl com.sec.android.app.launcher         I  load [
-                                                                                                    taskId = 22313, ComponentInfo{com.samsung.android.messaging/com.android.mms.ui.ConversationComposer}
-                                                                                                    taskId = 22316, ComponentInfo{com.zing.zalo/com.zing.zalo.ui.SplashActivity}
-                                                                                                    taskId = 22320, ComponentInfo{com.rsupport.rs.activity.rsupport.aas2/com.rsupport.rs.activity.edit.IntroActivity}
-                                                                                                    taskId = 22355, ComponentInfo{com.sec.android.app.clockpackage/com.sec.android.app.clockpackage.ClockPackage}
-                                                                                                    taskId = 22356, ComponentInfo{com.app.numerology/com.app.numerology.MainActivity}
-                                                                                                    taskId = 22358, ComponentInfo{com.marketsnap.app/com.marketsnap.app.MainActivity}
-                                                                                                    taskId = 22239, ComponentInfo{com.google.android.youtube/com.google.android.youtube.app.honeycomb.Shell$HomeActivity}
-                                                                                                    taskId = 22361, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-                                                                                                    taskId = 22362, ComponentInfo{com.vnpay.bidv/com.vnpay.bidv.presentation.splash.SplashActivity}
-                                                                                                    taskId = 22311, ComponentInfo{com.facebook.katana/com.facebook.katana.LoginActivity}
-                                                                                                    taskId = 22364, ComponentInfo{com.zing.zalo/com.zing.zalo.ui.ZaloLauncherActivity}
-                                                                                                    taskId = 22360, ComponentInfo{com.facebook.katana/com.facebook.katana.LoginActivity} ]
-2025-11-26 15:41:54.299  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  bindItem : Smart Recorder,ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:41:54.786  2188-2465  AppInfo                 com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:41:54.802  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  DPS items : Smart Recorder, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:41:55.209  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:41:59.177  2188-2465  AppInfo                 com.sec.android.app.launcher         I  set ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity} app progress level to 100
-2025-11-26 15:41:59.179  2188-2465  SuggestedItemsFacade    com.sec.android.app.launcher         I  DPS items : Smart Recorder, ComponentInfo{com.yourname.smartrecorder/com.yourname.smartrecorder.MainActivity}
-2025-11-26 15:41:59.837  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:43:01.099  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{610ef88 com.yourname.smartrecorder/10909} -> PackageSetting{f344837 com.microsoft.appmanager/10143} BLOCKED
-2025-11-26 15:43:02.122  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{610ef88 com.yourname.smartrecorder/10909} -> PackageSetting{ddfd3f8 com.microsoft.appmanager/10143} BLOCKED
-2025-11-26 15:43:11.502  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:43:13.585  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:43:22.374  1198-1376  AppsFilter              system_server                        I  interaction: PackageSetting{610ef88 com.yourname.smartrecorder/10909} -> PackageSetting{3b0b452 com.google.android.apps.docs/10356} BLOCKED
-2025-11-26 15:43:30.770  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
-2025-11-26 15:43:39.789  1198-2733  FreecessController      system_server                        D  com.yourname.smartrecorder is top app, skip to freeze
+Nếu gọi là **app ghi âm – note – transcript “chuẩn, ngon”**, thì về cơ bản nó phải làm được 4 chuyện lớn:
+
+> **1. Ghi nhanh – không mất file – không crash**
+> **2. Nghe lại và tìm lại cực dễ**
+> **3. Gắn note / context rõ ràng (meeting nào, môn nào, bài nào…)**
+> **4. Transcript đủ tốt để đọc như note, có thể chỉnh sửa**
+
+Mình chia nhỏ theo **UI – chức năng – logic – luồng** cho bạn dễ map vào app hiện tại nhé.
+
+---
+
+## 1. Yêu cầu về chức năng (feature)
+
+### 1.1. Ghi âm (Record)
+
+* Bấm 1 cái là ghi được ngay (từ Home).
+* Hiển thị:
+
+  * Thời gian đã ghi
+  * Waveform / level bar để user thấy app đang sống
+* Các hành động cơ bản:
+
+  * Tạm dừng / tiếp tục
+  * Đánh dấu mốc (marker) trong lúc ghi: ví dụ “Câu 1”, “Part B”, “Note quan trọng”
+  * Huỷ ghi (discard) vs Lưu (save)
+* Xử lý gián đoạn:
+
+  * Có **auto-save** tạm để app crash / hết pin vẫn không mất file
+  * Xử lý cuộc gọi tới / chuyển app nền → vẫn ghi được / resume hợp lý
+
+### 1.2. Lưu & quản lý file ghi âm
+
+* Mỗi recording có:
+
+  * Tên (auto: *“Ghi âm 2025-11-26 21:03”*, cho phép đổi tên)
+  * Thời lượng, ngày giờ
+  * Tag / thư mục / “context” (VD: *“Thi tiếng Anh – Đề số 5”*, *“Cuộc họp dự án”*)
+  * Trạng thái transcript: *Chưa transcript / Đang xử lý / Đã xong*
+* Có **thùng rác (Trash)**:
+
+  * Xóa nhầm có thể khôi phục
+* Hỗ trợ:
+
+  * Favorite / Pin (ghi âm quan trọng)
+  * Merge / Split recordings (nâng cao, optional)
+
+### 1.3. Transcript
+
+* Với mỗi recording:
+
+  * Có nút **“Transcript”** ngay trên chi tiết ghi âm.
+  * Transcript hiển thị dạng **text chia đoạn**, sync với time:
+
+    * Tap vào câu → nhảy tới thời điểm đó
+    * Kéo progress → highlight đoạn text tương ứng
+* Cho phép:
+
+  * Sửa text (edit transcript)
+  * Copy / share text
+  * Xuất file (TXT / DOCX / PDF) – optional
+* Nếu dùng STT offline:
+
+  * Có trạng thái xử lý + loader
+  * Có nút “Transcript lại” khi user đổi language / model
+
+### 1.4. Note & Highlight
+
+* Trong transcript:
+
+  * User bôi đậm đoạn quan trọng
+  * Thêm **inline note** (comment bên cạnh 1 câu / đoạn)
+* Trong chế độ playback:
+
+  * Có thể thêm **marker** + note text: “Đoạn này thầy giải thích rất hay”, “Câu dễ sai”
+
+### 1.5. Tìm kiếm & tổ chức
+
+* Tìm theo:
+
+  * Tên file
+  * Nội dung transcript (full-text search)
+  * Tag / thư mục
+* Bộ lọc:
+
+  * Theo ngày (hôm nay, tuần này, tháng này…)
+  * Theo độ dài (ngắn / dài)
+  * Theo context (Exam, Meeting, Class, Personal…)
+* Thư mục / Collection:
+
+  * Ví dụ: “Môn Thanh Nhạc”, “Thi Toeic”, “Họp Team”
+
+### 1.6. Chia sẻ & backup (tuỳ triết lý offline của bạn)
+
+* Share:
+
+  * Chia sẻ file audio
+  * Chia sẻ transcript (text / PDF)
+* Backup (offline-first nhưng vẫn nên nghĩ):
+
+  * Tùy chọn export toàn bộ data (audio + JSON transcript) để nén thành 1 file gửi lên Drive / PC
+
+---
+
+## 2. Yêu cầu UI (cảm giác “ngon” của người dùng)
+
+### 2.1. Màn hình chính (Home / Library)
+
+* Danh sách ghi âm:
+
+  * Tên, thời lượng, ngày
+  * Badges: *Transcript ✓*, *Has notes*, *Pinned*
+* Action nổi bật:
+
+  * **Floating Record Button** hoặc bottom center button: luôn thấy nút ghi
+* Quick filters:
+
+  * Chip: *Tất cả / Thi / Học / Họp / Quan trọng*
+  * Search bar phía trên
+
+### 2.2. Màn hình ghi âm (Record Screen)
+
+* Layout tối giản:
+
+  * Timer to, chính giữa
+  * Waveform hoặc level bar
+  * Nút:
+
+    * Record/Pause (nút lớn, dễ bấm)
+    * Marker (nút nhỏ hơn)
+    * Save / Discard rõ ràng (khi dừng)
+* UX:
+
+  * Khi user bấm Back → cảnh báo nếu chưa lưu
+  * Transition mượt sang màn hình chi tiết sau khi lưu
+
+### 2.3. Màn hình chi tiết ghi âm (Recording Detail)
+
+* Header:
+
+  * Tên ghi âm (có thể sửa)
+  * Menu: xóa, share, move to folder, pin
+* Tabs hoặc sections:
+
+  * **Tab 1 – Playback**: Player + markers timeline
+  * **Tab 2 – Transcript**: text + highlight + notes
+* Ở tab Transcript:
+
+  * Mỗi đoạn text có time nhỏ (e.g. [01:23])
+  * Tap vào text → play từ đoạn đó
+  * Long-press → “Thêm note / Highlight / Copy”
+
+### 2.4. Micro-interactions (cảm giác pro)
+
+* Hiệu ứng nhỏ:
+
+  * Waveform chuyển động theo audio
+  * Haptic nhẹ khi bấm nút ghi, marker
+* State rõ ràng:
+
+  * Đang ghi / Đang tạm dừng / Đang transcript / Lỗi
+* Empty states:
+
+  * Khi chưa có ghi âm: hướng dẫn ngắn + nút “Bắt đầu ghi”
+
+---
+
+## 3. Yêu cầu về logic & kiến trúc
+
+### 3.1. Data model (gợi ý)
+
+* `Recording`:
+
+  * `id`
+  * `title`
+  * `filePath`
+  * `duration`
+  * `createdAt`
+  * `tags` / `folderId`
+  * `isPinned`
+  * `transcriptStatus` (NONE, PENDING, DONE, ERROR)
+* `TranscriptSegment`:
+
+  * `id`
+  * `recordingId`
+  * `startTimeMs`
+  * `endTimeMs`
+  * `text`
+* `Note`:
+
+  * `id`
+  * `recordingId`
+  * `segmentId?`
+  * `timeMs?`
+  * `content`
+* `Marker`:
+
+  * `id`
+  * `recordingId`
+  * `timeMs`
+  * `label`
+
+### 3.2. Logic “chuẩn ngon” cần có
+
+* **Không bao giờ mất dữ liệu**:
+
+  * Auto-save khi:
+
+    * Start ghi → tạo record tạm
+    * Mỗi X giây → flush metadata
+  * Nếu app crash → lần sau mở lại thấy “Ghi âm chưa hoàn tất, bạn muốn lưu không?”
+* **Xử lý permission**:
+
+  * Micro + Storage:
+
+    * Flow xin quyền rõ ràng, có giải thích
+* **Queue transcript**:
+
+  * Ghi xong nhiều file → transcript lần lượt (có hàng đợi)
+  * Trạng thái từng file rõ ràng
+
+### 3.3. Flow logic với các trạng thái đặc biệt
+
+* Khi user đang transcript mà tắt app:
+
+  * Resume job khi mở lại
+* Khi transcript fail:
+
+  * Hiển thị lỗi + nút thử lại
+* Khi ghi âm quá dài:
+
+  * Nên có warning / gợi ý chia nhỏ
+
+---
+
+## 4. Luồng người dùng chính (User Flows)
+
+### Flow 1: Mở app → Ghi nhanh (Quick Capture)
+
+1. Mở app → Home (danh sách ghi âm)
+2. Bấm nút Record ở giữa/bottom
+3. Đang ghi:
+
+   * Có waveform + timer
+   * Có thể bấm marker tại các đoạn quan trọng
+4. Bấm Stop → màn hình “Lưu ghi âm”:
+
+   * Tên auto-suggest
+   * Chọn Folder / Tag (optional)
+5. Bấm Lưu → trả về màn chi tiết hoặc Library:
+
+   * Nếu transcript auto → hiển thị “Đang tạo transcript…”
+
+### Flow 2: Ghi âm để học / thi → Gắn transcript → Note
+
+1. Chọn folder “Thi Toeic”
+2. Bấm Record
+3. Ghi đề thi / thầy chữa bài
+4. Lưu → auto transcript
+5. Mở chi tiết → Tab Transcript:
+
+   * Bôi đậm đoạn “Đáp án chính thức”
+   * Thêm note: “Câu 3 dễ nhầm, để ý từ vựng này”
+6. Lần sau ôn thi:
+
+   * Search “Câu 3 dễ nhầm” → nhảy tới đoạn đó
+
+### Flow 3: Tìm lại một đoạn nói cụ thể
+
+1. Mở app → Search “vàng 9999”
+2. Kết quả:
+
+   * 3 ghi âm có text chứa “vàng 9999”
+3. Chọn ghi âm → tab Transcript
+4. Tap vào đoạn text → play audio tại đúng chỗ đó
+
+---
+
+## 5. Non-functional (nhưng rất quan trọng)
+
+* **Độ ổn định**:
+
+  * Không crash khi ghi lâu
+  * Xử lý low storage (hết dung lượng) → báo trước
+* **Hiệu năng**:
+
+  * List nhiều ghi âm vẫn mượt
+  * Transcript chạy nền không làm lag UI
+* **Privacy**:
+
+
+---
+
+## 1. Xung đột với app khác
+
+### 1.1. Tranh chấp **microphone**
+
+* Nguyên tắc: **1 thời điểm chỉ 1 app được dùng mic** (hoặc OS cho nhưng kết quả thường tệ).
+* App ghi âm “chuẩn” phải:
+
+  * Không cho phép **2 recorder chạy song song** trong chính app.
+  * Nhận biết khi **app khác chiếm mic** (cuộc gọi, app ghi âm khác, app họp online…):
+
+    * Dừng ghi tạm thời (pause)
+    * Hoặc stop + auto-save đoạn đã ghi lại
+
+**Về UX:**
+
+* Khi mất mic → show message kiểu:
+
+  > “Micro vừa bị ứng dụng khác chiếm. Đã lưu đoạn ghi âm trước đó để tránh mất dữ liệu.”
+
+### 1.2. Tranh chấp **audio output**
+
+* Khi app đang **playback** recording mà user bật:
+
+  * Spotify / YouTube / Zalo voice message…
+* App nên:
+
+  * **Tự dừng playback** khi mất audio focus (đừng cố audio chồng audio).
+  * Sau khi focus quay lại (app khác stop) → có thể:
+
+    * Không auto play lại (tránh bất ngờ)
+    * Hoặc hỏi/cho user tự bấm Play.
+
+---
+
+## 2. Bị dừng đột ngột (app bị kill, swipe, crash)
+
+Ở góc nhìn user:
+
+> “Tôi đang ghi 1 buổi cực quan trọng → app tự thoát → MẤT HẾT = app vứt đi.”
+
+Muốn **“chuẩn, ngon”** thì phải thiết kế sao cho *cùng lắm mất vài giây cuối*, không bao giờ mất trắng.
+
+### 2.1. Khi app bị user **vuốt khỏi đa nhiệm (force close)**
+
+* Về logic:
+
+  * Ghi âm nên chạy trong **Foreground Service** (trên Android):
+
+    * Khi user thật sự *swipe kill*, OS sẽ hủy service → bạn có `onDestroy`/`onTaskRemoved` để:
+
+      * Đóng stream audio
+      * Flush và **commit file** (temp -> final)
+      * Cập nhật trạng thái record thành “Đã lưu (bị dừng đột ngột)”
+
+* UX vòng sau:
+
+  * Khi mở lại app:
+
+    * Nếu phát hiện file tạm → hiện banner:
+
+      > “Phát hiện 1 ghi âm chưa hoàn tất lần trước. Đã khôi phục thành ‘Ghi âm hồi phục – 26/11, 21:10’.”
+
+### 2.2. Khi app **crash / ANR**
+
+* Crash = giống như rút điện → bạn coi như không có callback nào.
+
+* Cách “chống mất dữ liệu”:
+
+  * **Ghi trực tiếp ra file** trên ổ (streaming) chứ không buffer hết trong RAM.
+  * Dùng file **.tmp**:
+
+    * Đang ghi → `session_123.tmp`
+    * Khi user bấm Stop / hoặc lúc recovery → rename thành `session_123.m4a`
+  * Metadata (title, tags, v.v.) có thể chưa kịp lưu → nhưng **file audio vẫn còn**.
+
+* Khi app mở lại:
+
+  * Scan thư mục recordings:
+
+    * Nếu có `.tmp` hoặc file meta thiếu → tạo một `Recording` “Recovered …” và cho user quyết định xóa hay giữ.
+
+---
+
+## 3. Sập nguồn / hết pin / reboot
+
+Về bản chất, điều này = **crash toàn hệ thống**, nên xử lý y như trên:
+
+### 3.1. Thiết kế để **power loss-safe**
+
+* Quy tắc vàng:
+
+  * **Không đợi đến cuối mới lưu tất cả.**
+  * Audio data phải được stream xuống file **liên tục**.
+  * Tối thiểu: mỗi vài trăm ms – vài giây là flush một chunk.
+
+* Khi máy khởi động lại, user mở app:
+
+  * App nhìn thấy file audio chưa hoàn chỉnh → coi như “Recovered recording”.
+  * Coi như 1 recording bình thường, chỉ có thể nó bị “c cụt” ở cuối → chấp nhận được.
+
+---
+
+## 4. Một số edge case quan trọng khác
+
+### 4.1. Cuộc gọi đến / app họp online
+
+Kịch bản:
+
+* Bạn đang ghi buổi giảng → có cuộc gọi đến.
+
+Nên làm gì?
+
+* Khi detect incoming call chiếm audio:
+
+  * **Tự pause recording + auto-save** phần đã có.
+* Sau cuộc gọi:
+
+  * App có thể:
+
+    * Không tự ghi lại (an toàn hơn)
+    * Hiện thông báo:
+
+      > “Đoạn ghi âm đã được lưu lại trước khi có cuộc gọi. Bấm Ghi để tiếp tục ghi một file mới.”
+
+**Nếu muốn xịn hơn:**
+
+* Cho phép **merge** 2 recording liên tiếp:
+
+  * `Buổi giảng A (phần 1)` + `Buổi giảng A (phần 2)` → Merge.
+
+### 4.2. Bluetooth / tai nghe bị rớt
+
+* Đối với **playback**:
+
+  * Nếu đang nghe bằng Bluetooth mà tai nghe tắt:
+
+    * Dừng playback là hợp lý (tránh phát to ra loa giữa lớp/họp).
+* Đối với **record** (mic Bluetooth):
+
+  * Nếu nguồn mic thay đổi:
+
+    * Nên cảnh báo:
+
+      > “Nguồn ghi âm vừa chuyển từ Bluetooth sang micro của máy.”
+
+### 4.3. Hết dung lượng lưu trữ
+
+* Đây là case rất hay bị bỏ qua nhưng cực đau:
+
+  * Đang ghi 60 phút → đến phút 58 hết dung lượng → app crash/stop → file hỏng.
+
+**Cách làm chuẩn:**
+
+* Trước khi bắt đầu ghi:
+
+  * Check free space > ngưỡng tối thiểu (VD: 100MB).
+* Khi đang ghi:
+
+  * Bắt exception “write failed”:
+
+    * **Stop ngay ghi âm**
+    * Đóng file
+    * Thông báo:
+
+      > “Bộ nhớ máy đã đầy. Đã lưu lại phần ghi âm đến phút 57:32. Vui lòng giải phóng bộ nhớ để tiếp tục.”
+
+### 4.4. Ghi âm + STT cùng lúc / nhiều engine dùng mic
+
+Với app của bạn (ghi âm + transcript, có thể còn STT realtime):
+
+* Không nên:
+
+  * Vừa ghi bằng `MediaRecorder` (hoặc tương đương)
+  * Vừa cho Vosk/Whisper hút trực tiếp từ mic cùng lúc
+
+* Thiết kế an toàn:
+
+  * **Chỉ 1 nguồn đọc mic**:
+
+    * Hoặc record thô (PCM/WAV) → xong rồi feed file vào STT
+    * Hoặc STT realtime → trích xuất audio từ đó (nâng cao)
+
+* Nếu bạn có nhiều chế độ (Record only / Record + STT):
+
+  * Hệ thống phải có **global RecordingState**:
+
+    * `Idle / Recording / STTListening / Both-but-via-same-engine`
+  * Khi một engine muốn dùng mic phải hỏi state:
+
+    * Nếu đang bận → từ chối hoặc stop engine kia trước.
+
+---
+
+## 5. Tóm tắt lại cho bạn dễ checklist
+
+Để app **ghi âm – note – transcript chuẩn, ngon, đáng tin**, về vụ **xung đột – dừng đột ngột – sập nguồn** nên đảm bảo:
+
+1. **Không mất dữ liệu khi:**
+
+   * App bị kill / crash / vuốt khỏi đa nhiệm
+   * Sập nguồn / hết pin
+   * Cuộc gọi đến, app khác chiếm mic
+     👉 Giải pháp: stream audio trực tiếp vào file `.tmp`, auto-save, recovery flow.
+
+2. **Xử lý audio focus và mic:**
+
+   * Playback: tôn trọng app khác, dừng khi mất focus.
+   * Recording: phát hiện khi bị app khác chiếm mic, auto-stop/pause + lưu.
+
+3. **Recovery flow rõ ràng:**
+
+   * Khi mở lại app → auto detect file tạm → chuyển thành recording “hồi phục” + giải thích cho user.
+
+4. **Xử lý storage & lỗi I/O:**
+
+   * Check free space trước khi ghi
+   * Bắt lỗi ghi file → stop an toàn và thông báo “đã lưu tới thời điểm X”.
+
+5. **Không cho hai chức năng dùng mic conflict:**
+
+   * Ghi âm, STT, voice call, voice chat trong chính app cần có global state, không để 2 thứ hút mic riêng rẽ.
+
+---

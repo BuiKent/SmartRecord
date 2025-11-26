@@ -27,6 +27,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.permissions.PermissionHandler
 import com.yourname.smartrecorder.ui.importaudio.ImportAudioViewModel
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
@@ -96,17 +98,24 @@ fun SmartRecorderApp() {
                 val recordPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
                 ) { isGranted ->
+                    AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Record audio permission result -> granted: %b", isGranted)
                     if (isGranted) {
                         viewModel.onStartClick()
+                    } else {
+                        AppLogger.w(TAG_VIEWMODEL, "[SmartRecorderApp] Record audio permission denied")
                     }
                 }
                 
                 val filePickerLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.GetContent()
                 ) { uri: Uri? ->
-                    uri?.let {
-                        val fileName = it.lastPathSegment ?: "audio_file"
-                        importViewModel.importAudioFile(it, fileName)
+                    if (uri != null) {
+                        val fileName = uri.lastPathSegment ?: "audio_file"
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User selected audio file -> uri: %s, fileName: %s", 
+                            uri.toString(), fileName)
+                        importViewModel.importAudioFile(uri, fileName)
+                    } else {
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User cancelled file picker")
                     }
                 }
                 
@@ -114,13 +123,17 @@ fun SmartRecorderApp() {
                 val importPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
                 ) { isGranted ->
+                    AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Storage permission result -> granted: %b", isGranted)
                     if (isGranted) {
                         filePickerLauncher.launch("audio/*")
+                    } else {
+                        AppLogger.w(TAG_VIEWMODEL, "[SmartRecorderApp] Storage permission denied")
                     }
                 }
                 
                 LaunchedEffect(navigateToTranscript) {
                     navigateToTranscript?.let { recordingId ->
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Navigating to transcript -> recordingId: %s", recordingId)
                         navController.navigate(AppRoutes.transcriptDetail(recordingId)) {
                             popUpTo(AppRoutes.RECORD) { inclusive = false }
                         }
@@ -130,6 +143,7 @@ fun SmartRecorderApp() {
                 
                 LaunchedEffect(importState.importedRecordingId) {
                     importState.importedRecordingId?.let { recordingId ->
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Navigating to imported recording transcript -> recordingId: %s", recordingId)
                         navController.navigate(AppRoutes.transcriptDetail(recordingId)) {
                             popUpTo(AppRoutes.RECORD) { inclusive = false }
                         }
@@ -140,15 +154,24 @@ fun SmartRecorderApp() {
                 RecordScreen(
                     uiState = uiState,
                     onStartRecordClick = {
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked start record button")
                         if (PermissionHandler.hasRecordAudioPermission(context)) {
                             viewModel.onStartClick()
                         } else {
+                            AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Requesting record audio permission")
                             recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
                     },
-                    onPauseRecordClick = { viewModel.onPauseClick() },
-                    onStopRecordClick = { viewModel.onStopClick() },
+                    onPauseRecordClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked pause/resume record button")
+                        viewModel.onPauseClick() 
+                    },
+                    onStopRecordClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked stop record button")
+                        viewModel.onStopClick() 
+                    },
                     onImportAudioClick = {
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked import audio button")
                         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             Manifest.permission.READ_MEDIA_AUDIO
                         } else {
@@ -157,13 +180,16 @@ fun SmartRecorderApp() {
                         if (PermissionHandler.hasStoragePermission(context)) {
                             filePickerLauncher.launch("audio/*")
                         } else {
+                            AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Requesting storage permission")
                             importPermissionLauncher.launch(permission)
                         }
                     },
                     onRealtimeSttClick = {
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked realtime STT button")
                         navController.navigate(AppRoutes.REALTIME_TRANSCRIPT)
                     },
                     onBookmarkClick = { note ->
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked bookmark button -> note: %s", note.take(50))
                         viewModel.onBookmarkClick(note)
                     }
                 )
@@ -177,6 +203,7 @@ fun SmartRecorderApp() {
                 // Show toast when bookmark is added
                 LaunchedEffect(viewModel.bookmarkAdded.collectAsState().value) {
                     if (viewModel.bookmarkAdded.value) {
+                        AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Bookmark added successfully, showing toast")
                         Toast.makeText(context, "Bookmark added", Toast.LENGTH_SHORT).show()
                         viewModel.onBookmarkAddedHandled()
                     }

@@ -5,6 +5,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
 
 @Composable
@@ -27,23 +29,32 @@ fun ExportBottomSheet(
         ExportOption(
             title = "Plain Text (.txt)",
             description = "Simple text format",
-            onClick = { onExportClick(ExportFormat.TXT) }
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: TXT")
+                onExportClick(ExportFormat.TXT) 
+            }
         )
         
         ExportOption(
             title = "Markdown (.md)",
             description = "Formatted markdown document",
-            onClick = { onExportClick(ExportFormat.MARKDOWN) }
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: MARKDOWN")
+                onExportClick(ExportFormat.MARKDOWN) 
+            }
         )
         
         ExportOption(
             title = "Subtitle (.srt)",
             description = "Subtitle file with timestamps",
-            onClick = { onExportClick(ExportFormat.SRT) }
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: SRT")
+                onExportClick(ExportFormat.SRT) 
+            }
         )
         
         Spacer(modifier = Modifier.height(8.dp))
-        Divider()
+        HorizontalDivider()
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
@@ -56,25 +67,37 @@ fun ExportBottomSheet(
         ExportOption(
             title = "Meeting Template",
             description = "Formatted for meetings with action items",
-            onClick = { onExportClick(ExportFormat.MEETING) }
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: MEETING")
+                onExportClick(ExportFormat.MEETING) 
+            }
         )
         
         ExportOption(
             title = "Lecture Template",
             description = "Formatted for lectures with key points",
-            onClick = { onExportClick(ExportFormat.LECTURE) }
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: LECTURE")
+                onExportClick(ExportFormat.LECTURE) 
+            }
         )
         
         ExportOption(
             title = "Interview Template",
             description = "Formatted for interviews with speaker labels",
-            onClick = { onExportClick(ExportFormat.INTERVIEW) }
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: INTERVIEW")
+                onExportClick(ExportFormat.INTERVIEW) 
+            }
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
         TextButton(
-            onClick = onDismiss,
+            onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User cancelled export")
+                onDismiss() 
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Cancel")

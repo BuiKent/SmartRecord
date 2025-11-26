@@ -94,6 +94,9 @@ class StudyViewModel @Inject constructor(
     }
     
     fun revealAnswer() {
+        val currentFlashcard = getCurrentFlashcard()
+        AppLogger.d(TAG_VIEWMODEL, "[StudyViewModel] User revealed answer -> flashcardId: %s", 
+            currentFlashcard?.id ?: "none")
         _uiState.update { it.copy(showAnswer = true) }
     }
     
@@ -101,24 +104,32 @@ class StudyViewModel @Inject constructor(
         val currentIndex = _uiState.value.currentFlashcardIndex
         val flashcards = _uiState.value.flashcards
         if (currentIndex < flashcards.size - 1) {
+            AppLogger.d(TAG_VIEWMODEL, "[StudyViewModel] User navigated to next flashcard -> index: %d -> %d", 
+                currentIndex, currentIndex + 1)
             _uiState.update { 
                 it.copy(
                     currentFlashcardIndex = currentIndex + 1,
                     showAnswer = false
                 )
             }
+        } else {
+            AppLogger.d(TAG_VIEWMODEL, "[StudyViewModel] User tried to navigate next but already at last flashcard")
         }
     }
     
     fun previousFlashcard() {
         val currentIndex = _uiState.value.currentFlashcardIndex
         if (currentIndex > 0) {
+            AppLogger.d(TAG_VIEWMODEL, "[StudyViewModel] User navigated to previous flashcard -> index: %d -> %d", 
+                currentIndex, currentIndex - 1)
             _uiState.update { 
                 it.copy(
                     currentFlashcardIndex = currentIndex - 1,
                     showAnswer = false
                 )
             }
+        } else {
+            AppLogger.d(TAG_VIEWMODEL, "[StudyViewModel] User tried to navigate previous but already at first flashcard")
         }
     }
     

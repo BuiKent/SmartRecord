@@ -15,6 +15,13 @@ object AppLogger {
     const val TAG_VIEWMODEL = "$TAG_PREFIX/ViewModel"
     const val TAG_IMPORT = "$TAG_PREFIX/Import"
     const val TAG_REALTIME = "$TAG_PREFIX/Realtime"
+    const val TAG_SERVICE = "$TAG_PREFIX/Service"
+    const val TAG_LIFECYCLE = "$TAG_PREFIX/Lifecycle"
+    
+    // Log level prefixes to distinguish foreground vs background
+    private const val PREFIX_MAIN = "[MAIN]"      // Main/foreground operations
+    private const val PREFIX_BG = "[BG]"          // Background operations
+    private const val PREFIX_CRITICAL = "[CRIT]"   // Critical operations
     
     fun d(tag: String, message: String, vararg args: Any?) {
         Log.d(tag, formatMessage(message, *args))
@@ -48,6 +55,21 @@ object AppLogger {
         }
     }
     
+    // Main/foreground operations logging
+    fun logMain(tag: String, message: String, vararg args: Any?) {
+        i(tag, "$PREFIX_MAIN ${formatMessage(message, *args)}")
+    }
+    
+    // Background operations logging
+    fun logBackground(tag: String, message: String, vararg args: Any?) {
+        d(tag, "$PREFIX_BG ${formatMessage(message, *args)}")
+    }
+    
+    // Critical operations logging (always logged as INFO)
+    fun logCritical(tag: String, message: String, vararg args: Any?) {
+        i(tag, "$PREFIX_CRITICAL ${formatMessage(message, *args)}")
+    }
+    
     // Helper methods for common logging patterns
     fun logFlow(tag: String, flowName: String, action: String, data: Any? = null) {
         d(tag, "[Flow: $flowName] $action${if (data != null) " -> $data" else ""}")
@@ -55,19 +77,34 @@ object AppLogger {
     
     fun logUseCase(tag: String, useCaseName: String, action: String, params: Map<String, Any?>? = null) {
         val paramsStr = params?.entries?.joinToString(", ") { "${it.key}=${it.value}" } ?: ""
-        d(tag, "[UseCase: $useCaseName] $action${if (paramsStr.isNotEmpty()) " ($paramsStr)" else ""}")
+        logMain(tag, "[UseCase: $useCaseName] $action${if (paramsStr.isNotEmpty()) " ($paramsStr)" else ""}")
     }
     
     fun logViewModel(tag: String, viewModelName: String, action: String, state: Any? = null) {
-        d(tag, "[ViewModel: $viewModelName] $action${if (state != null) " -> State: $state" else ""}")
+        logMain(tag, "[ViewModel: $viewModelName] $action${if (state != null) " -> State: $state" else ""}")
     }
     
     fun logDatabase(tag: String, operation: String, table: String, details: String? = null) {
-        d(tag, "[DB: $table] $operation${if (details != null) " -> $details" else ""}")
+        logBackground(tag, "[DB: $table] $operation${if (details != null) " -> $details" else ""}")
     }
     
     fun logPerformance(tag: String, operation: String, durationMs: Long, details: String? = null) {
         i(tag, "[Performance] $operation took ${durationMs}ms${if (details != null) " ($details)" else ""}")
+    }
+    
+    // Lifecycle logging
+    fun logLifecycle(tag: String, component: String, event: String, details: String? = null) {
+        logMain(tag, "[Lifecycle: $component] $event${if (details != null) " -> $details" else ""}")
+    }
+    
+    // Service logging
+    fun logService(tag: String, serviceName: String, action: String, details: String? = null) {
+        logCritical(tag, "[Service: $serviceName] $action${if (details != null) " -> $details" else ""}")
+    }
+    
+    // Rare condition/edge case logging
+    fun logRareCondition(tag: String, condition: String, context: String? = null) {
+        w(tag, "[RARE] $condition${if (context != null) " -> Context: $context" else ""}")
     }
 }
 

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,11 +25,17 @@ import com.yourname.smartrecorder.ui.components.WaveformVisualizer
 
 data class RecordUiState(
     val isRecording: Boolean = false,
+    val isPaused: Boolean = false,  // Track if recording is paused
     val durationMs: Long = 0L,
     val liveText: String = "",
     val error: String? = null,
-    val amplitude: Int = 0  // For waveform visualization
-)
+    val amplitude: Int = 0,  // For waveform visualization
+    val isModelReady: Boolean = false  // Whisper model ready state (only for transcription features)
+) {
+    // Check if there's an active recording session (paused or recording)
+    val hasActiveRecording: Boolean
+        get() = isRecording || isPaused
+}
 
 @Composable
 fun RecordScreen(
@@ -41,6 +48,8 @@ fun RecordScreen(
     onBookmarkClick: (String) -> Unit = { _ -> }
 ) {
     val isRecording = uiState.isRecording
+    val isPaused = uiState.isPaused
+    val hasActiveRecording = uiState.hasActiveRecording
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -80,31 +89,47 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Big mic button
+        // Big mic button (always enabled - recording doesn't need model)
         ElevatedButton(
-            onClick = if (isRecording) onPauseRecordClick else onStartRecordClick,
+            onClick = when {
+                isRecording -> onPauseRecordClick  // Pause if recording
+                isPaused -> onPauseRecordClick     // Resume if paused
+                else -> onStartRecordClick         // Start if not started
+            },
             shape = MaterialTheme.shapes.extraLarge,
             modifier = Modifier.size(96.dp),
             contentPadding = PaddingValues(0.dp)
         ) {
             Icon(
-                imageVector = if (isRecording) Icons.Default.Pause else Icons.Default.Mic,
-                contentDescription = if (isRecording) "Pause" else "Start Record",
+                imageVector = when {
+                    isRecording -> Icons.Default.Pause
+                    isPaused -> Icons.Default.PlayArrow  // Show Play icon when paused (click to resume)
+                    else -> Icons.Default.Mic
+                },
+                contentDescription = when {
+                    isRecording -> "Pause"
+                    isPaused -> "Resume"
+                    else -> "Start Record"
+                },
                 modifier = Modifier.size(48.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = if (isRecording) "Tap to pause" else "Tap to start recording",
+            text = when {
+                isRecording -> "Tap to pause"
+                isPaused -> "Tap to resume"
+                else -> "Tap to start recording"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Control buttons (only show when recording)
-        if (isRecording) {
+        // Control buttons (show when recording OR paused)
+        if (hasActiveRecording) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -169,6 +194,7 @@ fun RecordScreen(
 
             OutlinedButton(
                 onClick = onRealtimeSttClick,
+                enabled = uiState.isModelReady,  // Only disable transcribe if model not ready
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(

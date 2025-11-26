@@ -6,6 +6,7 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.audio.AudioPlayer
 import com.yourname.smartrecorder.domain.model.Recording
+import com.yourname.smartrecorder.domain.usecase.DeleteRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingListUseCase
 import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import com.yourname.smartrecorder.domain.usecase.UpdateRecordingTitleUseCase
@@ -35,7 +36,8 @@ class LibraryViewModel @Inject constructor(
     private val getRecordingList: GetRecordingListUseCase,
     private val searchTranscripts: SearchTranscriptsUseCase,
     private val audioPlayer: AudioPlayer,
-    private val updateRecordingTitle: UpdateRecordingTitleUseCase
+    private val updateRecordingTitle: UpdateRecordingTitleUseCase,
+    private val deleteRecordingUseCase: DeleteRecordingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
@@ -152,6 +154,8 @@ class LibraryViewModel @Inject constructor(
     }
     
     fun playRecording(recording: Recording) {
+        AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "playRecording", 
+            "recordingId=${recording.id}, currentlyPlayingId=${_uiState.value.currentlyPlayingId}, isPlaying=${_uiState.value.isPlaying}")
         viewModelScope.launch {
             try {
                 val file = File(recording.filePath)
@@ -170,20 +174,27 @@ class LibraryViewModel @Inject constructor(
                 // Stop current playback if different recording
                 if (_uiState.value.currentlyPlayingId != null && 
                     _uiState.value.currentlyPlayingId != recording.id) {
+                    AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Stopping previous playback -> previousId: %s", 
+                        _uiState.value.currentlyPlayingId)
                     audioPlayer.stop()
                 }
                 
                 if (_uiState.value.isPlaying && _uiState.value.currentlyPlayingId == recording.id) {
                     // Already playing this recording, pause it
+                    AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Pausing playback -> recordingId: %s", recording.id)
                     audioPlayer.pause()
                     _uiState.update { it.copy(isPlaying = false) }
                 } else {
                     // Play or resume
                     if (audioPlayer.isPlaying() && _uiState.value.currentlyPlayingId == recording.id) {
+                        AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Resuming playback -> recordingId: %s", recording.id)
                         audioPlayer.resume()
                     } else {
+                        AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Starting playback -> recordingId: %s, file: %s, size: %d bytes", 
+                            recording.id, file.absolutePath, file.length())
                         audioPlayer.play(file) {
                             // On completion
+                            AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Playback completed -> recordingId: %s", recording.id)
                             _uiState.update { 
                                 it.copy(
                                     isPlaying = false, 
@@ -207,6 +218,8 @@ class LibraryViewModel @Inject constructor(
     }
     
     fun stopPlayback() {
+        AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] User stopped playback -> currentlyPlayingId: %s", 
+            _uiState.value.currentlyPlayingId)
         viewModelScope.launch {
             try {
                 audioPlayer.stop()
@@ -223,11 +236,13 @@ class LibraryViewModel @Inject constructor(
     }
     
     fun updateTitle(recording: Recording, newTitle: String) {
+        AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "updateTitle", 
+            "recordingId=${recording.id}, oldTitle=${recording.title}, newTitle=$newTitle")
         viewModelScope.launch {
             try {
                 updateRecordingTitle(recording, newTitle)
-                // Reload recordings to reflect the change
-                loadRecordings()
+                // Don't call loadRecordings() - Flow will automatically update when database changes
+                AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Title updated successfully")
             } catch (e: Exception) {
                 AppLogger.e(TAG_VIEWMODEL, "Failed to update title", e)
                 _uiState.update { it.copy(error = e.message) }
@@ -235,7 +250,39 @@ class LibraryViewModel @Inject constructor(
         }
     }
     
+    fun deleteRecording(recording: Recording) {
+        AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "deleteRecording", 
+            "recordingId=${recording.id}, title=${recording.title}")
+        viewModelScope.launch {
+            try {
+                // Stop playback if this recording is currently playing
+                if (_uiState.value.currentlyPlayingId == recording.id) {
+                    AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Stopping playback before deletion")
+                    audioPlayer.stop()
+                    _uiState.update { 
+                        it.copy(
+                            isPlaying = false,
+                            currentlyPlayingId = null
+                        ) 
+                    }
+                }
+                
+                // Use the use case (renamed to avoid conflict with function name)
+                deleteRecordingUseCase(recording)
+                
+                // Don't call loadRecordings() - Flow will automatically update when database changes
+                // Calling loadRecordings() creates multiple Flow collectors causing infinite loop
+                
+                AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Recording deleted successfully")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_VIEWMODEL, "Failed to delete recording", e)
+                _uiState.update { it.copy(error = "Failed to delete recording: ${e.message}") }
+            }
+        }
+    }
+    
     fun clearError() {
+        AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Error cleared by user")
         _uiState.update { it.copy(error = null) }
     }
 }

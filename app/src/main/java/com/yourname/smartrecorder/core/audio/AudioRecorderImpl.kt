@@ -46,11 +46,21 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
                     outputFile.parentFile?.mkdirs()
                     AppLogger.d(TAG_AUDIO, "Output directory prepared: %s", outputFile.parentFile?.absolutePath)
                     
+                    // Using setOutputFile(File) for API 26+, setOutputFile(String) for API 24-25
+                    // Note: MediaRecorder() constructor is deprecated in API 34+ but still the standard way
                     @Suppress("DEPRECATION")
                     mediaRecorder = MediaRecorder().apply {
                         setAudioSource(MediaRecorder.AudioSource.MIC)
                         setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-                        setOutputFile(outputFile.absolutePath)
+                        
+                        // setOutputFile(File) requires API 26+, use String path for API 24-25
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            setOutputFile(outputFile)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            setOutputFile(outputFile.absolutePath)
+                        }
+                        
                         setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
                         setAudioSamplingRate(SAMPLE_RATE)
                         setAudioChannels(CHANNELS)
@@ -82,37 +92,80 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
         val startTime = System.currentTimeMillis()
         AppLogger.d(TAG_AUDIO, "Stopping recording")
         
-        synchronized(this@AudioRecorderImpl) {
-            if (!isRecording) {
-                AppLogger.w(TAG_AUDIO, "No recording in progress, cannot stop")
-                throw IllegalStateException("No recording in progress")
-            }
+        try {
+            val finalFile: File
+            val fileSizeBefore: Long
             
-            try {
+            synchronized(this@AudioRecorderImpl) {
+                if (!isRecording) {
+                    AppLogger.w(TAG_AUDIO, "No recording in progress, cannot stop")
+                    throw IllegalStateException("No recording in progress")
+                }
+                
                 val file = outputFile ?: throw IllegalStateException("No recording file")
-                val fileSize = file.length()
+                finalFile = file
+                fileSizeBefore = file.length()
+                AppLogger.d(TAG_AUDIO, "File size before stop: %d bytes", fileSizeBefore)
                 
                 mediaRecorder?.apply {
-                    stop()
+                    try {
+                        stop()
+                        AppLogger.d(TAG_AUDIO, "MediaRecorder.stop() called successfully")
+                    } catch (e: Exception) {
+                        AppLogger.e(TAG_AUDIO, "Error calling stop() on MediaRecorder", e)
+                        // Continue with release even if stop() fails
+                    }
+                    
+                    try {
+                        reset() // Reset before release to ensure proper cleanup
+                        AppLogger.d(TAG_AUDIO, "MediaRecorder.reset() called successfully")
+                    } catch (e: Exception) {
+                        AppLogger.w(TAG_AUDIO, "Error calling reset() on MediaRecorder (may not be supported)", e.message)
+                        // reset() might not be available on all API levels
+                    }
+                    
                     release()
+                    AppLogger.d(TAG_AUDIO, "MediaRecorder released")
                 }
                 mediaRecorder = null
                 outputFile = null
                 isRecording = false
-                
-                val duration = System.currentTimeMillis() - startTime
-                AppLogger.i(TAG_AUDIO, "Recording stopped successfully -> file: %s, size: %d bytes, stopTime: %dms", 
-                    file.absolutePath, fileSize, duration)
-                
-                return@withContext file
-            } catch (e: Exception) {
-                AppLogger.e(TAG_AUDIO, "Failed to stop recording", e)
+            }
+            
+            // Small delay to ensure file is flushed to disk (outside synchronized block)
+            kotlinx.coroutines.delay(100)
+            
+            // Validate file after stop (outside synchronized block)
+            val fileSizeAfter = finalFile.length()
+            AppLogger.d(TAG_AUDIO, "File size after stop: %d bytes (before: %d)", fileSizeAfter, fileSizeBefore)
+            
+            if (!finalFile.exists()) {
+                throw IllegalStateException("Recording file does not exist after stop: ${finalFile.absolutePath}")
+            }
+            
+            if (fileSizeAfter == 0L) {
+                AppLogger.w(TAG_AUDIO, "Warning: Recording file is empty (0 bytes)")
+            }
+            
+            if (fileSizeAfter < fileSizeBefore) {
+                AppLogger.w(TAG_AUDIO, "Warning: File size decreased after stop (before: %d, after: %d)", 
+                    fileSizeBefore, fileSizeAfter)
+            }
+            
+            val duration = System.currentTimeMillis() - startTime
+            AppLogger.i(TAG_AUDIO, "Recording stopped successfully -> file: %s, size: %d bytes, stopTime: %dms", 
+                finalFile.absolutePath, fileSizeAfter, duration)
+            
+            return@withContext finalFile
+        } catch (e: Exception) {
+            AppLogger.e(TAG_AUDIO, "Failed to stop recording", e)
+            synchronized(this@AudioRecorderImpl) {
                 mediaRecorder?.release()
                 mediaRecorder = null
                 outputFile = null
                 isRecording = false
-                throw e
             }
+            throw e
         }
     }
     
@@ -149,16 +202,30 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
     }
     
     override fun getAmplitude(): Int {
-        return try {
-            val amplitude = mediaRecorder?.maxAmplitude ?: 0
-            // Log occasionally to avoid spam
-            if (amplitude > 0 && amplitude % 1000 == 0) {
-                AppLogger.d(TAG_AUDIO, "Current amplitude: %d", amplitude)
+        // Thread-safe access to mediaRecorder
+        synchronized(this@AudioRecorderImpl) {
+            if (!isRecording || mediaRecorder == null) {
+                return 0
             }
-            amplitude
-        } catch (e: Exception) {
-            AppLogger.e(TAG_AUDIO, "Failed to get amplitude", e)
-            0
+            
+            return try {
+                // maxAmplitude returns the maximum amplitude since last call, then resets
+                // This is fine for waveform visualization as we call it frequently
+                val amplitude = mediaRecorder!!.maxAmplitude
+                
+                // Log occasionally to avoid spam (only log non-zero values)
+                if (amplitude > 0 && amplitude % 5000 == 0) {
+                    AppLogger.d(TAG_AUDIO, "Current amplitude: %d", amplitude)
+                }
+                amplitude
+            } catch (e: IllegalStateException) {
+                // MediaRecorder might not be in recording state
+                AppLogger.w(TAG_AUDIO, "Cannot get amplitude - MediaRecorder not recording: %s", e.message)
+                0
+            } catch (e: Exception) {
+                AppLogger.e(TAG_AUDIO, "Failed to get amplitude", e)
+                0
+            }
         }
     }
 }

@@ -91,7 +91,8 @@ fun LibraryScreen(
                         onPlayClick = { viewModel.playRecording(recording) },
                         onPauseClick = { viewModel.playRecording(recording) }, // Toggle pause
                         onStopClick = { viewModel.stopPlayback() },
-                        onEditTitleClick = { newTitle -> viewModel.updateTitle(recording, newTitle) }
+                        onEditTitleClick = { newTitle -> viewModel.updateTitle(recording, newTitle) },
+                        onDeleteClick = { recordingToDelete -> viewModel.deleteRecording(recordingToDelete) }
                     )
                 }
             }

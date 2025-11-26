@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.domain.model.Recording
 import java.text.SimpleDateFormat
 import java.util.*
@@ -27,9 +29,11 @@ fun RecordingCard(
     onPauseClick: () -> Unit = {},
     onStopClick: () -> Unit = {},
     onEditTitleClick: (String) -> Unit = {},
+    onDeleteClick: (Recording) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -44,7 +48,11 @@ fun RecordingCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onClick),
+                    .clickable(onClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked recording -> id: %s, title: %s", 
+                            recording.id, recording.title)
+                        onClick() 
+                    }),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
@@ -80,13 +88,31 @@ fun RecordingCard(
                 
                 // Edit button
                 IconButton(
-                    onClick = { showEditDialog = true },
+                    onClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked edit button -> recordingId: %s", recording.id)
+                        showEditDialog = true 
+                    },
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Title",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Delete button
+                IconButton(
+                    onClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked delete button -> recordingId: %s", recording.id)
+                        showDeleteDialog = true 
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Recording",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -100,7 +126,11 @@ fun RecordingCard(
             ) {
                 // Play/Pause button
                 IconButton(
-                    onClick = if (isPlaying) onPauseClick else onPlayClick,
+                    onClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked %s -> recordingId: %s", 
+                            if (isPlaying) "pause" else "play", recording.id)
+                        if (isPlaying) onPauseClick() else onPlayClick() 
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -112,7 +142,10 @@ fun RecordingCard(
                 
                 // Stop button
                 IconButton(
-                    onClick = onStopClick,
+                    onClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked stop -> recordingId: %s", recording.id)
+                        onStopClick() 
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -124,7 +157,10 @@ fun RecordingCard(
                 
                 // Transcript button
                 OutlinedButton(
-                    onClick = onClick,
+                    onClick = { 
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked transcript button -> recordingId: %s", recording.id)
+                        onClick() 
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Transcript", style = MaterialTheme.typography.labelSmall)
@@ -139,8 +175,25 @@ fun RecordingCard(
             currentTitle = recording.title.ifBlank { "Untitled Recording" },
             onDismiss = { showEditDialog = false },
             onConfirm = { newTitle ->
+                AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User confirmed title edit -> recordingId: %s, oldTitle: %s, newTitle: %s", 
+                    recording.id, recording.title, newTitle)
                 onEditTitleClick(newTitle)
                 showEditDialog = false
+            }
+        )
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        DeleteConfirmDialog(
+            title = "Delete Recording?",
+            message = "This action cannot be undone. The recording and all related data (transcript, notes, bookmarks) will be permanently deleted.",
+            itemName = recording.title.takeIf { it.isNotBlank() },
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User confirmed deletion -> recordingId: %s", recording.id)
+                onDeleteClick(recording)
+                showDeleteDialog = false
             }
         )
     }
@@ -172,7 +225,10 @@ fun EditTitleDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = { 
+                AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User cancelled title edit")
+                onDismiss() 
+            }) {
                 Text("Cancel")
             }
         }

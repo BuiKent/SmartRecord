@@ -6,12 +6,14 @@ import com.yourname.smartrecorder.core.audio.AudioPlayer
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_TRANSCRIPT
+import com.yourname.smartrecorder.core.service.ForegroundServiceManager
 import com.yourname.smartrecorder.domain.model.Note
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.model.TranscriptSegment
 import com.yourname.smartrecorder.domain.repository.NoteRepository
 import com.yourname.smartrecorder.domain.model.Bookmark
 import com.yourname.smartrecorder.domain.usecase.AddBookmarkUseCase
+import com.yourname.smartrecorder.domain.usecase.DeleteRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
 import com.yourname.smartrecorder.domain.usecase.ExportTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.ExtractKeywordsUseCase
@@ -74,8 +76,10 @@ class TranscriptViewModel @Inject constructor(
     private val addBookmark: AddBookmarkUseCase,
     private val searchTranscripts: SearchTranscriptsUseCase,
     private val generateFlashcards: GenerateFlashcardsUseCase,
+    private val deleteRecording: DeleteRecordingUseCase,
     private val noteRepository: NoteRepository,
-    private val audioPlayer: AudioPlayer
+    private val audioPlayer: AudioPlayer,
+    private val foregroundServiceManager: ForegroundServiceManager
 ) : ViewModel() {
     
     private var positionUpdateJob: Job? = null
@@ -214,15 +218,41 @@ class TranscriptViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
-        val recording = _uiState.value.recording ?: return
+        val recording = _uiState.value.recording ?: run {
+            AppLogger.logRareCondition(TAG_TRANSCRIPT, "Seek called but no recording loaded")
+            return
+        }
+        
         val file = File(recording.filePath)
-        if (file.exists()) {
-            AppLogger.d(TAG_TRANSCRIPT, "Seeking to position: %d ms", positionMs)
+        if (!file.exists()) {
+            AppLogger.logRareCondition(TAG_TRANSCRIPT, "Seek rejected - file not found", 
+                "path=${file.absolutePath}")
+            _uiState.update { it.copy(error = "Audio file not found") }
+            return
+        }
+        
+        val percentage = (positionMs.toFloat() / recording.durationMs.coerceAtLeast(1)) * 100
+        AppLogger.logMain(TAG_TRANSCRIPT, "User seeking to position: %d ms (%.2f%%)", 
+            positionMs, percentage)
+        
+        try {
             audioPlayer.seekTo(positionMs.toInt())
             _uiState.update { it.copy(currentPositionMs = positionMs) }
             updateCurrentSegment(positionMs)
-        } else {
-            AppLogger.w(TAG_TRANSCRIPT, "Seek rejected - file not found: %s", file.absolutePath)
+            
+            // Update foreground service notification if playing
+            if (_uiState.value.isPlaying) {
+                foregroundServiceManager.updatePlaybackNotification(
+                    positionMs,
+                    recording.durationMs,
+                    isPaused = false
+                )
+            }
+            
+            AppLogger.logBackground(TAG_TRANSCRIPT, "Seek completed -> position: %d ms", positionMs)
+        } catch (e: Exception) {
+            AppLogger.e(TAG_TRANSCRIPT, "Failed to seek", e)
+            _uiState.update { it.copy(error = "Failed to seek: ${e.message}") }
         }
     }
 
@@ -250,22 +280,40 @@ class TranscriptViewModel @Inject constructor(
         isToggling = true
         try {
             if (_uiState.value.isPlaying) {
-                AppLogger.d(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", _uiState.value.currentPositionMs)
+                AppLogger.logMain(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", _uiState.value.currentPositionMs)
                 audioPlayer.pause()
                 positionUpdateJob?.cancel()
                 _uiState.update { it.copy(isPlaying = false) }
+                
+                // Update foreground service notification
+                foregroundServiceManager.updatePlaybackNotification(
+                    _uiState.value.currentPositionMs,
+                    recording.durationMs,
+                    isPaused = true
+                )
             } else {
-                AppLogger.d(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s", file.absolutePath)
+                AppLogger.logMain(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s, size: %d bytes", 
+                    file.absolutePath, file.length())
+                
                 if (audioPlayer.isPlaying()) {
                     audioPlayer.resume()
-                    AppLogger.d(TAG_TRANSCRIPT, "Resumed existing playback")
+                    AppLogger.logMain(TAG_TRANSCRIPT, "Resumed existing playback -> position: %d ms", 
+                        _uiState.value.currentPositionMs)
                 } else {
+                    // Start foreground service before playing
+                    foregroundServiceManager.startPlaybackService(
+                        recording.title.ifEmpty { "Recording" },
+                        recording.durationMs
+                    )
+                    
                     audioPlayer.play(file) {
                         // On completion
-                        AppLogger.d(TAG_TRANSCRIPT, "Playback completed, looping: %b", _uiState.value.isLooping)
+                        AppLogger.logMain(TAG_TRANSCRIPT, "Playback completed, looping: %b", _uiState.value.isLooping)
                         if (!_uiState.value.isLooping) {
                             _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
                             positionUpdateJob?.cancel()
+                            // Stop foreground service
+                            foregroundServiceManager.stopPlaybackService()
                         } else {
                             // Loop: reset position but keep playing
                             audioPlayer.seekTo(0)
@@ -274,7 +322,8 @@ class TranscriptViewModel @Inject constructor(
                     }
                     // Set looping state
                     audioPlayer.setLooping(_uiState.value.isLooping)
-                    AppLogger.d(TAG_TRANSCRIPT, "Started new playback")
+                    AppLogger.logMain(TAG_TRANSCRIPT, "Started new playback -> duration: %d ms, looping: %b", 
+                        recording.durationMs, _uiState.value.isLooping)
                 }
                 startPositionUpdates()
                 _uiState.update { it.copy(isPlaying = true) }
@@ -282,6 +331,8 @@ class TranscriptViewModel @Inject constructor(
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Failed to toggle play/pause", e)
             _uiState.update { it.copy(error = e.message, isPlaying = false) }
+            // Stop service on error
+            foregroundServiceManager.stopPlaybackService()
         } finally {
             isToggling = false
         }
@@ -294,15 +345,30 @@ class TranscriptViewModel @Inject constructor(
                 delay(100)
                 if (_uiState.value.isPlaying) {
                     val position = audioPlayer.getCurrentPosition()
+                    val recording = _uiState.value.recording
+                    
                     _uiState.update { it.copy(currentPositionMs = position.toLong()) }
                     updateCurrentSegment(position.toLong())
                     
+                    // Update foreground service notification every second
+                    if (recording != null && position % 1000 < 100) {
+                        foregroundServiceManager.updatePlaybackNotification(
+                            position.toLong(),
+                            recording.durationMs,
+                            isPaused = false
+                        )
+                    }
+                    
                     // Check if finished (only if not looping)
-                    if (!_uiState.value.isLooping && position >= (_uiState.value.recording?.durationMs ?: 0)) {
+                    if (!_uiState.value.isLooping && recording != null && position >= recording.durationMs) {
+                        AppLogger.logMain(TAG_TRANSCRIPT, "Playback finished -> final position: %d ms", position)
                         audioPlayer.pause()
                         _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
+                        foregroundServiceManager.stopPlaybackService()
                         break
                     }
+                } else {
+                    break
                 }
             }
         }
@@ -419,6 +485,7 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun clearSearch() {
+        AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] User cleared search")
         _uiState.update { 
             it.copy(
                 searchQuery = "",
@@ -440,8 +507,18 @@ class TranscriptViewModel @Inject constructor(
             return null
         }
         
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "exportTranscript", 
+            "recordingId=${recording.id}, format=$format, segments=${segments.size}")
+        
         return try {
-            exportTranscript.export(recording, segments, format)
+            val startTime = System.currentTimeMillis()
+            val exportedText = exportTranscript.export(recording, segments, format)
+            val duration = System.currentTimeMillis() - startTime
+            val textLength = exportedText?.length ?: 0
+            AppLogger.logPerformance(TAG_TRANSCRIPT, "Export transcript", duration, 
+                "format=$format, textLength=$textLength")
+            AppLogger.d(TAG_TRANSCRIPT, "Export successful -> format: %s, textLength: %d chars", format, textLength)
+            exportedText
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Export failed", e)
             _uiState.update { it.copy(error = "Export failed: ${e.message}") }
@@ -504,21 +581,76 @@ class TranscriptViewModel @Inject constructor(
     
     fun toggleLoop() {
         val newLoopingState = !_uiState.value.isLooping
-        AppLogger.d(TAG_TRANSCRIPT, "Toggling loop: %b", newLoopingState)
+        AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] User toggled loop: %b -> %b", 
+            _uiState.value.isLooping, newLoopingState)
         audioPlayer.setLooping(newLoopingState)
         _uiState.update { it.copy(isLooping = newLoopingState) }
     }
     
+    private val _navigateBack = MutableStateFlow(false)
+    val navigateBack: StateFlow<Boolean> = _navigateBack.asStateFlow()
+    
+    fun onNavigationHandled() {
+        _navigateBack.value = false
+    }
+    
+    fun deleteRecording() {
+        val recording = _uiState.value.recording ?: run {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot delete - no recording available")
+            _uiState.update { it.copy(error = "No recording available") }
+            return
+        }
+        
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "deleteRecording", 
+            "recordingId=${recording.id}, title=${recording.title}")
+        
+        viewModelScope.launch {
+            try {
+                // Stop playback if playing
+                if (_uiState.value.isPlaying) {
+                    AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Stopping playback before deletion")
+                    audioPlayer.stop()
+                    foregroundServiceManager.stopPlaybackService()
+                }
+                
+                deleteRecording(recording)
+                
+                // Navigate back after deletion
+                _navigateBack.value = true
+                
+                AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Recording deleted successfully, navigating back")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Failed to delete recording", e)
+                _uiState.update { it.copy(error = "Failed to delete recording: ${e.message}") }
+            }
+        }
+    }
+    
     fun clearError() {
+        AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Error cleared by user")
         _uiState.update { it.copy(error = null) }
     }
     
     override fun onCleared() {
         super.onCleared()
+        AppLogger.logLifecycle(TAG_TRANSCRIPT, "TranscriptViewModel", "onCleared")
+        
+        // Stop position updates
         positionUpdateJob?.cancel()
-        // Don't release AudioPlayer here as it's a singleton shared across ViewModels
-        // It will be cleaned up when app is destroyed
-        audioPlayer.stop()
+        
+        // Stop playback and foreground service if active
+        if (_uiState.value.isPlaying) {
+            AppLogger.logRareCondition(TAG_TRANSCRIPT, 
+                "ViewModel cleared while playback active", 
+                "position=${_uiState.value.currentPositionMs}ms")
+            try {
+                audioPlayer.stop()
+                foregroundServiceManager.stopPlaybackService()
+                AppLogger.logMain(TAG_TRANSCRIPT, "Playback stopped during cleanup")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Error stopping playback during cleanup", e)
+            }
+        }
     }
 }
 

@@ -8,10 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 
 /**
  * Handles error display using Snackbar.
- * Call showError() to display error messages to users.
+ * Automatically shows error messages and clears them when dismissed.
  */
 @Composable
 fun ErrorHandler(
@@ -23,11 +25,13 @@ fun ErrorHandler(
     
     LaunchedEffect(error) {
         if (error != null && error.isNotBlank()) {
+            AppLogger.d(TAG_VIEWMODEL, "[ErrorHandler] Showing error to user: %s", error)
             val result = snackbarHostState.showSnackbar(
                 message = error,
                 duration = androidx.compose.material3.SnackbarDuration.Short
             )
             if (result == SnackbarResult.Dismissed) {
+                AppLogger.d(TAG_VIEWMODEL, "[ErrorHandler] Error dismissed by user")
                 onErrorShown()
             }
         }

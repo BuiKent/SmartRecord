@@ -22,48 +22,83 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     
     override fun play(file: File, onCompletion: () -> Unit) {
         val startTime = System.currentTimeMillis()
-        AppLogger.d(TAG_AUDIO, "Playing audio -> file: %s, size: %d bytes", file.absolutePath, file.length())
+        AppLogger.logMain(TAG_AUDIO, "Playing audio -> file: %s, size: %d bytes, exists: %b", 
+            file.absolutePath, file.length(), file.exists())
         
         synchronized(this) {
             try {
-                release()
+                // Check for concurrent playback
+                if (mediaPlayer != null && mediaPlayer?.isPlaying == true) {
+                    AppLogger.logRareCondition(TAG_AUDIO, 
+                        "Stopping existing playback before starting new one", 
+                        "currentFile=${currentFile?.absolutePath}")
+                    release()
+                }
+                
                 currentFile = file
                 
+                AppLogger.logBackground(TAG_AUDIO, "Creating MediaPlayer instance")
                 mediaPlayer = MediaPlayer().apply {
+                    AppLogger.logBackground(TAG_AUDIO, "Setting data source -> path: %s", file.absolutePath)
                     setDataSource(file.absolutePath)
+                    
+                    AppLogger.logBackground(TAG_AUDIO, "Preparing MediaPlayer")
                     prepare()
+                    
                     val duration = duration
-                    AppLogger.d(TAG_AUDIO, "MediaPlayer prepared -> duration: %d ms", duration)
+                    AppLogger.logMain(TAG_AUDIO, "MediaPlayer prepared -> duration: %d ms (%.2f minutes)", 
+                        duration, duration / 60000.0)
                     
                     isLooping = this@AudioPlayerImpl.isLooping
                     setLooping(isLooping)
+                    AppLogger.logBackground(TAG_AUDIO, "Looping set to: %b", isLooping)
                     
                     setOnCompletionListener {
-                        AppLogger.d(TAG_AUDIO, "Playback completed -> file: %s, looping: %b", file.absolutePath, isLooping)
+                        AppLogger.logMain(TAG_AUDIO, "Playback completed -> file: %s, looping: %b", 
+                            file.absolutePath, isLooping)
                         if (!isLooping) {
                             onCompletion()
                         }
                     }
+                    
+                    AppLogger.logBackground(TAG_AUDIO, "Starting MediaPlayer")
                     start()
                 }
                 
                 val setupTime = System.currentTimeMillis() - startTime
-                AppLogger.i(TAG_AUDIO, "Audio playback started -> file: %s, setupTime: %dms", 
+                AppLogger.logMain(TAG_AUDIO, "Audio playback started successfully -> file: %s, setupTime: %dms", 
                     file.absolutePath, setupTime)
             } catch (e: Exception) {
                 AppLogger.e(TAG_AUDIO, "Failed to play audio -> file: %s", e, file.absolutePath)
                 release()
+                throw e
             }
         }
     }
     
     override fun pause() {
-        AppLogger.d(TAG_AUDIO, "Pausing audio playback")
+        AppLogger.logMain(TAG_AUDIO, "Pausing audio playback")
         synchronized(this) {
             try {
+                if (mediaPlayer == null) {
+                    AppLogger.logRareCondition(TAG_AUDIO, "Pause called but MediaPlayer is null")
+                    return
+                }
+                
                 val position = mediaPlayer?.currentPosition ?: 0
+                val isCurrentlyPlaying = mediaPlayer?.isPlaying ?: false
+                
+                if (!isCurrentlyPlaying) {
+                    AppLogger.logRareCondition(TAG_AUDIO, "Pause called but MediaPlayer is not playing", 
+                        "position=$position")
+                    return
+                }
+                
                 mediaPlayer?.pause()
-                AppLogger.d(TAG_AUDIO, "Audio paused -> position: %d ms", position)
+                AppLogger.logMain(TAG_AUDIO, "Audio paused successfully -> position: %d ms (%.2f%%)", 
+                    position, if (mediaPlayer?.duration ?: 0 > 0) {
+                        (position.toFloat() / mediaPlayer!!.duration) * 100
+                    } else 0f)
             } catch (e: Exception) {
                 AppLogger.e(TAG_AUDIO, "Failed to pause audio", e)
             }
@@ -71,12 +106,25 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     }
     
     override fun resume() {
-        AppLogger.d(TAG_AUDIO, "Resuming audio playback")
+        AppLogger.logMain(TAG_AUDIO, "Resuming audio playback")
         synchronized(this) {
             try {
+                if (mediaPlayer == null) {
+                    AppLogger.logRareCondition(TAG_AUDIO, "Resume called but MediaPlayer is null")
+                    return
+                }
+                
                 val position = mediaPlayer?.currentPosition ?: 0
+                val isCurrentlyPlaying = mediaPlayer?.isPlaying ?: false
+                
+                if (isCurrentlyPlaying) {
+                    AppLogger.logRareCondition(TAG_AUDIO, "Resume called but MediaPlayer is already playing", 
+                        "position=$position")
+                    return
+                }
+                
                 mediaPlayer?.start()
-                AppLogger.d(TAG_AUDIO, "Audio resumed -> position: %d ms", position)
+                AppLogger.logMain(TAG_AUDIO, "Audio resumed successfully -> position: %d ms", position)
             } catch (e: Exception) {
                 AppLogger.e(TAG_AUDIO, "Failed to resume audio", e)
             }
