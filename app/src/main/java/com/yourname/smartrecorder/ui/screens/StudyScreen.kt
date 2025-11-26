@@ -17,7 +17,7 @@ fun StudyScreen(
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text("Study – Flashcards & Ôn tập (TODO)")
+        Text("Study – Flashcards & Practice (TODO)")
     }
 }
 

@@ -46,7 +46,7 @@ fun RecordScreen(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Ghi âm, transcript & ghi chú thông minh",
+            text = "Record, transcribe & smart notes",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -71,7 +71,7 @@ fun RecordScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isRecording) "Đang ghi âm..." else "Sẵn sàng ghi âm",
+                    text = if (isRecording) "Recording..." else "Ready to record",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -104,7 +104,7 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = if (isRecording) "Chạm để tạm dừng" else "Chạm để bắt đầu ghi âm",
+            text = if (isRecording) "Tap to pause" else "Tap to start recording",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -121,7 +121,7 @@ fun RecordScreen(
                     contentDescription = "Stop"
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Dừng và lưu")
+                Text("Stop and save")
             }
         }
 
@@ -129,7 +129,7 @@ fun RecordScreen(
 
         // Import / Realtime buttons
         Text(
-            text = "Hoặc chọn cách khác:",
+            text = "Or choose another option:",
             style = MaterialTheme.typography.labelMedium
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -149,7 +149,7 @@ fun RecordScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Tải lên",
+                    text = "Upload",
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -165,7 +165,7 @@ fun RecordScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Phiên dịch",
+                    text = "Transcribe",
                     style = MaterialTheme.typography.labelMedium
                 )
             }

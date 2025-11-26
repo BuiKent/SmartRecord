@@ -17,7 +17,7 @@ fun LibraryScreen(
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text("Library – Danh sách bản ghi (TODO)")
+        Text("Library – Recording list (TODO)")
     }
 }
 
