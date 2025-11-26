@@ -1,23 +1,85 @@
 package com.yourname.smartrecorder.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.yourname.smartrecorder.ui.components.RecordingCard
+import com.yourname.smartrecorder.ui.library.LibraryViewModel
 
 @Composable
 fun LibraryScreen(
-    onRecordingClick: (String) -> Unit
+    onRecordingClick: (String) -> Unit,
+    viewModel: LibraryViewModel = hiltViewModel()
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+    val uiState by viewModel.uiState.collectAsState()
+    val filteredRecordings = viewModel.getFilteredRecordings()
+
+    Column(
+        modifier = Modifier.fillMaxSize()
     ) {
-        Text("Library – Recording list (TODO)")
+        // Search bar
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = { viewModel.updateSearchQuery(it) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            placeholder = { Text("Search recordings...") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search"
+                )
+            },
+            singleLine = true
+        )
+
+        // Recording list
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (filteredRecordings.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    text = if (uiState.searchQuery.isNotEmpty()) {
+                        "No recordings found"
+                    } else {
+                        "No recordings yet"
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredRecordings) { recording ->
+                    RecordingCard(
+                        recording = recording,
+                        onClick = { onRecordingClick(recording.id) }
+                    )
+                }
+            }
+        }
     }
 }
 

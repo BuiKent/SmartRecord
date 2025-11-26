@@ -6,4 +6,5 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.room) apply false
+    id("org.jetbrains.kotlin.kapt") version "2.2.21" apply false
 }

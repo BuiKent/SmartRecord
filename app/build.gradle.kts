@@ -3,7 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.ksp)
+    id("org.jetbrains.kotlin.kapt") // kapt for Hilt/Dagger (Kotlin 2.2 + KSP2 has NPE issues)
+    alias(libs.plugins.ksp) // KSP for Room (keep KSP for other processors)
     alias(libs.plugins.room)
 }
 
@@ -67,7 +68,12 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-// KSP configuration - tối ưu cho Kotlin 2.0+
+// Kapt configuration for Hilt
+kapt {
+    correctErrorTypes = true
+}
+
+// KSP configuration - chỉ cho Room
 ksp {
     // Room incremental processing
     arg("room.incremental", "true")
@@ -104,9 +110,9 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     
-    // Hilt Dependency Injection
+    // Hilt Dependency Injection - dùng kapt thay vì KSP
     implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
+    kapt(libs.hilt.compiler) // kapt for Hilt (KSP2 has issues with Kotlin 2.2.21)
     implementation(libs.hilt.navigation.compose)
     
     // Coroutines

@@ -1,12 +1,13 @@
 package com.yourname.smartrecorder.ui.record
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.content.Context
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.domain.usecase.StartRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
 import com.yourname.smartrecorder.ui.screens.RecordUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,22 +20,29 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
-    application: Application,
+    @ApplicationContext private val context: Context,
     private val startRecording: StartRecordingUseCase,
     private val stopRecordingAndSave: StopRecordingAndSaveUseCase
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecordUiState())
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
+    
+    private val _navigateToTranscript = MutableStateFlow<String?>(null)
+    val navigateToTranscript: StateFlow<String?> = _navigateToTranscript.asStateFlow()
 
     private var currentRecording: com.yourname.smartrecorder.domain.model.Recording? = null
     private var timerJob: Job? = null
     private var startTimeMs: Long = 0L
+    
+    fun onNavigationHandled() {
+        _navigateToTranscript.value = null
+    }
 
     fun onStartClick() {
         viewModelScope.launch {
             try {
-                val outputDir = File(getApplication<Application>().filesDir, "recordings")
+                val outputDir = File(context.filesDir, "recordings")
                 outputDir.mkdirs()
                 
                 currentRecording = startRecording(outputDir)
@@ -69,7 +77,7 @@ class RecordViewModel @Inject constructor(
                     )
                 }
                 currentRecording = null
-                // TODO: Navigate to transcript screen
+                _navigateToTranscript.value = saved.id
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }
             }
