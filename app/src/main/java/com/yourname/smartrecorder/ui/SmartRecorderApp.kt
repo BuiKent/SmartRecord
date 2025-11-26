@@ -196,7 +196,7 @@ fun SmartRecorderApp() {
                 TranscriptScreen(
                     recordingId = recordingId,
                     onBackClick = { navController.popBackStack() },
-                    onExportClick = { /* TODO: Export */ }
+                    onExportClick = { /* Export handled by TranscriptScreen internally */ }
                 )
             }
             composable(AppRoutes.REALTIME_TRANSCRIPT) {

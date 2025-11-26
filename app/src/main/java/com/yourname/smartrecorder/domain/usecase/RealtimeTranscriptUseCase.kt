@@ -17,7 +17,10 @@ import javax.inject.Inject
 
 /**
  * Use case for realtime transcription during recording.
- * Currently uses placeholder implementation - will be replaced with Whisper streaming integration.
+ * 
+ * NOTE: Whisper streaming is temporarily disabled. 
+ * This use case is kept for future implementation when streaming API is available.
+ * For now, transcription is only available via GenerateTranscriptUseCase after recording/upload.
  */
 class RealtimeTranscriptUseCase @Inject constructor() {
     
@@ -28,56 +31,24 @@ class RealtimeTranscriptUseCase @Inject constructor() {
     /**
      * Start realtime transcription with a callback for transcript updates.
      * 
+     * NOTE: Currently disabled - Whisper streaming not yet implemented.
+     * Use GenerateTranscriptUseCase for transcription after recording/upload.
+     * 
      * @param onTranscriptUpdate Callback function that receives transcript text chunks
      */
     fun start(onTranscriptUpdate: (String) -> Unit) {
-        if (isRunning) {
-            AppLogger.d(TAG_REALTIME, "Realtime transcription already running")
-            return
-        }
+        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Start requested", null)
+        AppLogger.w(TAG_REALTIME, "Realtime transcription is currently disabled. Use GenerateTranscriptUseCase after recording/upload.")
         
-        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Starting", null)
-        AppLogger.d(TAG_REALTIME, "Realtime transcription started")
-        
-        isRunning = true
-        currentJob = scope.launch {
-            try {
-                // TODO: Implement actual realtime transcription using Whisper streaming
-                // For now, simulate realtime transcription updates
-                val placeholderTexts = listOf(
-                    "Listening...",
-                    "Processing audio...",
-                    "[Realtime transcription will be available with Whisper integration]"
-                )
-                
-                placeholderTexts.forEachIndexed { index, text ->
-                    if (!isRunning) return@launch
-                    delay(2000) // Simulate 2 second intervals
-                    AppLogger.d(TAG_REALTIME, "Realtime transcript update %d -> text: %s", index + 1, text)
-                    onTranscriptUpdate(text)
-                }
-                
-                AppLogger.d(TAG_REALTIME, "Realtime transcription completed")
-            } catch (e: Exception) {
-                AppLogger.e(TAG_REALTIME, "Realtime transcription error", e)
-                throw e
-            } finally {
-                isRunning = false
-            }
-        }
+        // Do nothing - streaming not implemented yet
+        onTranscriptUpdate("[Realtime transcription will be available in future update]")
     }
     
     /**
      * Stop realtime transcription.
      */
     fun stop() {
-        if (!isRunning) {
-            AppLogger.d(TAG_REALTIME, "Realtime transcription not running")
-            return
-        }
-        
-        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Stopping", null)
-        AppLogger.d(TAG_REALTIME, "Realtime transcription stopped")
+        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Stop requested", null)
         
         isRunning = false
         currentJob?.cancel()
@@ -88,45 +59,27 @@ class RealtimeTranscriptUseCase @Inject constructor() {
      * Start realtime transcription for a recording session.
      * Returns a Flow of transcript segments as they are generated.
      * 
+     * NOTE: Currently disabled - Whisper streaming not yet implemented.
+     * Use GenerateTranscriptUseCase for transcription after recording/upload.
+     * 
      * @param recordingId The ID of the recording session
      * @return Flow of transcript text chunks
      */
     fun startRealtimeTranscription(recordingId: String): Flow<String> = flow {
-        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Starting", 
+        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Start requested", 
             mapOf("recordingId" to recordingId))
-        AppLogger.d(TAG_REALTIME, "Realtime transcription started -> recordingId: %s", recordingId)
+        AppLogger.w(TAG_REALTIME, "Realtime transcription is currently disabled. Use GenerateTranscriptUseCase after recording/upload.")
         
-        // TODO: Implement actual realtime transcription using Whisper streaming
-        // For now, emit placeholder updates
-        
-        try {
-            // Simulate realtime transcription updates
-            val placeholderTexts = listOf(
-                "Listening...",
-                "Processing audio...",
-                "[Realtime transcription will be available with Whisper integration]"
-            )
-            
-            placeholderTexts.forEachIndexed { index, text ->
-                delay(2000) // Simulate 2 second intervals
-                AppLogger.d(TAG_REALTIME, "Realtime transcript update %d -> text: %s", index + 1, text)
-                emit(text)
-            }
-            
-            AppLogger.d(TAG_REALTIME, "Realtime transcription completed -> recordingId: %s", recordingId)
-        } catch (e: Exception) {
-            AppLogger.e(TAG_REALTIME, "Realtime transcription error", e)
-            throw e
-        }
+        // Emit placeholder message
+        emit("[Realtime transcription will be available in future update]")
     }
     
     /**
      * Stop realtime transcription.
      */
     fun stopRealtimeTranscription(recordingId: String) {
-        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Stopping", 
+        AppLogger.logUseCase(TAG_USECASE, "RealtimeTranscriptUseCase", "Stop requested", 
             mapOf("recordingId" to recordingId))
-        AppLogger.d(TAG_REALTIME, "Realtime transcription stopped -> recordingId: %s", recordingId)
         stop()
     }
 }
