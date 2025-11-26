@@ -25,6 +25,7 @@ import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
 import com.yourname.smartrecorder.domain.usecase.GetTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,71 +125,99 @@ class TranscriptViewModel @Inject constructor(
                 var notesLoaded = false
                 var currentSegments = emptyList<TranscriptSegment>()
                 var currentNotes = emptyList<Note>()
+                var summaryGenerated = false
                 
-                fun updateStateIfReady() {
-                    if (segmentsLoaded && notesLoaded) {
-                        val fullText = currentSegments.joinToString(" ") { it.text }
-                        AppLogger.d(TAG_TRANSCRIPT, "All data loaded -> segments: %d, notes: %d, textLength: %d", 
-                            currentSegments.size, currentNotes.size, fullText.length)
-                        
-                        val summaryStartTime = System.currentTimeMillis()
-                        val summary = generateSummary(fullText)
-                        AppLogger.logPerformance(TAG_TRANSCRIPT, "GenerateSummary", 
-                            System.currentTimeMillis() - summaryStartTime)
-                        
-                        val keywordsStartTime = System.currentTimeMillis()
-                        val keywords = extractKeywords(fullText, topN = 10)
-                        AppLogger.logPerformance(TAG_TRANSCRIPT, "ExtractKeywords", 
-                            System.currentTimeMillis() - keywordsStartTime, "count=${keywords.size}")
-                        
-                        val questions = currentSegments.filter { 
-                            it.text.trim().endsWith("?") || 
-                            it.isQuestion 
+                fun updateStateWithSegments(segments: List<TranscriptSegment>) {
+                    currentSegments = segments
+                    segmentsLoaded = true
+                    
+                    // Update UI immediately with segments (don't wait for notes)
+                    _uiState.update {
+                        it.copy(
+                            recording = recording,
+                            segments = segments,
+                            isLoading = false // Clear loading state as soon as segments are available
+                        )
+                    }
+                    
+                    AppLogger.d(TAG_TRANSCRIPT, "Segments updated in UI -> count: %d", segments.size)
+                    
+                    // Generate summary and keywords in background if segments available
+                    if (segments.isNotEmpty() && !summaryGenerated) {
+                        summaryGenerated = true
+                        launch(Dispatchers.Default) {
+                            val fullText = segments.joinToString(" ") { it.text }
+                            
+                            val summaryStartTime = System.currentTimeMillis()
+                            val summary = generateSummary(fullText)
+                            AppLogger.logPerformance(TAG_TRANSCRIPT, "GenerateSummary", 
+                                System.currentTimeMillis() - summaryStartTime)
+                            
+                            val keywordsStartTime = System.currentTimeMillis()
+                            val keywords = extractKeywords(fullText, topN = 10)
+                            AppLogger.logPerformance(TAG_TRANSCRIPT, "ExtractKeywords", 
+                                System.currentTimeMillis() - keywordsStartTime, "count=${keywords.size}")
+                            
+                            val questions = segments.filter { 
+                                it.text.trim().endsWith("?") || 
+                                it.isQuestion 
+                            }
+                            AppLogger.d(TAG_TRANSCRIPT, "Questions detected: %d", questions.size)
+                            
+                            // Update UI with summary and keywords (non-blocking)
+                            _uiState.update {
+                                it.copy(
+                                    summary = summary,
+                                    keywords = keywords,
+                                    questions = questions
+                                )
+                            }
                         }
-                        AppLogger.d(TAG_TRANSCRIPT, "Questions detected: %d", questions.size)
-                        
-                        _uiState.update {
-                            it.copy(
-                                recording = recording,
-                                segments = currentSegments,
-                                notes = currentNotes,
-                                summary = summary,
-                                keywords = keywords,
-                                questions = questions,
-                                isLoading = false
-                            )
-                        }
-                        
+                    }
+                    
+                    // If notes are also loaded, log completion
+                    if (notesLoaded) {
                         val duration = System.currentTimeMillis() - startTime
                         AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "loadRecording completed", 
-                            "duration=${duration}ms, segments=${currentSegments.size}, notes=${currentNotes.size}")
+                            "duration=${duration}ms, segments=${segments.size}, notes=${currentNotes.size}")
                         AppLogger.logPerformance(TAG_TRANSCRIPT, "loadRecording", duration)
                     }
                 }
                 
-                // Load segments
-                getTranscript(recordingId)
-                    .catch { e ->
-                        _uiState.update { it.copy(error = e.message, isLoading = false) }
-                    }
-                    .collect { segments ->
-                        currentSegments = segments
-                        segmentsLoaded = true
-                        updateStateIfReady()
-                    }
+                // Load segments in separate coroutine to avoid blocking
+                val segmentsJob = launch {
+                    getTranscript(recordingId)
+                        .catch { e ->
+                            AppLogger.e(TAG_TRANSCRIPT, "Failed to load transcript segments", e)
+                            _uiState.update { it.copy(error = e.message, isLoading = false) }
+                        }
+                        .collect { segments ->
+                            AppLogger.d(TAG_TRANSCRIPT, "Transcript segments received -> count: %d, recordingId: %s", 
+                                segments.size, recordingId)
+                            updateStateWithSegments(segments)
+                        }
+                }
                 
                 // Load notes in parallel (separate coroutine)
                 val notesJob = launch {
                     noteRepository.getNotesByRecordingId(recordingId)
                         .catch { e ->
                             // Handle error silently for notes
+                            AppLogger.w(TAG_TRANSCRIPT, "Failed to load notes", e)
                             notesLoaded = true
-                            updateStateIfReady()
                         }
                         .collect { notes ->
                             currentNotes = notes
                             notesLoaded = true
-                            updateStateIfReady()
+                            _uiState.update { it.copy(notes = notes) }
+                            AppLogger.d(TAG_TRANSCRIPT, "Notes loaded -> count: %d", notes.size)
+                            
+                            // Log completion if segments are also loaded
+                            if (segmentsLoaded) {
+                                val duration = System.currentTimeMillis() - startTime
+                                AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "loadRecording completed", 
+                                    "duration=${duration}ms, segments=${currentSegments.size}, notes=${notes.size}")
+                            }
                         }
                 }
                 

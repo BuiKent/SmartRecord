@@ -71,12 +71,13 @@ class ImportAudioViewModel @Inject constructor(
                 }
                 
                 AppLogger.d(TAG_IMPORT, "Starting automatic transcription -> recordingId: %s", recording.id)
+                val transcriptionProgressLogger = AppLogger.ProgressLogger(TAG_IMPORT, "[ImportAudioViewModel] Transcription")
                 generateTranscript(recording) { transcriptionProgress ->
                     // Map transcription progress (0-100) to overall progress (30-100)
                     val overallProgress = 30 + (transcriptionProgress * 70 / 100)
                     _uiState.update { it.copy(progress = overallProgress) }
-                    AppLogger.d(TAG_IMPORT, "Transcription progress: %d%% (overall: %d%%)", 
-                        transcriptionProgress, overallProgress)
+                    // Only log at milestones to reduce log spam
+                    transcriptionProgressLogger.logProgress(transcriptionProgress)
                 }
                 
                 AppLogger.logViewModel(TAG_IMPORT, "ImportAudioViewModel", "Transcription completed", 

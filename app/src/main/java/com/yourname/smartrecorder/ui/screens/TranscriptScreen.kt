@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
@@ -232,6 +233,7 @@ fun TranscriptScreen(
                         viewModel.seekTo(segment.startTimeMs)
                     },
                     onGenerateTranscript = {
+                        AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
                         viewModel.generateTranscript()
                     }
                 )
@@ -348,6 +350,12 @@ private fun TranscriptTabContent(
         uiState.segments
     }
     
+    // Log for debugging
+    LaunchedEffect(segmentsToShow.size, uiState.isGeneratingTranscript, uiState.isLoading) {
+        AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] State -> segmentsCount: %d, isGenerating: %b, isLoading: %b, searchQuery: %s", 
+            segmentsToShow.size, uiState.isGeneratingTranscript, uiState.isLoading, uiState.searchQuery)
+    }
+    
     if (segmentsToShow.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -365,15 +373,30 @@ private fun TranscriptTabContent(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                } else if (uiState.isLoading) {
+                    CircularProgressIndicator()
+                    Text(
+                        "Loading transcript...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 } else {
                     Text(
                         "No transcript available",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Button(onClick = onGenerateTranscript) {
-                        Text("Generate Transcript")
-                    }
+                    // Hide Generate Transcript button if auto-transcription on upload is enabled
+                    // User should upload file to auto-transcribe, not manually generate
+                    // Button(onClick = onGenerateTranscript) {
+                    //     Text("Generate Transcript")
+                    // }
+                    Text(
+                        "Transcript will be generated automatically when you upload an audio file.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
             }
         }

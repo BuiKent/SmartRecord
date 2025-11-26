@@ -85,32 +85,55 @@ class RecordViewModel @Inject constructor(
                         it.copy(isModelReady = true) 
                     }
                 } else {
-                    // Model not found - try to download silently in background
-                    AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model not ready, downloading in background...")
-                    try {
-                        modelManager.downloadModel { progress ->
-                            AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model download progress: %d%%", progress)
-                            // Silent download - no UI update
-                        }
-                        
-                        // Verify after download
-                        val verified = withContext(Dispatchers.IO) {
+                    // Model not found - wait a bit for SmartRecorderApplication to download it
+                    AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model not ready, waiting for background download...")
+                    
+                    // Wait up to 2 seconds, checking every 500ms for model to appear
+                    var found = false
+                    repeat(4) {
+                        kotlinx.coroutines.delay(500)
+                        val checked = withContext(Dispatchers.IO) {
                             modelManager.isModelDownloaded()
                         }
-                        
-                        if (verified) {
-                            AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model downloaded and verified successfully")
+                        if (checked) {
+                            AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model is now ready (found after ${it + 1} checks)")
                             _uiState.update { 
                                 it.copy(isModelReady = true) 
                             }
-                        } else {
-                            AppLogger.w(TAG_TRANSCRIPT, "[RecordViewModel] Model verification failed after download")
-                            // Keep isModelReady = false, but don't show error - user can still record
+                            found = true
+                            return@repeat
                         }
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG_TRANSCRIPT, "[RecordViewModel] Failed to download model (silent)", e)
-                        // Don't set error - allow recording without model
-                        // Model will be available later when needed for transcription
+                    }
+                    
+                    // If still not found, try downloading as fallback (but WhisperModelManager will check for duplicates)
+                    if (!found) {
+                        AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model still not ready after waiting, downloading as fallback...")
+                        try {
+                            val progressLogger = AppLogger.ProgressLogger(TAG_TRANSCRIPT, "[RecordViewModel] Model download")
+                            modelManager.downloadModel { progress ->
+                                progressLogger.logProgress(progress)
+                                // Silent download - no UI update
+                            }
+                            
+                            // Verify after download
+                            val verified = withContext(Dispatchers.IO) {
+                                modelManager.isModelDownloaded()
+                            }
+                            
+                            if (verified) {
+                                AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model downloaded and verified successfully")
+                                _uiState.update { 
+                                    it.copy(isModelReady = true) 
+                                }
+                            } else {
+                                AppLogger.w(TAG_TRANSCRIPT, "[RecordViewModel] Model verification failed after download")
+                                // Keep isModelReady = false, but don't show error - user can still record
+                            }
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG_TRANSCRIPT, "[RecordViewModel] Failed to download model (silent)", e)
+                            // Don't set error - allow recording without model
+                            // Model will be available later when needed for transcription
+                        }
                     }
                 }
             } catch (e: Exception) {

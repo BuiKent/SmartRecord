@@ -36,36 +36,41 @@ class SmartRecorderApplication : Application() {
     
     private suspend fun initializeWhisperModel() {
         try {
+            // PRIORITY 1: Check if model file exists and is valid (protect user data)
+            // This prevents deleting model that user might have manually placed
+            if (modelManager.isModelDownloaded()) {
+                AppLogger.d(TAG_TRANSCRIPT, "Whisper model already exists in internal storage: %s", 
+                    modelManager.getModelPath())
+                // Ensure flag is set to protect data on next startup
+                val prefs = getSharedPreferences("smart_recorder_prefs", MODE_PRIVATE)
+                prefs.edit().putBoolean("whisper_model_downloaded", true).apply()
+                return
+            }
+            
+            // PRIORITY 2: Check download flag (backup check)
             val prefs = getSharedPreferences("smart_recorder_prefs", MODE_PRIVATE)
             val modelDownloaded = prefs.getBoolean("whisper_model_downloaded", false)
             
-            if (!modelDownloaded) {
+            if (modelDownloaded) {
+                // Flag says downloaded but file missing - might have been deleted by user/system
+                AppLogger.w(TAG_TRANSCRIPT, "Model file missing but flag says downloaded (possibly deleted by user/system), re-downloading...")
+            } else {
                 AppLogger.d(TAG_TRANSCRIPT, "First launch - downloading Whisper model to internal storage...")
-                
-                modelManager.downloadModel { progress ->
-                    if (progress % 10 == 0 || progress == 100) {
-                        AppLogger.d(TAG_TRANSCRIPT, "Model download progress: %d%%", progress)
-                    }
-                }
-                
-                // Mark as downloaded
-                prefs.edit().putBoolean("whisper_model_downloaded", true).apply()
+            }
+            
+            // Download model (WhisperModelManager will handle locking and prevent duplicates)
+            // The flag will be set by WhisperModelManager after successful download
+            val progressLogger = AppLogger.ProgressLogger(TAG_TRANSCRIPT, "[SmartRecorderApplication] Model download")
+            modelManager.downloadModel { progress ->
+                progressLogger.logProgress(progress)
+            }
+            
+            // Verify download succeeded (WhisperModelManager already sets the flag)
+            if (modelManager.isModelDownloaded()) {
                 AppLogger.d(TAG_TRANSCRIPT, "Whisper model downloaded and saved to internal storage: %s", 
                     modelManager.getModelPath())
             } else {
-                // Verify model still exists
-                if (modelManager.isModelDownloaded()) {
-                    AppLogger.d(TAG_TRANSCRIPT, "Whisper model already exists in internal storage: %s", 
-                        modelManager.getModelPath())
-                } else {
-                    AppLogger.w(TAG_TRANSCRIPT, "Model file missing, re-downloading...")
-                    modelManager.downloadModel { progress ->
-                        if (progress % 10 == 0 || progress == 100) {
-                            AppLogger.d(TAG_TRANSCRIPT, "Model re-download progress: %d%%", progress)
-                        }
-                    }
-                    prefs.edit().putBoolean("whisper_model_downloaded", true).apply()
-                }
+                AppLogger.e(TAG_TRANSCRIPT, "Model download completed but file verification failed")
             }
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Failed to initialize Whisper model", e)

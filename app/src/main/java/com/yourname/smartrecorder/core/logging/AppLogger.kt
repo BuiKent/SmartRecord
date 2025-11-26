@@ -106,5 +106,33 @@ object AppLogger {
     fun logRareCondition(tag: String, condition: String, context: String? = null) {
         w(tag, "[RARE] $condition${if (context != null) " -> Context: $context" else ""}")
     }
+    
+    /**
+     * Progress logger that only logs at milestones (every 20%)
+     * Reduces log spam from frequent progress callbacks
+     */
+    class ProgressLogger(private val tag: String, private val operation: String) {
+        private var lastLoggedProgress = -1
+        
+        @Synchronized
+        fun logProgress(currentProgress: Int) {
+            // Determine which milestone this progress reaches
+            val milestone = when {
+                currentProgress >= 100 -> 100
+                currentProgress >= 80 -> 80
+                currentProgress >= 60 -> 60
+                currentProgress >= 40 -> 40
+                currentProgress >= 20 -> 20
+                currentProgress >= 0 -> 0
+                else -> -1
+            }
+            
+            // Only log if we've reached a new milestone
+            if (milestone != -1 && milestone > lastLoggedProgress) {
+                d(tag, "$operation progress: $milestone%%")
+                lastLoggedProgress = milestone
+            }
+        }
+    }
 }
 

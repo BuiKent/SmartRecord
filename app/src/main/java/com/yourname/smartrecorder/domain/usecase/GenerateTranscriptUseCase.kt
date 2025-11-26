@@ -106,9 +106,11 @@ class GenerateTranscriptUseCase @Inject constructor(
             val uri = Uri.fromFile(audioFile)
             
             // Transcribe using Whisper
+            val progressLogger = AppLogger.ProgressLogger(TAG_TRANSCRIPT, "[GenerateTranscriptUseCase] Transcription")
             val whisperSegments = transcriber.transcribeFileToSegments(uri) { progress ->
                 onProgress(progress)
-                AppLogger.d(TAG_TRANSCRIPT, "Transcription progress: %d%%", progress)
+                // Only log at milestones (every 20%) to reduce log spam
+                progressLogger.logProgress(progress)
             }
             
             // Convert WhisperEngine.WhisperSegment to TranscriptSegment
