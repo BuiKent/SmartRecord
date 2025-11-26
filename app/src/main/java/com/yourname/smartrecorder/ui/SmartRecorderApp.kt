@@ -89,15 +89,30 @@ fun SmartRecorderApp() {
                 val navigateToTranscript = viewModel.navigateToTranscript.collectAsState().value
                 val importState = importViewModel.uiState.collectAsState().value
                 
-                // Permission launcher for recording
+                // Permission launcher for recording (used for both normal recording and live transcript)
                 val recordPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
                 ) { isGranted ->
                     AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Record audio permission result -> granted: %b", isGranted)
                     if (isGranted) {
+                        // Check if this was for live transcript or normal recording
+                        // We'll use a flag to track which action was requested
+                        // For now, try normal recording first (onStartClick handles both cases)
                         viewModel.onStartClick()
                     } else {
                         AppLogger.w(TAG_VIEWMODEL, "[SmartRecorderApp] Record audio permission denied")
+                    }
+                }
+                
+                // Separate permission launcher for live transcript to avoid conflicts
+                val liveTranscriptPermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { isGranted ->
+                    AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Record audio permission result for live transcript -> granted: %b", isGranted)
+                    if (isGranted) {
+                        viewModel.onLiveTranscribeClick()
+                    } else {
+                        AppLogger.w(TAG_VIEWMODEL, "[SmartRecorderApp] Record audio permission denied for live transcript")
                     }
                 }
                 
@@ -181,7 +196,12 @@ fun SmartRecorderApp() {
                     },
                     onRealtimeSttClick = {
                         AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked realtime STT button")
-                        navController.navigate(AppRoutes.REALTIME_TRANSCRIPT)
+                        if (PermissionHandler.hasRecordAudioPermission(context)) {
+                            viewModel.onLiveTranscribeClick()
+                        } else {
+                            AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] Requesting record audio permission for live transcript")
+                            liveTranscriptPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
                     },
                     onBookmarkClick = { note ->
                         AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked bookmark button -> note: %s", note.take(50))

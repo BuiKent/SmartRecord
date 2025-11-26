@@ -6,6 +6,7 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_RECORDING
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_TRANSCRIPT
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_REALTIME
 import com.yourname.smartrecorder.core.service.AutoSaveManager
 import com.yourname.smartrecorder.core.service.ForegroundServiceManager
 import com.yourname.smartrecorder.data.stt.WhisperModelManager
@@ -15,6 +16,8 @@ import com.yourname.smartrecorder.domain.usecase.PauseRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.ResumeRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StartRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
+import com.yourname.smartrecorder.domain.usecase.RealtimeTranscriptUseCase
+import com.yourname.smartrecorder.core.speech.RecognitionState
 import com.yourname.smartrecorder.ui.screens.RecordUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -41,7 +44,8 @@ class RecordViewModel @Inject constructor(
     private val audioRecorder: com.yourname.smartrecorder.core.audio.AudioRecorder,
     private val foregroundServiceManager: ForegroundServiceManager,
     private val autoSaveManager: AutoSaveManager,
-    private val modelManager: WhisperModelManager
+    private val modelManager: WhisperModelManager,
+    private val realtimeTranscript: RealtimeTranscriptUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecordUiState())
@@ -346,6 +350,67 @@ class RecordViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
     
+    fun onLiveTranscribeClick() {
+        AppLogger.logViewModel(TAG_REALTIME, "RecordViewModel", "onLiveTranscribeClick", null)
+        if (_uiState.value.isLiveTranscribeMode) {
+            // Stop live transcribe
+            stopLiveTranscribe()
+        } else {
+            // Start live transcribe
+            startLiveTranscribe()
+        }
+    }
+    
+    private fun startLiveTranscribe() {
+        AppLogger.d(TAG_REALTIME, "Starting live transcribe mode")
+        _uiState.update { 
+            it.copy(
+                isLiveTranscribeMode = true,
+                liveText = "",
+                partialText = "",
+                error = null
+            )
+        }
+        
+        // Start ASR
+        realtimeTranscript.start { text ->
+            AppLogger.d(TAG_REALTIME, "Received transcript update: %s", text)
+            _uiState.update { currentState ->
+                when {
+                    text.startsWith("PARTIAL:") -> {
+                        val partialText = text.removePrefix("PARTIAL:")
+                        currentState.copy(partialText = partialText)
+                    }
+                    text.startsWith("FINAL:") -> {
+                        val finalText = text.removePrefix("FINAL:")
+                        currentState.copy(
+                            liveText = finalText,
+                            partialText = ""  // Clear partial when we have final
+                        )
+                    }
+                    else -> {
+                        if (text.startsWith("[") || text.startsWith("Error:")) {
+                            currentState.copy(error = text)
+                        } else {
+                            currentState.copy(liveText = text, partialText = "")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun stopLiveTranscribe() {
+        AppLogger.d(TAG_REALTIME, "Stopping live transcribe mode")
+        realtimeTranscript.stop()
+        _uiState.update { 
+            it.copy(
+                isLiveTranscribeMode = false,
+                partialText = ""
+            )
+        }
+    }
+    
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
@@ -358,6 +423,11 @@ class RecordViewModel @Inject constructor(
             // Stop service and auto-save
             foregroundServiceManager.stopRecordingService()
             autoSaveManager.stopAutoSave()
+        }
+        
+        // Stop live transcribe if active
+        if (_uiState.value.isLiveTranscribeMode) {
+            stopLiveTranscribe()
         }
         
         // Note: AudioRecorder cleanup is handled by singleton lifecycle

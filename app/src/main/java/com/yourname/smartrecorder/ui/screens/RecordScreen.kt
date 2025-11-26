@@ -29,10 +29,12 @@ data class RecordUiState(
     val isRecording: Boolean = false,
     val isPaused: Boolean = false,  // Track if recording is paused
     val durationMs: Long = 0L,
-    val liveText: String = "",
+    val liveText: String = "",  // Live transcript text from ASR
+    val partialText: String = "",  // Partial (real-time) text
     val error: String? = null,
     val amplitude: Int = 0,  // For waveform visualization
-    val isModelReady: Boolean = false  // Whisper model ready state (only for transcription features)
+    val isModelReady: Boolean = false,  // Whisper model ready state (only for transcription features)
+    val isLiveTranscribeMode: Boolean = false  // Live transcribe mode (ASR active)
 ) {
     // Check if there's an active recording session (paused or recording)
     val hasActiveRecording: Boolean
@@ -53,118 +55,239 @@ fun RecordScreen(
     val isRecording = uiState.isRecording
     val isPaused = uiState.isPaused
     val hasActiveRecording = uiState.hasActiveRecording
+    val isLiveTranscribe = uiState.isLiveTranscribeMode
     var showBookmarkDialog by remember { mutableStateOf(false) }
+    
+    // Display text: final + partial
+    val displayText = if (uiState.partialText.isNotEmpty()) {
+        if (uiState.liveText.isNotEmpty()) {
+            "${uiState.liveText} ${uiState.partialText}"
+        } else {
+            uiState.partialText
+        }
+    } else {
+        uiState.liveText
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = if (isLiveTranscribe) 16.dp else 24.dp, vertical = if (isLiveTranscribe) 8.dp else 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title
-        Text(
-            text = "Smart Recorder",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Record, transcribe & smart notes",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Waveform visualization
-        WaveformVisualizer(
-            amplitude = uiState.amplitude,
-            isRecording = isRecording
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Timer display
-        Text(
-            text = formatDuration(uiState.durationMs),
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Big floating circular mic button
-        FloatingActionButton(
-            onClick = when {
-                isRecording -> onPauseRecordClick  // Pause if recording
-                isPaused -> onPauseRecordClick     // Resume if paused
-                else -> onStartRecordClick         // Start if not started
-            },
-            modifier = Modifier.size(80.dp),
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = when {
-                    isRecording -> Icons.Default.Pause
-                    isPaused -> Icons.Default.PlayArrow  // Show Play icon when paused (click to resume)
-                    else -> Icons.Default.Mic
-                },
-                contentDescription = when {
-                    isRecording -> "Pause"
-                    isPaused -> "Resume"
-                    else -> "Start Record"
-                },
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
+        // Title - hide in live transcribe mode
+        if (!isLiveTranscribe) {
+            Text(
+                text = "Smart Recorder",
+                style = MaterialTheme.typography.headlineSmall
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Record, transcribe & smart notes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(if (isLiveTranscribe) 8.dp else 32.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Waveform visualization - smaller in live transcribe mode
+        WaveformVisualizer(
+            amplitude = uiState.amplitude,
+            isRecording = isRecording || isLiveTranscribe,
+            modifier = Modifier.height(if (isLiveTranscribe) 60.dp else 120.dp)
+        )
 
-        // Control buttons (show when recording OR paused)
-        if (hasActiveRecording) {
+        Spacer(modifier = Modifier.height(if (isLiveTranscribe) 8.dp else 32.dp))
+
+        // Timer display - smaller in live transcribe mode
+        if (!isLiveTranscribe) {
+            Text(
+                text = formatDuration(uiState.durationMs),
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Control buttons - compact in live transcribe mode
+        if (isLiveTranscribe || hasActiveRecording) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Bookmark button - icon only to avoid text cutoff
-                OutlinedButton(
-                    onClick = { showBookmarkDialog = true },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bookmark,
-                        contentDescription = "Add Bookmark",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Bookmark",
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1
-                    )
+                if (isLiveTranscribe) {
+                    // Live transcribe mode: Pause and Stop buttons (small, horizontal)
+                    IconButton(
+                        onClick = onPauseRecordClick,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            contentDescription = if (isPaused) "Resume" else "Pause",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onStopRecordClick,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Stop,
+                            contentDescription = "Stop",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+                    // Normal recording mode: Big mic button
+                    FloatingActionButton(
+                        onClick = when {
+                            isRecording -> onPauseRecordClick
+                            isPaused -> onPauseRecordClick
+                            else -> onStartRecordClick
+                        },
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                isRecording -> Icons.Default.Pause
+                                isPaused -> Icons.Default.PlayArrow
+                                else -> Icons.Default.Mic
+                            },
+                            contentDescription = when {
+                                isRecording -> "Pause"
+                                isPaused -> "Resume"
+                                else -> "Start Record"
+                            },
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // Bookmark and Stop buttons
+                    OutlinedButton(
+                        onClick = { showBookmarkDialog = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bookmark,
+                            contentDescription = "Add Bookmark",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Bookmark",
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    }
+                    
+                    OutlinedButton(
+                        onClick = onStopRecordClick,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Stop,
+                            contentDescription = "Stop"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Stop")
+                    }
                 }
-                
-                // Stop button
-                OutlinedButton(
-                    onClick = onStopRecordClick,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Stop,
-                        contentDescription = "Stop"
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Stop")
-                }
+            }
+        } else {
+            // Big floating circular mic button when not recording
+            FloatingActionButton(
+                onClick = onStartRecordClick,
+                modifier = Modifier.size(80.dp),
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = "Start Record",
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(if (isLiveTranscribe) 8.dp else 16.dp))
 
-        // Import/Transcribe progress card - simplified with color fill (blue to red)
-        if (importState != null && (importState.isImporting || importState.isTranscribing)) {
+        // Live text box - show in live transcribe mode
+        if (isLiveTranscribe) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Live Transcript",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (displayText.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Listening... Speak now",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        // Show final text + partial text (partial in different color)
+                        if (uiState.partialText.isNotEmpty() && uiState.liveText.isNotEmpty()) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Text(
+                                    text = uiState.liveText,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = uiState.partialText,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = displayText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Import/Transcribe progress card - hide in live transcribe mode
+        if (!isLiveTranscribe && importState != null && (importState.isImporting || importState.isTranscribing)) {
             val progress = importState.progress / 100f
             // Interpolate color from blue to red based on progress
             val blueColor = Color(0xFF2196F3) // Blue
@@ -206,15 +329,15 @@ fun RecordScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Spacer to push cards to bottom (only when not recording)
-        if (!hasActiveRecording) {
+        // Spacer to push cards to bottom (only when not recording and not live transcribe)
+        if (!hasActiveRecording && !isLiveTranscribe) {
             Spacer(modifier = Modifier.weight(1f))
-        } else {
+        } else if (!isLiveTranscribe) {
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Import / Realtime cards - vertical layout, hide when transcribing
-        if (importState?.isTranscribing != true) {
+        // Import / Realtime cards - hide in live transcribe mode
+        if (!isLiveTranscribe && importState?.isTranscribing != true) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

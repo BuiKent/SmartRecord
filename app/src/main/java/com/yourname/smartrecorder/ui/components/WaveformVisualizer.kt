@@ -32,7 +32,10 @@ fun WaveformVisualizer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .then(
+                // Only add default height if modifier doesn't already specify height
+                if (modifier == Modifier) Modifier.height(180.dp) else Modifier
+            )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centerY = size.height / 2
