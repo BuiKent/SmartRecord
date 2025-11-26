@@ -156,7 +156,10 @@ fun SmartRecorderApp() {
                             importPermissionLauncher.launch(permission)
                         }
                     },
-                    onRealtimeSttClick = { /* TODO: mở màn realtime STT */ }
+                    onRealtimeSttClick = { 
+                        // TODO: Implement realtime STT screen
+                        // For now, show a message that this feature is coming soon
+                    }
                 )
             }
             composable(AppRoutes.LIBRARY) {

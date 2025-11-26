@@ -138,6 +138,9 @@ fun TranscriptScreen(
                     uiState = uiState,
                     onSegmentClick = { segment ->
                         viewModel.seekTo(segment.startTimeMs)
+                    },
+                    onGenerateTranscript = {
+                        viewModel.generateTranscript()
                     }
                 )
                 TranscriptTab.NOTES -> NotesTabContent(uiState = uiState)
@@ -198,18 +201,37 @@ private fun PlayerBar(
 @Composable
 private fun TranscriptTabContent(
     uiState: com.yourname.smartrecorder.ui.transcript.TranscriptUiState,
-    onSegmentClick: (com.yourname.smartrecorder.domain.model.TranscriptSegment) -> Unit
+    onSegmentClick: (com.yourname.smartrecorder.domain.model.TranscriptSegment) -> Unit,
+    onGenerateTranscript: () -> Unit = {}
 ) {
     if (uiState.segments.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                "No transcript available",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                if (uiState.isGeneratingTranscript) {
+                    CircularProgressIndicator()
+                    Text(
+                        "Generating transcript... ${uiState.transcriptProgress}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        "No transcript available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(onClick = onGenerateTranscript) {
+                        Text("Generate Transcript")
+                    }
+                }
+            }
         }
     } else {
         LazyColumn(

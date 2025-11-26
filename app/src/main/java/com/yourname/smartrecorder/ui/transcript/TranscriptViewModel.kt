@@ -14,6 +14,7 @@ import com.yourname.smartrecorder.domain.usecase.ExportFormat
 import com.yourname.smartrecorder.domain.usecase.ExportTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.ExtractKeywordsUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateSummaryUseCase
+import com.yourname.smartrecorder.domain.usecase.GenerateTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
 import com.yourname.smartrecorder.domain.usecase.GetTranscriptUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +39,8 @@ data class TranscriptUiState(
     val keywords: List<String> = emptyList(),
     val questions: List<TranscriptSegment> = emptyList(),
     val isLoading: Boolean = false,
+    val isGeneratingTranscript: Boolean = false,
+    val transcriptProgress: Int = 0,
     val isPlaying: Boolean = false,
     val currentPositionMs: Long = 0L,
     val currentSegmentId: Long? = null,
@@ -54,6 +57,7 @@ class TranscriptViewModel @Inject constructor(
     private val getTranscript: GetTranscriptUseCase,
     private val generateSummary: GenerateSummaryUseCase,
     private val extractKeywords: ExtractKeywordsUseCase,
+    private val generateTranscript: GenerateTranscriptUseCase,
     private val exportTranscript: ExportTranscriptUseCase,
     private val noteRepository: NoteRepository,
     private val audioPlayer: AudioPlayer
@@ -267,6 +271,59 @@ class TranscriptViewModel @Inject constructor(
             positionMs >= it.startTimeMs && positionMs <= it.endTimeMs 
         }
         _uiState.update { it.copy(currentSegmentId = segment?.id) }
+    }
+    
+    fun generateTranscript() {
+        val recording = _uiState.value.recording ?: run {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot generate transcript - no recording")
+            _uiState.update { it.copy(error = "No recording available") }
+            return
+        }
+        
+        if (_uiState.value.isGeneratingTranscript) {
+            AppLogger.w(TAG_TRANSCRIPT, "Transcript generation already in progress")
+            return
+        }
+        
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "generateTranscript", 
+            "recordingId=${recording.id}")
+        
+        viewModelScope.launch {
+            try {
+                _uiState.update { 
+                    it.copy(
+                        isGeneratingTranscript = true,
+                        transcriptProgress = 0,
+                        error = null
+                    )
+                }
+                
+                val segments = generateTranscript(recording) { progress ->
+                    AppLogger.d(TAG_TRANSCRIPT, "Transcript generation progress: %d%%", progress)
+                    _uiState.update { it.copy(transcriptProgress = progress) }
+                }
+                
+                AppLogger.d(TAG_TRANSCRIPT, "Transcript generated successfully -> segments: %d", segments.size)
+                
+                // Reload transcript to get the new segments
+                loadRecording(recording.id)
+                
+                _uiState.update { 
+                    it.copy(
+                        isGeneratingTranscript = false,
+                        transcriptProgress = 100
+                    )
+                }
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Failed to generate transcript", e)
+                _uiState.update { 
+                    it.copy(
+                        isGeneratingTranscript = false,
+                        error = e.message ?: "Failed to generate transcript"
+                    )
+                }
+            }
+        }
     }
     
     fun exportTranscript(format: ExportFormat): String? {
