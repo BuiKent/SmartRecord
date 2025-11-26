@@ -74,12 +74,6 @@ private fun detectSpeakersForExport(segments: List<TranscriptSegment>): List<Tra
 class PlainTextFormatter : ExportFormatter {
     override fun format(recording: Recording, segments: List<TranscriptSegment>): String {
         val sb = StringBuilder()
-        sb.appendLine(recording.title.ifBlank { "Untitled Recording" })
-        sb.appendLine(formatDate(recording.createdAt))
-        sb.appendLine("Duration: ${formatDuration(recording.durationMs)}")
-        sb.appendLine()
-        sb.appendLine("--- Transcript ---")
-        sb.appendLine()
         
         // Detect speakers if not already detected
         val segmentsWithSpeakers = if (segments.any { it.speaker != null }) {
@@ -94,10 +88,13 @@ class PlainTextFormatter : ExportFormatter {
             if (segment.speaker != null && segment.speaker != prevSpeaker) {
                 if (prevSpeaker != null) {
                     sb.appendLine() // Add blank line between speakers
+                    sb.appendLine() // Extra blank line
                 }
-                sb.append("[Speaker ${segment.speaker}]: ")
+                sb.append("Speaker ${segment.speaker}: ")
+            } else if (prevSpeaker != null && segment.speaker == prevSpeaker) {
+                sb.append(" ") // Add space between segments from same speaker
             }
-            sb.appendLine("[${formatDuration(segment.startTimeMs)}] ${segment.text}")
+            sb.append(segment.text.trim())
             prevSpeaker = segment.speaker
         }
         
@@ -178,28 +175,13 @@ class SrtFormatter : ExportFormatter {
     override fun format(recording: Recording, segments: List<TranscriptSegment>): String {
         val sb = StringBuilder()
         
-        // Detect speakers if not already detected
-        val segmentsWithSpeakers = if (segments.any { it.speaker != null }) {
-            segments  // Already has speaker info
-        } else {
-            detectSpeakersForExport(segments)  // Calculate speakers
-        }
-        
         var subtitleIndex = 1
-        var prevSpeaker: Int? = null
-        segmentsWithSpeakers.forEach { segment ->
+        segments.forEach { segment ->
             sb.appendLine("$subtitleIndex")
             sb.appendLine("${formatSrtTime(segment.startTimeMs)} --> ${formatSrtTime(segment.endTimeMs)}")
-            // Add speaker label in SRT if speaker changed
-            val text = if (segment.speaker != null && segment.speaker != prevSpeaker) {
-                "[Speaker ${segment.speaker}] ${segment.text.trim()}"
-            } else {
-                segment.text.trim()
-            }
-            sb.appendLine(text)
+            sb.appendLine(segment.text.trim())
             sb.appendLine()
             subtitleIndex++
-            prevSpeaker = segment.speaker
         }
         
         return sb.toString()

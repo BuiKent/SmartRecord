@@ -122,7 +122,8 @@ fun RecordingCard(
             // Play/Pause/Stop controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Play/Pause button
                 IconButton(
@@ -130,8 +131,7 @@ fun RecordingCard(
                         AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked %s -> recordingId: %s", 
                             if (isPlaying) "pause" else "play", recording.id)
                         if (isPlaying) onPauseClick() else onPlayClick() 
-                    },
-                    modifier = Modifier.weight(1f)
+                    }
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -145,8 +145,7 @@ fun RecordingCard(
                     onClick = { 
                         AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked stop -> recordingId: %s", recording.id)
                         onStopClick() 
-                    },
-                    modifier = Modifier.weight(1f)
+                    }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Stop,
@@ -163,7 +162,11 @@ fun RecordingCard(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Transcript", style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        text = "Transcript",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
                 }
             }
         }

@@ -28,7 +28,7 @@ fun ExportBottomSheet(
         
         ExportOption(
             title = "Plain Text (.txt)",
-            description = "Simple text format",
+            description = "Text with speaker labels, no timestamps",
             onClick = { 
                 AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: TXT")
                 onExportClick(ExportFormat.TXT) 
@@ -36,17 +36,8 @@ fun ExportBottomSheet(
         )
         
         ExportOption(
-            title = "Markdown (.md)",
-            description = "Formatted markdown document",
-            onClick = { 
-                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: MARKDOWN")
-                onExportClick(ExportFormat.MARKDOWN) 
-            }
-        )
-        
-        ExportOption(
             title = "Subtitle (.srt)",
-            description = "Subtitle file with timestamps",
+            description = "Subtitle file with timestamps, no speaker labels",
             onClick = { 
                 AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: SRT")
                 onExportClick(ExportFormat.SRT) 
@@ -65,29 +56,11 @@ fun ExportBottomSheet(
         )
         
         ExportOption(
-            title = "Meeting Template",
-            description = "Formatted for meetings with action items",
-            onClick = { 
-                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: MEETING")
-                onExportClick(ExportFormat.MEETING) 
-            }
-        )
-        
-        ExportOption(
             title = "Lecture Template",
             description = "Formatted for lectures with key points",
             onClick = { 
                 AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: LECTURE")
                 onExportClick(ExportFormat.LECTURE) 
-            }
-        )
-        
-        ExportOption(
-            title = "Interview Template",
-            description = "Formatted for interviews with speaker labels",
-            onClick = { 
-                AppLogger.d(TAG_VIEWMODEL, "[ExportBottomSheet] User selected export format: INTERVIEW")
-                onExportClick(ExportFormat.INTERVIEW) 
             }
         )
         

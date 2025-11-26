@@ -122,19 +122,10 @@ fun TranscriptScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = recording?.title ?: "Transcript",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        recording?.let { rec ->
-                            Text(
-                                text = "${formatDuration(rec.durationMs)} • ${formatDate(rec.createdAt)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    Text(
+                        text = recording?.title ?: "Transcript",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -223,7 +214,13 @@ fun TranscriptScreen(
                     Tab(
                         selected = index == currentTab.ordinal,
                         onClick = { currentTab = tab },
-                        text = { Text(tab.name) }
+                        text = { 
+                            Text(
+                                text = tab.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            )
+                        }
                     )
                 }
             }
