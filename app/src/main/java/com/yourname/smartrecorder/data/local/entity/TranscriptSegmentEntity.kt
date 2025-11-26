@@ -15,7 +15,11 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("recordingId")]
+    indices = [
+        Index("recordingId"),
+        Index("recordingId", "startTimeMs"), // Composite for ORDER BY queries
+        Index("isQuestion") // For question filtering
+    ]
 )
 data class TranscriptSegmentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

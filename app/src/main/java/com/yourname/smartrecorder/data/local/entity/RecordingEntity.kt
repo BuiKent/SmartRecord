@@ -1,9 +1,18 @@
 package com.yourname.smartrecorder.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "recordings")
+@Entity(
+    tableName = "recordings",
+    indices = [
+        Index("createdAt"),
+        Index("isArchived"),
+        Index("isPinned"),
+        Index("isArchived", "isPinned") // Composite index for common queries
+    ]
+)
 data class RecordingEntity(
     @PrimaryKey val id: String,
     val title: String,

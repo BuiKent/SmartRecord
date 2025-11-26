@@ -60,23 +60,37 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
         synchronized(this) {
             try {
                 mediaPlayer?.stop()
+                // Release after stop to free resources
+                mediaPlayer?.release()
+                mediaPlayer = null
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to stop audio", e)
+                // Ensure cleanup even on error
+                try {
+                    mediaPlayer?.release()
+                } catch (e2: Exception) {
+                    // Ignore release errors
+                }
+                mediaPlayer = null
             }
         }
     }
     
     override fun seekTo(positionMs: Int) {
-        try {
-            mediaPlayer?.seekTo(positionMs)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to seek audio", e)
+        synchronized(this) {
+            try {
+                mediaPlayer?.seekTo(positionMs)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to seek audio", e)
+            }
         }
     }
     
     override fun getCurrentPosition(): Int {
         return try {
-            mediaPlayer?.currentPosition ?: 0
+            synchronized(this) {
+                mediaPlayer?.currentPosition ?: 0
+            }
         } catch (e: Exception) {
             0
         }
@@ -84,7 +98,9 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     
     override fun getDuration(): Int {
         return try {
-            mediaPlayer?.duration ?: 0
+            synchronized(this) {
+                mediaPlayer?.duration ?: 0
+            }
         } catch (e: Exception) {
             0
         }
@@ -92,7 +108,9 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     
     override fun isPlaying(): Boolean {
         return try {
-            mediaPlayer?.isPlaying ?: false
+            synchronized(this) {
+                mediaPlayer?.isPlaying ?: false
+            }
         } catch (e: Exception) {
             false
         }

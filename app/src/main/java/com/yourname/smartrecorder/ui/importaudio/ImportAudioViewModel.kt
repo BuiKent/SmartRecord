@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.jvm.Volatile
 
 data class ImportUiState(
     val isImporting: Boolean = false,
@@ -27,10 +28,18 @@ class ImportAudioViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ImportUiState())
     val uiState: StateFlow<ImportUiState> = _uiState.asStateFlow()
+    
+    @Volatile
+    private var isImporting: Boolean = false
 
     fun importAudioFile(uri: Uri, fileName: String) {
+        if (isImporting) {
+            return // Prevent concurrent imports
+        }
+        
         viewModelScope.launch {
             try {
+                isImporting = true
                 _uiState.update { it.copy(isImporting = true, progress = 0, error = null) }
                 
                 _uiState.update { it.copy(progress = 50) }
@@ -48,9 +57,11 @@ class ImportAudioViewModel @Inject constructor(
                 _uiState.update { 
                     it.copy(
                         isImporting = false,
-                        error = e.message
+                        error = e.message ?: "Failed to import audio file"
                     )
                 }
+            } finally {
+                isImporting = false
             }
         }
     }

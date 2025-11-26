@@ -65,9 +65,15 @@ class RecordViewModel @Inject constructor(
     }
 
     fun onPauseClick() {
-        timerJob?.cancel()
-        _uiState.update { it.copy(isRecording = false) }
-        // TODO: Implement pause recording
+        viewModelScope.launch {
+            try {
+                timerJob?.cancel()
+                // TODO: Implement pause recording - call audioRecorder.pause()
+                _uiState.update { it.copy(isRecording = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
     }
 
     fun onStopClick() {

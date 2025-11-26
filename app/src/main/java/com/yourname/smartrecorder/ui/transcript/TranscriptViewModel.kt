@@ -119,15 +119,22 @@ class TranscriptViewModel @Inject constructor(
                     }
                 
                 // Load notes in parallel (separate coroutine)
-                launch {
+                val notesJob = launch {
                     noteRepository.getNotesByRecordingId(recordingId)
-                        .catch { }
+                        .catch { e ->
+                            // Handle error silently for notes
+                            notesLoaded = true
+                            updateStateIfReady()
+                        }
                         .collect { notes ->
                             currentNotes = notes
                             notesLoaded = true
                             updateStateIfReady()
                         }
                 }
+                
+                // Ensure notes job is cancelled if segments collection fails
+                // (This is handled by viewModelScope automatically)
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
