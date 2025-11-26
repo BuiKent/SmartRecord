@@ -191,7 +191,8 @@ fun SmartRecorderApp() {
                     onBookmarkClick = { note ->
                         AppLogger.d(TAG_VIEWMODEL, "[SmartRecorderApp] User clicked bookmark button -> note: %s", note.take(50))
                         viewModel.onBookmarkClick(note)
-                    }
+                    },
+                    importState = importState
                 )
                 
                 // Error handling

@@ -45,7 +45,8 @@ fun RecordScreen(
     onStopRecordClick: () -> Unit,
     onImportAudioClick: () -> Unit,
     onRealtimeSttClick: () -> Unit,
-    onBookmarkClick: (String) -> Unit = { _ -> }
+    onBookmarkClick: (String) -> Unit = { _ -> },
+    importState: com.yourname.smartrecorder.ui.importaudio.ImportUiState? = null
 ) {
     val isRecording = uiState.isRecording
     val isPaused = uiState.isPaused
@@ -165,6 +166,43 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Import/Transcribe progress card
+        if (importState != null && (importState.isImporting || importState.isTranscribing)) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (importState.isTranscribing) "Transcribing..." else "Uploading...",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { importState.progress / 100f },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${importState.progress}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Import / Realtime buttons
         Text(
             text = "Or choose another option:",
@@ -178,6 +216,7 @@ fun RecordScreen(
         ) {
             OutlinedButton(
                 onClick = onImportAudioClick,
+                enabled = importState?.isImporting != true && importState?.isTranscribing != true,
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
@@ -187,7 +226,11 @@ fun RecordScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Upload",
+                    text = when {
+                        importState?.isTranscribing == true -> "Transcribing..."
+                        importState?.isImporting == true -> "Uploading..."
+                        else -> "Upload"
+                    },
                     style = MaterialTheme.typography.labelMedium
                 )
             }
