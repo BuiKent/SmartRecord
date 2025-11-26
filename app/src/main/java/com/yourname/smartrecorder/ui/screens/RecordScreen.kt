@@ -147,11 +147,11 @@ fun RecordScreen(
                 } else {
                     // Normal recording mode: Bookmark (left) - Mic (center, large) - Stop (right)
                     // All buttons are FloatingActionButton, circular
-                    // Mic stays in center, bookmark and stop are symmetric on both sides
+                    // Buttons are close together, not spread to edges
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Bookmark button (left, small)
@@ -168,6 +168,8 @@ fun RecordScreen(
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
                         
                         // Mic button (center, large) - stays in center
                         FloatingActionButton(
@@ -195,6 +197,8 @@ fun RecordScreen(
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
                         
                         // Stop button (right, small) - symmetric with bookmark
                         FloatingActionButton(
