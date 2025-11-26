@@ -136,28 +136,38 @@ fun RecordScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedButton(
-                onClick = onImportAudioClick
+                onClick = onImportAudioClick,
+                modifier = Modifier.weight(1f)
             ) {
                 Icon(
                     imageVector = Icons.Default.MusicNote,
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Import file audio")
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Tải lên",
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
 
             OutlinedButton(
-                onClick = onRealtimeSttClick
+                onClick = onRealtimeSttClick,
+                modifier = Modifier.weight(1f)
             ) {
                 Icon(
                     imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Realtime transcript")
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Phiên dịch",
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
         }
     }
