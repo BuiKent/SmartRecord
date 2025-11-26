@@ -3,6 +3,7 @@ package com.yourname.smartrecorder.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
@@ -29,7 +30,8 @@ fun RecordScreen(
     onPauseRecordClick: () -> Unit,
     onStopRecordClick: () -> Unit,
     onImportAudioClick: () -> Unit,
-    onRealtimeSttClick: () -> Unit
+    onRealtimeSttClick: () -> Unit,
+    onBookmarkClick: () -> Unit = {}
 ) {
     val isRecording = uiState.isRecording
 
@@ -111,17 +113,38 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Stop button (only show when recording)
+        // Control buttons (only show when recording)
         if (isRecording) {
-            OutlinedButton(
-                onClick = onStopRecordClick
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Stop,
-                    contentDescription = "Stop"
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Stop and save")
+                // Bookmark button
+                OutlinedButton(
+                    onClick = onBookmarkClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bookmark,
+                        contentDescription = "Bookmark"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Bookmark")
+                }
+                
+                // Stop button
+                OutlinedButton(
+                    onClick = onStopRecordClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Stop,
+                        contentDescription = "Stop"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Stop")
+                }
             }
         }
 

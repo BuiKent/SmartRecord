@@ -11,8 +11,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -43,6 +46,7 @@ fun TranscriptScreen(
     val uiState by viewModel.uiState.collectAsState()
     var currentTab by remember { mutableStateOf(TranscriptTab.TRANSCRIPT) }
     var showExportSheet by remember { mutableStateOf(false) }
+    var showSearch by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     LaunchedEffect(recordingId) {
@@ -97,6 +101,12 @@ fun TranscriptScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showSearch = !showSearch }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                    IconButton(onClick = { viewModel.addBookmark() }) {
+                        Icon(Icons.Default.Bookmark, contentDescription = "Add Bookmark")
+                    }
                     IconButton(onClick = { showExportSheet = true }) {
                         Icon(Icons.Default.Share, contentDescription = "Export")
                     }
@@ -117,6 +127,34 @@ fun TranscriptScreen(
                 onPlayPauseClick = { viewModel.togglePlayPause() },
                 onSeekTo = { viewModel.seekTo(it.toLong()) }
             )
+            
+            // Search bar
+            if (showSearch) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = uiState.searchQuery,
+                        onValueChange = { viewModel.searchInTranscript(it) },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Search in transcript...") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            if (uiState.searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.clearSearch() }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        singleLine = true
+                    )
+                }
+            }
 
             // Tabs
             PrimaryTabRow(
@@ -143,7 +181,13 @@ fun TranscriptScreen(
                         viewModel.generateTranscript()
                     }
                 )
-                TranscriptTab.NOTES -> NotesTabContent(uiState = uiState)
+                TranscriptTab.NOTES -> NotesTabContent(
+                    uiState = uiState,
+                    bookmarks = uiState.bookmarks,
+                    onBookmarkClick = { bookmark ->
+                        viewModel.seekTo(bookmark.timestampMs)
+                    }
+                )
                 TranscriptTab.SUMMARY -> SummaryTabContent(uiState = uiState)
             }
         }
@@ -204,7 +248,13 @@ private fun TranscriptTabContent(
     onSegmentClick: (com.yourname.smartrecorder.domain.model.TranscriptSegment) -> Unit,
     onGenerateTranscript: () -> Unit = {}
 ) {
-    if (uiState.segments.isEmpty()) {
+    val segmentsToShow = if (uiState.searchQuery.isNotEmpty() && uiState.searchResults.isNotEmpty()) {
+        uiState.searchResults
+    } else {
+        uiState.segments
+    }
+    
+    if (segmentsToShow.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -239,10 +289,22 @@ private fun TranscriptTabContent(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(uiState.segments) { segment ->
+            if (uiState.searchQuery.isNotEmpty() && uiState.searchResults.isNotEmpty()) {
+                item {
+                    Text(
+                        "Search results (${uiState.searchResults.size})",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            }
+            items(segmentsToShow) { segment ->
                 TranscriptLineItem(
                     segment = segment,
                     isCurrent = segment.id == uiState.currentSegmentId,
+                    isHighlighted = uiState.searchQuery.isNotEmpty() && 
+                        segment.text.lowercase().contains(uiState.searchQuery.lowercase()),
                     onClick = { onSegmentClick(segment) }
                 )
             }
@@ -254,12 +316,13 @@ private fun TranscriptTabContent(
 private fun TranscriptLineItem(
     segment: com.yourname.smartrecorder.domain.model.TranscriptSegment,
     isCurrent: Boolean,
+    isHighlighted: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bgColor = if (isCurrent) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    } else {
-        Color.Transparent
+    val bgColor = when {
+        isCurrent -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        isHighlighted -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+        else -> Color.Transparent
     }
 
     Column(
@@ -284,15 +347,17 @@ private fun TranscriptLineItem(
 
 @Composable
 private fun NotesTabContent(
-    uiState: com.yourname.smartrecorder.ui.transcript.TranscriptUiState
+    uiState: com.yourname.smartrecorder.ui.transcript.TranscriptUiState,
+    bookmarks: List<com.yourname.smartrecorder.domain.model.Bookmark> = emptyList(),
+    onBookmarkClick: (com.yourname.smartrecorder.domain.model.Bookmark) -> Unit = {}
 ) {
-    if (uiState.notes.isEmpty()) {
+    if (uiState.notes.isEmpty() && bookmarks.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "No notes yet",
+                "No notes or bookmarks yet",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -303,23 +368,79 @@ private fun NotesTabContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(uiState.notes) { note ->
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+            // Bookmarks section
+            if (bookmarks.isNotEmpty()) {
+                item {
+                    Text(
+                        "Bookmarks (${bookmarks.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                items(bookmarks) { bookmark ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onBookmarkClick(bookmark) }
                     ) {
-                        Text(
-                            text = note.type,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = note.content,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = formatDuration(bookmark.timestampMs),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Bookmark,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            if (bookmark.note.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = bookmark.note,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Notes section
+            if (uiState.notes.isNotEmpty()) {
+                item {
+                    Text(
+                        "Notes (${uiState.notes.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                items(uiState.notes) { note ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = note.type,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = note.content,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }

@@ -6,7 +6,10 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.usecase.GetRecordingListUseCase
+import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +27,8 @@ data class LibraryUiState(
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
-    private val getRecordingList: GetRecordingListUseCase
+    private val getRecordingList: GetRecordingListUseCase,
+    private val searchTranscripts: SearchTranscriptsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
@@ -67,12 +71,30 @@ class LibraryViewModel @Inject constructor(
         if (query.isEmpty()) {
             return _uiState.value.recordings
         }
-        val filtered = _uiState.value.recordings.filter { recording ->
+        
+        // Simple title/id search
+        val titleFiltered = _uiState.value.recordings.filter { recording ->
             recording.title.lowercase().contains(query) ||
             recording.id.lowercase().contains(query)
         }
-        AppLogger.d(TAG_VIEWMODEL, "Filtered recordings -> query: %s, results: %d", query, filtered.size)
-        return filtered
+        
+        // If no results from title search, try FTS search in transcripts
+        if (titleFiltered.isEmpty() && query.length > 2) {
+            viewModelScope.launch {
+                try {
+                    val ftsResults = searchTranscripts.searchRecordings(query)
+                    if (ftsResults.isNotEmpty()) {
+                        _uiState.update { it.copy(recordings = ftsResults) }
+                        AppLogger.d(TAG_VIEWMODEL, "FTS search found %d recordings", ftsResults.size)
+                    }
+                } catch (e: Exception) {
+                    AppLogger.e(TAG_VIEWMODEL, "FTS search failed", e)
+                }
+            }
+        }
+        
+        AppLogger.d(TAG_VIEWMODEL, "Filtered recordings -> query: %s, results: %d", query, titleFiltered.size)
+        return titleFiltered
     }
 }
 

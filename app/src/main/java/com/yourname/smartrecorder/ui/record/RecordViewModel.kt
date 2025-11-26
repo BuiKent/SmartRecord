@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_RECORDING
+import com.yourname.smartrecorder.domain.usecase.AddBookmarkUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
 import com.yourname.smartrecorder.domain.usecase.StartRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
@@ -24,7 +25,8 @@ import kotlin.jvm.Volatile
 class RecordViewModel @Inject constructor(
     private val getRecordingsDirectory: GetRecordingsDirectoryUseCase,
     private val startRecording: StartRecordingUseCase,
-    private val stopRecordingAndSave: StopRecordingAndSaveUseCase
+    private val stopRecordingAndSave: StopRecordingAndSaveUseCase,
+    private val addBookmark: AddBookmarkUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecordUiState())
@@ -142,6 +144,26 @@ class RecordViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 // Timer cancelled or error
+            }
+        }
+    }
+    
+    fun onBookmarkClick(note: String = "") {
+        val recording = currentRecording ?: return
+        if (!_uiState.value.isRecording) return
+        
+        val timestampMs = System.currentTimeMillis() - startTimeMs
+        AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onBookmarkClick", 
+            "recordingId=${recording.id}, timestamp=${timestampMs}ms")
+        
+        viewModelScope.launch {
+            try {
+                addBookmark(recording.id, timestampMs, note)
+                AppLogger.d(TAG_RECORDING, "Bookmark added -> recordingId: %s, timestamp: %d ms", 
+                    recording.id, timestampMs)
+            } catch (e: Exception) {
+                AppLogger.e(TAG_RECORDING, "Failed to add bookmark", e)
+                _uiState.update { it.copy(error = "Failed to add bookmark: ${e.message}") }
             }
         }
     }

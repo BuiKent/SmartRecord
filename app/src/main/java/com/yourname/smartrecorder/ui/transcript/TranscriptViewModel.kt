@@ -10,13 +10,17 @@ import com.yourname.smartrecorder.domain.model.Note
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.model.TranscriptSegment
 import com.yourname.smartrecorder.domain.repository.NoteRepository
+import com.yourname.smartrecorder.domain.model.Bookmark
+import com.yourname.smartrecorder.domain.usecase.AddBookmarkUseCase
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
 import com.yourname.smartrecorder.domain.usecase.ExportTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.ExtractKeywordsUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateSummaryUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateTranscriptUseCase
+import com.yourname.smartrecorder.domain.usecase.GetBookmarksUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
 import com.yourname.smartrecorder.domain.usecase.GetTranscriptUseCase
+import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -35,6 +39,7 @@ data class TranscriptUiState(
     val recording: Recording? = null,
     val segments: List<TranscriptSegment> = emptyList(),
     val notes: List<Note> = emptyList(),
+    val bookmarks: List<Bookmark> = emptyList(),
     val summary: String = "",
     val keywords: List<String> = emptyList(),
     val questions: List<TranscriptSegment> = emptyList(),
@@ -44,6 +49,8 @@ data class TranscriptUiState(
     val isPlaying: Boolean = false,
     val currentPositionMs: Long = 0L,
     val currentSegmentId: Long? = null,
+    val searchQuery: String = "",
+    val searchResults: List<TranscriptSegment> = emptyList(),
     val error: String? = null
 )
 
@@ -59,6 +66,9 @@ class TranscriptViewModel @Inject constructor(
     private val extractKeywords: ExtractKeywordsUseCase,
     private val generateTranscript: GenerateTranscriptUseCase,
     private val exportTranscript: ExportTranscriptUseCase,
+    private val getBookmarks: GetBookmarksUseCase,
+    private val addBookmark: AddBookmarkUseCase,
+    private val searchTranscripts: SearchTranscriptsUseCase,
     private val noteRepository: NoteRepository,
     private val audioPlayer: AudioPlayer
 ) : ViewModel() {
@@ -163,6 +173,18 @@ class TranscriptViewModel @Inject constructor(
                             currentNotes = notes
                             notesLoaded = true
                             updateStateIfReady()
+                        }
+                }
+                
+                // Load bookmarks in parallel
+                val bookmarksJob = launch {
+                    getBookmarks(recordingId)
+                        .catch { e ->
+                            AppLogger.e(TAG_TRANSCRIPT, "Failed to load bookmarks", e)
+                        }
+                        .collect { bookmarks ->
+                            _uiState.update { it.copy(bookmarks = bookmarks) }
+                            AppLogger.d(TAG_TRANSCRIPT, "Bookmarks loaded: %d", bookmarks.size)
                         }
                 }
                 
@@ -323,6 +345,57 @@ class TranscriptViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+    
+    fun addBookmark(note: String = "") {
+        val recording = _uiState.value.recording ?: return
+        val timestampMs = _uiState.value.currentPositionMs
+        
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "addBookmark", 
+            "recordingId=${recording.id}, timestamp=${timestampMs}ms")
+        
+        viewModelScope.launch {
+            try {
+                addBookmark(recording.id, timestampMs, note)
+                AppLogger.d(TAG_TRANSCRIPT, "Bookmark added -> recordingId: %s, timestamp: %d ms", 
+                    recording.id, timestampMs)
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Failed to add bookmark", e)
+                _uiState.update { it.copy(error = "Failed to add bookmark: ${e.message}") }
+            }
+        }
+    }
+    
+    fun searchInTranscript(query: String) {
+        val recording = _uiState.value.recording ?: return
+        
+        AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "searchInTranscript", 
+            "recordingId=${recording.id}, query=$query")
+        
+        viewModelScope.launch {
+            try {
+                val results = searchTranscripts(query, recording.id)
+                _uiState.update { 
+                    it.copy(
+                        searchQuery = query,
+                        searchResults = results
+                    )
+                }
+                AppLogger.d(TAG_TRANSCRIPT, "Search completed -> query: %s, results: %d", query, results.size)
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Search failed", e)
+                _uiState.update { it.copy(error = "Search failed: ${e.message}") }
+            }
+        }
+    }
+    
+    fun clearSearch() {
+        _uiState.update { 
+            it.copy(
+                searchQuery = "",
+                searchResults = emptyList()
+            )
         }
     }
     

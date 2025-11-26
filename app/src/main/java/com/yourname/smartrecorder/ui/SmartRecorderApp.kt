@@ -159,6 +159,9 @@ fun SmartRecorderApp() {
                     onRealtimeSttClick = { 
                         // TODO: Implement realtime STT screen
                         // For now, show a message that this feature is coming soon
+                    },
+                    onBookmarkClick = {
+                        viewModel.onBookmarkClick()
                     }
                 )
             }
@@ -172,7 +175,7 @@ fun SmartRecorderApp() {
             composable(AppRoutes.STUDY) {
                 StudyScreen(
                     onStartPracticeClick = {
-                        // TODO: mở màn luyện flashcards
+                        // Already handled in StudyScreen
                     }
                 )
             }
