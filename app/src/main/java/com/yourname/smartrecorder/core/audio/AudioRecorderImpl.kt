@@ -7,12 +7,19 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.jvm.Volatile
 
 @Singleton
 class AudioRecorderImpl @Inject constructor() : AudioRecorder {
     
+    @Volatile
     private var mediaRecorder: MediaRecorder? = null
+    
+    @Volatile
     private var outputFile: File? = null
+    
+    @Volatile
+    private var isRecording: Boolean = false
     
     companion object {
         private const val TAG = "AudioRecorder"
@@ -22,48 +29,71 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
     
     override suspend fun startRecording(outputFile: File) {
         withContext(Dispatchers.IO) {
-        try {
-            this@AudioRecorderImpl.outputFile = outputFile
-            outputFile.parentFile?.mkdirs()
-            
-            mediaRecorder = MediaRecorder().apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-                setOutputFile(outputFile.absolutePath)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-                setAudioSamplingRate(SAMPLE_RATE)
-                setAudioChannels(CHANNELS)
+            synchronized(this@AudioRecorderImpl) {
+                if (isRecording) {
+                    throw IllegalStateException("Recording already in progress")
+                }
                 
-                prepare()
-                start()
+                try {
+                    // Cleanup any existing recorder
+                    mediaRecorder?.release()
+                    
+                    this@AudioRecorderImpl.outputFile = outputFile
+                    outputFile.parentFile?.mkdirs()
+                    
+                    mediaRecorder = MediaRecorder().apply {
+                        setAudioSource(MediaRecorder.AudioSource.MIC)
+                        setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                        setOutputFile(outputFile.absolutePath)
+                        setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                        setAudioSamplingRate(SAMPLE_RATE)
+                        setAudioChannels(CHANNELS)
+                        
+                        prepare()
+                        start()
+                    }
+                    
+                    isRecording = true
+                    Log.d(TAG, "Recording started: ${outputFile.absolutePath}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start recording", e)
+                    mediaRecorder?.release()
+                    mediaRecorder = null
+                    this@AudioRecorderImpl.outputFile = null
+                    isRecording = false
+                    throw e
+                }
             }
-            
-            Log.d(TAG, "Recording started: ${outputFile.absolutePath}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start recording", e)
-            throw e
-        }
         }
     }
     
     override suspend fun stopRecording(): File = withContext(Dispatchers.IO) {
-        try {
-            mediaRecorder?.apply {
-                stop()
-                release()
+        synchronized(this@AudioRecorderImpl) {
+            if (!isRecording) {
+                throw IllegalStateException("No recording in progress")
             }
-            mediaRecorder = null
             
-            val file = outputFile ?: throw IllegalStateException("No recording file")
-            outputFile = null
-            
-            Log.d(TAG, "Recording stopped: ${file.absolutePath}")
-            return@withContext file
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop recording", e)
-            mediaRecorder?.release()
-            mediaRecorder = null
-            throw e
+            try {
+                mediaRecorder?.apply {
+                    stop()
+                    release()
+                }
+                mediaRecorder = null
+                
+                val file = outputFile ?: throw IllegalStateException("No recording file")
+                outputFile = null
+                isRecording = false
+                
+                Log.d(TAG, "Recording stopped: ${file.absolutePath}")
+                return@withContext file
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop recording", e)
+                mediaRecorder?.release()
+                mediaRecorder = null
+                outputFile = null
+                isRecording = false
+                throw e
+            }
         }
     }
     

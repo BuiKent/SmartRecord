@@ -5,10 +5,12 @@ import android.util.Log
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.jvm.Volatile
 
 @Singleton
 class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     
+    @Volatile
     private var mediaPlayer: MediaPlayer? = null
     
     companion object {
@@ -16,42 +18,51 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     }
     
     override fun play(file: File, onCompletion: () -> Unit) {
-        try {
-            release()
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(file.absolutePath)
-                prepare()
-                setOnCompletionListener {
-                    onCompletion()
+        synchronized(this) {
+            try {
+                release()
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(file.absolutePath)
+                    prepare()
+                    setOnCompletionListener {
+                        onCompletion()
+                    }
+                    start()
                 }
-                start()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play audio", e)
+                release()
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to play audio", e)
         }
     }
     
     override fun pause() {
-        try {
-            mediaPlayer?.pause()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to pause audio", e)
+        synchronized(this) {
+            try {
+                mediaPlayer?.pause()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to pause audio", e)
+            }
         }
     }
     
     override fun resume() {
-        try {
-            mediaPlayer?.start()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to resume audio", e)
+        synchronized(this) {
+            try {
+                mediaPlayer?.start()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to resume audio", e)
+            }
         }
     }
     
     override fun stop() {
-        try {
-            mediaPlayer?.stop()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop audio", e)
+        synchronized(this) {
+            try {
+                mediaPlayer?.stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop audio", e)
+            }
         }
     }
     
@@ -88,11 +99,14 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
     }
     
     override fun release() {
-        try {
-            mediaPlayer?.release()
-            mediaPlayer = null
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to release audio player", e)
+        synchronized(this) {
+            try {
+                mediaPlayer?.release()
+                mediaPlayer = null
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to release audio player", e)
+                mediaPlayer = null
+            }
         }
     }
 }

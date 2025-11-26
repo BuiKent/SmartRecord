@@ -1,6 +1,8 @@
 package com.yourname.smartrecorder.ui
 
+import android.Manifest
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
@@ -13,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -21,7 +24,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.yourname.smartrecorder.ui.import.ImportAudioViewModel
+import com.yourname.smartrecorder.core.permissions.PermissionHandler
+import com.yourname.smartrecorder.ui.importaudio.ImportAudioViewModel
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import com.yourname.smartrecorder.ui.record.RecordViewModel
 import com.yourname.smartrecorder.ui.screens.LibraryScreen
@@ -77,11 +81,21 @@ fun SmartRecorderApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppRoutes.RECORD) {
+                val context = LocalContext.current
                 val viewModel: RecordViewModel = hiltViewModel()
                 val importViewModel: ImportAudioViewModel = hiltViewModel()
                 val uiState = viewModel.uiState.collectAsState().value
                 val navigateToTranscript = viewModel.navigateToTranscript.collectAsState().value
                 val importState = importViewModel.uiState.collectAsState().value
+                
+                // Permission launcher for recording
+                val recordPermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { isGranted ->
+                    if (isGranted) {
+                        viewModel.onStartClick()
+                    }
+                }
                 
                 val filePickerLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.GetContent()
@@ -89,6 +103,15 @@ fun SmartRecorderApp() {
                     uri?.let {
                         val fileName = it.lastPathSegment ?: "audio_file"
                         importViewModel.importAudioFile(it, fileName)
+                    }
+                }
+                
+                // Permission launcher for importing audio
+                val importPermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { isGranted ->
+                    if (isGranted) {
+                        filePickerLauncher.launch("audio/*")
                     }
                 }
                 
@@ -112,10 +135,27 @@ fun SmartRecorderApp() {
                 
                 RecordScreen(
                     uiState = uiState,
-                    onStartRecordClick = { viewModel.onStartClick() },
+                    onStartRecordClick = {
+                        if (PermissionHandler.hasRecordAudioPermission(context)) {
+                            viewModel.onStartClick()
+                        } else {
+                            recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
                     onPauseRecordClick = { viewModel.onPauseClick() },
                     onStopRecordClick = { viewModel.onStopClick() },
-                    onImportAudioClick = { filePickerLauncher.launch("audio/*") },
+                    onImportAudioClick = {
+                        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            Manifest.permission.READ_MEDIA_AUDIO
+                        } else {
+                            Manifest.permission.READ_EXTERNAL_STORAGE
+                        }
+                        if (PermissionHandler.hasStoragePermission(context)) {
+                            filePickerLauncher.launch("audio/*")
+                        } else {
+                            importPermissionLauncher.launch(permission)
+                        }
+                    },
                     onRealtimeSttClick = { /* TODO: mở màn realtime STT */ }
                 )
             }

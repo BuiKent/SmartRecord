@@ -1,13 +1,12 @@
 package com.yourname.smartrecorder.ui.record
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
 import com.yourname.smartrecorder.domain.usecase.StartRecordingUseCase
 import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
 import com.yourname.smartrecorder.ui.screens.RecordUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,12 +14,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
+import kotlin.jvm.Volatile
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val getRecordingsDirectory: GetRecordingsDirectoryUseCase,
     private val startRecording: StartRecordingUseCase,
     private val stopRecordingAndSave: StopRecordingAndSaveUseCase
 ) : ViewModel() {
@@ -35,23 +34,32 @@ class RecordViewModel @Inject constructor(
     private var timerJob: Job? = null
     private var startTimeMs: Long = 0L
     
+    @Volatile
+    private var isStarting: Boolean = false
+    
     fun onNavigationHandled() {
         _navigateToTranscript.value = null
     }
 
     fun onStartClick() {
+        if (isStarting || _uiState.value.isRecording) {
+            return // Prevent concurrent starts
+        }
+        
         viewModelScope.launch {
             try {
-                val outputDir = File(context.filesDir, "recordings")
-                outputDir.mkdirs()
-                
+                isStarting = true
+                val outputDir = getRecordingsDirectory()
                 currentRecording = startRecording(outputDir)
                 startTimeMs = System.currentTimeMillis()
                 
-                _uiState.update { it.copy(isRecording = true, durationMs = 0L) }
+                _uiState.update { it.copy(isRecording = true, durationMs = 0L, error = null) }
                 startTimer()
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                _uiState.update { it.copy(error = e.message, isRecording = false) }
+                currentRecording = null
+            } finally {
+                isStarting = false
             }
         }
     }
@@ -87,12 +95,25 @@ class RecordViewModel @Inject constructor(
     private fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (true) {
-                delay(100)
-                val elapsed = System.currentTimeMillis() - startTimeMs
-                _uiState.update { it.copy(durationMs = elapsed) }
+            try {
+                while (true) {
+                    delay(100)
+                    if (!_uiState.value.isRecording) {
+                        break
+                    }
+                    val elapsed = System.currentTimeMillis() - startTimeMs
+                    _uiState.update { it.copy(durationMs = elapsed) }
+                }
+            } catch (e: Exception) {
+                // Timer cancelled or error
             }
         }
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
+        // Note: AudioRecorder cleanup is handled by singleton lifecycle
     }
 }
 

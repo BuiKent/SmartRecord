@@ -29,7 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.domain.usecase.ExportFormat
-import com.yourname.smartrecorder.domain.usecase.ExportTranscriptUseCase
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
 import com.yourname.smartrecorder.ui.transcript.TranscriptViewModel
@@ -57,11 +56,8 @@ fun TranscriptScreen(
             ExportBottomSheet(
                 onDismiss = { showExportSheet = false },
                 onExportClick = { format ->
-                    val rec = uiState.recording
-                    if (rec != null && uiState.segments.isNotEmpty()) {
-                        val exportUseCase = ExportTranscriptUseCase()
-                        val exportedText = exportUseCase.export(rec, uiState.segments, format)
-                        
+                    val exportedText = viewModel.exportTranscript(format)
+                    if (exportedText != null) {
                         // Copy to clipboard
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("Transcript", exportedText)
