@@ -32,7 +32,10 @@ data class LibraryUiState(
     val error: String? = null,
     val currentlyPlayingId: String? = null,
     val isPlaying: Boolean = false,
-    val toastMessage: String? = null
+    val toastMessage: String? = null,
+    // Inline editing state
+    val editingRecordingId: String? = null,
+    val editingTitle: String = ""
 )
 
 @HiltViewModel
@@ -196,7 +199,7 @@ class LibraryViewModel @Inject constructor(
                         val volumePercent = VolumeChecker.getVolumePercent(context)
                         AppLogger.w(TAG_VIEWMODEL, "[LibraryViewModel] Volume is low: %d%%, showing warning toast", volumePercent)
                         _uiState.update { 
-                            it.copy(toastMessage = "Volume quá thấp (${volumePercent}%). Vui lòng tăng volume để nghe rõ hơn.")
+                            it.copy(toastMessage = "Volume too low (${volumePercent}%). Please increase volume for better audio quality.")
                         }
                     } else {
                         _uiState.update { it.copy(toastMessage = null) }
@@ -263,6 +266,84 @@ class LibraryViewModel @Inject constructor(
                 AppLogger.e(TAG_VIEWMODEL, "Failed to update title", e)
                 _uiState.update { it.copy(error = e.message) }
             }
+        }
+    }
+    
+    // Inline editing methods
+    fun startEditing(recordingId: String) {
+        val recording = _uiState.value.recordings.find { it.id == recordingId }
+        if (recording != null) {
+            AppLogger.d(TAG_VIEWMODEL, "Starting edit mode for recording -> recordingId: %s", recordingId)
+            _uiState.update { 
+                it.copy(
+                    editingRecordingId = recordingId,
+                    editingTitle = recording.title.ifBlank { "Untitled Recording" }
+                )
+            }
+        } else {
+            AppLogger.w(TAG_VIEWMODEL, "Recording not found for editing -> recordingId: %s", recordingId)
+        }
+    }
+    
+    fun updateEditingTitle(title: String) {
+        _uiState.update { it.copy(editingTitle = title) }
+    }
+    
+    fun saveEditing() {
+        val editingRecordingId = _uiState.value.editingRecordingId
+        val editingTitle = _uiState.value.editingTitle.trim()
+        
+        if (editingRecordingId == null || editingTitle.isEmpty()) {
+            AppLogger.w(TAG_VIEWMODEL, "Cannot save: editingRecordingId is null or title is empty")
+            cancelEditing()
+            return
+        }
+        
+        val recording = _uiState.value.recordings.find { it.id == editingRecordingId }
+        if (recording == null) {
+            AppLogger.w(TAG_VIEWMODEL, "Recording not found for saving -> recordingId: %s", editingRecordingId)
+            cancelEditing()
+            return
+        }
+        
+        if (recording.title == editingTitle) {
+            // No changes, just cancel editing
+            AppLogger.d(TAG_VIEWMODEL, "No changes detected, canceling edit")
+            cancelEditing()
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                AppLogger.d(TAG_VIEWMODEL, "Saving edited title -> recordingId: %s", editingRecordingId)
+                updateRecordingTitle(recording, editingTitle)
+                AppLogger.d(TAG_VIEWMODEL, "Title saved successfully -> recordingId: %s", editingRecordingId)
+                _uiState.update { 
+                    it.copy(
+                        editingRecordingId = null,
+                        editingTitle = ""
+                    )
+                }
+            } catch (e: Exception) {
+                AppLogger.e(TAG_VIEWMODEL, "Error saving title", e)
+                _uiState.update { 
+                    it.copy(
+                        error = "Failed to save: ${e.message}",
+                        editingRecordingId = null,
+                        editingTitle = ""
+                    )
+                }
+            }
+        }
+    }
+    
+    fun cancelEditing() {
+        AppLogger.d(TAG_VIEWMODEL, "Canceling edit mode")
+        _uiState.update { 
+            it.copy(
+                editingRecordingId = null,
+                editingTitle = ""
+            )
         }
     }
     

@@ -54,6 +54,14 @@ class TranscriptRepositoryImpl @Inject constructor(
         AppLogger.logDatabase(TAG_REPOSITORY, "DELETE_COMPLETE", "transcript_segments", "recordingId=$recordingId")
     }
     
+    override suspend fun updateSegment(segment: TranscriptSegment) {
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE", "transcript_segments", 
+            "segmentId=${segment.id}, recordingId=${segment.recordingId}")
+        transcriptDao.updateSegment(segment.toEntity())
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE_COMPLETE", "transcript_segments", 
+            "segmentId=${segment.id}")
+    }
+    
     override fun getQuestions(recordingId: String): Flow<List<TranscriptSegment>> {
         AppLogger.logFlow(TAG_REPOSITORY, "getQuestions", "Subscribed", "recordingId=$recordingId")
         return transcriptDao.getQuestions(recordingId).map { entities ->

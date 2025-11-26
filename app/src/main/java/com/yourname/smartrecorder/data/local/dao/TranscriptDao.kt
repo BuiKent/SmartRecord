@@ -18,6 +18,9 @@ interface TranscriptDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSegments(segments: List<TranscriptSegmentEntity>)
     
+    @Update
+    suspend fun updateSegment(segment: TranscriptSegmentEntity)
+    
     @Query("DELETE FROM transcript_segments WHERE recordingId = :recordingId")
     suspend fun deleteSegmentsByRecordingId(recordingId: String)
     

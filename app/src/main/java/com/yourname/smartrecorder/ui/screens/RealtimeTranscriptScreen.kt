@@ -93,7 +93,18 @@ fun RealtimeTranscriptScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    if (uiState.transcriptText.isEmpty()) {
+                    // Display text: final + partial
+                    val displayText = if (uiState.partialText.isNotEmpty()) {
+                        if (uiState.transcriptText.isNotEmpty()) {
+                            "${uiState.transcriptText} ${uiState.partialText}"
+                        } else {
+                            uiState.partialText
+                        }
+                    } else {
+                        uiState.transcriptText
+                    }
+                    
+                    if (displayText.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -110,11 +121,27 @@ fun RealtimeTranscriptScreen(
                             )
                         }
                     } else {
-                        Text(
-                            text = uiState.transcriptText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        // Show final text in normal style, partial text in italic
+                        if (uiState.partialText.isNotEmpty() && uiState.transcriptText.isNotEmpty()) {
+                            Column {
+                                Text(
+                                    text = uiState.transcriptText,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = uiState.partialText,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = displayText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }

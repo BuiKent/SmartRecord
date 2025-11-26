@@ -10,10 +10,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.domain.model.Recording
@@ -28,12 +35,25 @@ fun RecordingCard(
     onPlayClick: () -> Unit = {},
     onPauseClick: () -> Unit = {},
     onStopClick: () -> Unit = {},
-    onEditTitleClick: (String) -> Unit = {},
+    isEditing: Boolean = false,
+    editingTitle: String = "",
+    onEditClick: () -> Unit = {},
+    onTitleChange: (String) -> Unit = {},
+    onSaveClick: () -> Unit = {},
+    onCancelClick: () -> Unit = {},
     onDeleteClick: (Recording) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    
+    LaunchedEffect(isEditing) {
+        if (isEditing) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -44,26 +64,52 @@ fun RecordingCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Title row (clickable to open transcript)
+            // Title row (clickable to open transcript, or editable)
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = { 
-                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked recording -> id: %s, title: %s", 
-                            recording.id, recording.title)
-                        onClick() 
-                    }),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = recording.title.ifBlank { "Untitled Recording" },
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    // Edit mode: show TextField
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = editingTitle,
+                            onValueChange = onTitleChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            textStyle = MaterialTheme.typography.titleMedium,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(
+                                onDone = { onSaveClick() }
+                            ),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            )
+                        )
+                    } else {
+                        // Normal mode: show text with click to open transcript
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = { 
+                                    AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked recording -> id: %s, title: %s", 
+                                        recording.id, recording.title)
+                                    onClick() 
+                                })
+                        ) {
+                            Text(
+                                text = recording.title.ifBlank { "Untitled Recording" },
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
@@ -86,19 +132,36 @@ fun RecordingCard(
                     }
                 }
                 
-                // Edit button
-                IconButton(
-                    onClick = { 
-                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked edit button -> recordingId: %s", recording.id)
-                        showEditDialog = true 
-                    },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Title",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // Edit/Save button
+                if (isEditing) {
+                    IconButton(
+                        onClick = { 
+                            AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked save button -> recordingId: %s", recording.id)
+                            onSaveClick() 
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Save",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = { 
+                            AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked edit button -> recordingId: %s", recording.id)
+                            onEditClick() 
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Title",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
                 
                 // Delete button
@@ -172,20 +235,6 @@ fun RecordingCard(
         }
     }
     
-    // Edit title dialog
-    if (showEditDialog) {
-        EditTitleDialog(
-            currentTitle = recording.title.ifBlank { "Untitled Recording" },
-            onDismiss = { showEditDialog = false },
-            onConfirm = { newTitle ->
-                AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User confirmed title edit -> recordingId: %s, oldTitle: %s, newTitle: %s", 
-                    recording.id, recording.title, newTitle)
-                onEditTitleClick(newTitle)
-                showEditDialog = false
-            }
-        )
-    }
-    
     // Delete confirmation dialog
     if (showDeleteDialog) {
         DeleteConfirmDialog(
@@ -200,42 +249,6 @@ fun RecordingCard(
             }
         )
     }
-}
-
-@Composable
-fun EditTitleDialog(
-    currentTitle: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var titleText by remember { mutableStateOf(currentTitle) }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Title") },
-        text = {
-            OutlinedTextField(
-                value = titleText,
-                onValueChange = { titleText = it },
-                label = { Text("Recording Title") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(titleText) }) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { 
-                AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User cancelled title edit")
-                onDismiss() 
-            }) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 fun formatDuration(ms: Long): String {

@@ -106,7 +106,12 @@ fun LibraryScreen(
                         onPlayClick = { viewModel.playRecording(recording) },
                         onPauseClick = { viewModel.playRecording(recording) }, // Toggle pause
                         onStopClick = { viewModel.stopPlayback() },
-                        onEditTitleClick = { newTitle -> viewModel.updateTitle(recording, newTitle) },
+                        isEditing = recording.id == uiState.editingRecordingId,
+                        editingTitle = if (recording.id == uiState.editingRecordingId) uiState.editingTitle else recording.title.ifBlank { "Untitled Recording" },
+                        onEditClick = { viewModel.startEditing(recording.id) },
+                        onTitleChange = { viewModel.updateEditingTitle(it) },
+                        onSaveClick = { viewModel.saveEditing() },
+                        onCancelClick = { viewModel.cancelEditing() },
                         onDeleteClick = { recordingToDelete -> viewModel.deleteRecording(recordingToDelete) }
                     )
                 }

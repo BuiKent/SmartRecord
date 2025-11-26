@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.yourname.smartrecorder.ui.components.AddBookmarkDialog
 import com.yourname.smartrecorder.ui.components.WaveformVisualizer
@@ -162,84 +163,151 @@ fun RecordScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Import/Transcribe progress card
+        // Import/Transcribe progress card - simplified with color fill (blue to red)
         if (importState != null && (importState.isImporting || importState.isTranscribing)) {
+            val progress = importState.progress / 100f
+            // Interpolate color from blue to red based on progress
+            val blueColor = Color(0xFF2196F3) // Blue
+            val redColor = MaterialTheme.colorScheme.error // Red
+            val color = Color(
+                red = blueColor.red + (redColor.red - blueColor.red) * progress,
+                green = blueColor.green + (redColor.green - blueColor.green) * progress,
+                blue = blueColor.blue + (redColor.blue - blueColor.blue) * progress,
+                alpha = 1f
+            )
+            
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = color
                 )
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = if (importState.isTranscribing) "Transcribing..." else "Uploading...",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color.White
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { importState.progress / 100f },
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${importState.progress}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = " ${importState.progress}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
                     )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Import / Realtime buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(
-                onClick = onImportAudioClick,
-                enabled = importState?.isImporting != true && importState?.isTranscribing != true,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Folder,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = when {
-                        importState?.isTranscribing == true -> "Transcribing..."
-                        importState?.isImporting == true -> "Uploading..."
-                        else -> "Upload"
-                    },
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
+        // Spacer to push cards to bottom (only when not recording)
+        if (!hasActiveRecording) {
+            Spacer(modifier = Modifier.weight(1f))
+        } else {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-            OutlinedButton(
-                onClick = onRealtimeSttClick,
-                enabled = uiState.isModelReady,  // Only disable if model not ready
-                modifier = Modifier.weight(1f)
+        // Import / Realtime cards - vertical layout, hide when transcribing
+        if (importState?.isTranscribing != true) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Live Transcribe",
-                    style = MaterialTheme.typography.labelMedium
-                )
+                // Upload card - compact with elevation and better colors
+                Card(
+                    onClick = onImportAudioClick,
+                    enabled = importState?.isImporting != true,
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Upload audio file",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Convert to transcript",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Live Transcribe card - compact with elevation and better colors
+                Card(
+                    onClick = onRealtimeSttClick,
+                    enabled = uiState.isModelReady,
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GraphicEq,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Live Transcribe",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Record and transcribe in real-time",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

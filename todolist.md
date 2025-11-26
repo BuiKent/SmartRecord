@@ -6,6 +6,98 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ---
 
+## 🎨 UI/UX Design Improvements (Priority: High)
+
+### 🎯 Task UI.1: Bo tròn các khung vuông và giảm màu nền không cần thiết
+- **Files:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/LibraryScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/components/RecordingCard.kt`
+- **Mô tả:** 
+  - Bo tròn tất cả các card, button, khung chữ nhật
+  - Giảm màu nền không cần thiết (background colors)
+  - Tạo UI tươi sáng, đẹp hơn
+- **Cách làm:**
+  1. Thêm `shape = RoundedCornerShape(16.dp)` hoặc `MaterialTheme.shapes.medium` cho các Card
+  2. Thêm `shape = RoundedCornerShape(12.dp)` cho các Button
+  3. Xóa hoặc giảm opacity của background colors không cần thiết
+  4. Sử dụng Material 3 color scheme với độ tương phản tốt
+  5. Đảm bảo consistency giữa các màn hình
+- **Priority:** High
+- **Estimated Time:** 2-3 giờ
+- **User Feedback:** "Tôi thích bo tròn và ít màu nền không cần thiết, các khung vuông chữ nhật tôi không thích"
+
+### 🎯 Task UI.2: Bo tròn Floating Action Buttons ở Transcript Screen
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Mô tả:** 
+  - Bo tròn các floating action buttons (Copy, Subtitle, People)
+  - Đảm bảo shape đẹp và nhất quán
+- **Cách làm:**
+  1. Sử dụng `FloatingActionButton` với `shape = CircleShape` (mặc định)
+  2. Hoặc `ExtendedFloatingActionButton` với `shape = RoundedCornerShape(28.dp)`
+  3. Đảm bảo spacing và elevation phù hợp
+- **Priority:** High
+- **Estimated Time:** 30 phút
+- **User Feedback:** "Các icon floating ở transcript screen cũng thế --> bo tròn lại cho tôi"
+
+### 🎯 Task UI.3: Chuyển nền tươi sáng, đẹp đẽ hơn
+- **Files:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/theme/Color.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/theme/Theme.kt`
+- **Mô tả:** 
+  - Cập nhật color scheme để tươi sáng hơn
+  - Giảm màu xám, tăng độ tương phản
+  - Tạo cảm giác fresh và modern
+- **Cách làm:**
+  1. Review và update Material 3 color scheme
+  2. Sử dụng màu sáng hơn cho background
+  3. Tăng contrast cho text và icons
+  4. Test trên light và dark mode
+- **Priority:** High
+- **Estimated Time:** 1-2 giờ
+- **User Feedback:** "Chuyển nền tươi sáng, đẹp đẽ hơn"
+
+### 🎯 Task UI.4: Sửa logic màu cho Card Transcribing/Uploading
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+- **Mô tả:** 
+  - Thay đổi logic màu từ pha loãng (interpolation) sang fill theo progress
+  - Khi upload xong và bắt đầu: toàn màu đỏ
+  - Khi progress tăng: màu xanh fill từ đầu, chiếm diện tích màu đỏ
+  - Có ranh giới rõ ràng giữa xanh và đỏ
+- **Cách làm:**
+  1. Thay thế color interpolation bằng `LinearProgressIndicator` với 2 segments
+  2. Hoặc sử dụng `Box` với 2 `Box` con (xanh và đỏ) với `fillMaxWidth(fraction = progress)`
+  3. Logic:
+     - `progress = 0%` → 100% đỏ
+     - `progress = 33.33%` → 33.33% xanh (đầu), 66.67% đỏ (cuối)
+     - `progress = 100%` → 100% xanh
+  4. Sử dụng `Color(0xFF2196F3)` cho xanh, `MaterialTheme.colorScheme.error` cho đỏ
+- **Priority:** High
+- **Estimated Time:** 1 giờ
+- **User Feedback:** 
+  - "Ko phải màu bị pha loãng, đậm như này mà là theo kiểu upload xong và bắt đầu thì thanh đó toàn màu đỏ"
+  - "Khi tiến trình xong được 33,3333% thì 1/3 thanh đầu sẽ xanh, còn lại đỏ, có ranh giới"
+  - "% xong tới đâu thì màu xanh fill, chiếm diện tích màu đỏ tới đó"
+
+### 🎯 Task UI.5: Bo tròn và căn giữa text cho Cards ở Record Screen
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+- **Mô tả:** 
+  - Bo tròn các card "Upload audio file" và "Live Transcribe"
+  - Căn giữa text trong card (cả icon và text)
+- **Cách làm:**
+  1. Thêm `shape = RoundedCornerShape(16.dp)` cho Card
+  2. Sử dụng `Arrangement.Center` trong Row/Column
+  3. Đảm bảo text alignment là center
+  4. Test trên nhiều kích thước màn hình
+- **Priority:** High
+- **Estimated Time:** 30 phút
+- **User Feedback:** 
+  - "Mấy card ở floating ở màn hình record này cũng đang chưa bo tròn"
+  - "Chữ Upload audio file và Live transcribe chưa căn giữa card"
+
+---
+
 ## 🏠 1. Màn Hình Home (RecordScreen)
 
 ### 1.1. UI Improvements

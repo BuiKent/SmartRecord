@@ -24,6 +24,7 @@ import com.yourname.smartrecorder.domain.usecase.GetBookmarksUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
 import com.yourname.smartrecorder.domain.usecase.GetTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.SearchTranscriptsUseCase
+import com.yourname.smartrecorder.domain.usecase.UpdateTranscriptSegmentUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -62,7 +63,10 @@ data class TranscriptUiState(
     val isGeneratingFlashcards: Boolean = false,
     val flashcardsGenerated: Boolean = false,
     val error: String? = null,
-    val toastMessage: String? = null
+    val toastMessage: String? = null,
+    // Inline editing state
+    val editingSegmentId: Long? = null,
+    val editingText: String = ""
 )
 
 enum class TranscriptTab {
@@ -82,6 +86,7 @@ class TranscriptViewModel @Inject constructor(
     private val searchTranscripts: SearchTranscriptsUseCase,
     private val generateFlashcards: GenerateFlashcardsUseCase,
     private val deleteRecording: DeleteRecordingUseCase,
+    private val updateSegment: UpdateTranscriptSegmentUseCase,
     private val noteRepository: NoteRepository,
     private val audioPlayer: AudioPlayer,
     private val foregroundServiceManager: ForegroundServiceManager,
@@ -334,7 +339,7 @@ class TranscriptViewModel @Inject constructor(
                     val volumePercent = VolumeChecker.getVolumePercent(context)
                     AppLogger.w(TAG_TRANSCRIPT, "Volume is low: %d%%, showing warning toast", volumePercent)
                     _uiState.update { 
-                        it.copy(toastMessage = "Volume quá thấp (${volumePercent}%). Vui lòng tăng volume để nghe rõ hơn.")
+                        it.copy(toastMessage = "Volume too low (${volumePercent}%). Please increase volume for better audio quality.")
                     }
                 } else {
                     _uiState.update { it.copy(toastMessage = null) }
@@ -699,6 +704,96 @@ class TranscriptViewModel @Inject constructor(
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Error stopping playback during cleanup", e)
             }
+        }
+    }
+    
+    // Inline editing methods
+    fun startEditing(segmentId: Long) {
+        val segment = _uiState.value.segments.find { it.id == segmentId }
+        if (segment != null) {
+            AppLogger.d(TAG_TRANSCRIPT, "Starting edit mode for segment -> segmentId: %d", segmentId)
+            _uiState.update { 
+                it.copy(
+                    editingSegmentId = segmentId,
+                    editingText = segment.text
+                )
+            }
+        } else {
+            AppLogger.w(TAG_TRANSCRIPT, "Segment not found for editing -> segmentId: %d", segmentId)
+        }
+    }
+    
+    fun updateEditingText(text: String) {
+        _uiState.update { it.copy(editingText = text) }
+    }
+    
+    fun saveEditing() {
+        val editingSegmentId = _uiState.value.editingSegmentId
+        val editingText = _uiState.value.editingText.trim()
+        
+        if (editingSegmentId == null || editingText.isEmpty()) {
+            AppLogger.w(TAG_TRANSCRIPT, "Cannot save: editingSegmentId is null or text is empty")
+            cancelEditing()
+            return
+        }
+        
+        val segment = _uiState.value.segments.find { it.id == editingSegmentId }
+        if (segment == null) {
+            AppLogger.w(TAG_TRANSCRIPT, "Segment not found for saving -> segmentId: %d", editingSegmentId)
+            cancelEditing()
+            return
+        }
+        
+        if (segment.text == editingText) {
+            // No changes, just cancel editing
+            AppLogger.d(TAG_TRANSCRIPT, "No changes detected, canceling edit")
+            cancelEditing()
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                AppLogger.d(TAG_TRANSCRIPT, "Saving edited segment -> segmentId: %d", editingSegmentId)
+                val updatedSegment = segment.copy(text = editingText)
+                updateSegment(updatedSegment).getOrElse { exception ->
+                    AppLogger.e(TAG_TRANSCRIPT, "Failed to save segment", exception)
+                    _uiState.update { 
+                        it.copy(
+                            error = "Failed to save changes: ${exception.message}",
+                            editingSegmentId = null,
+                            editingText = ""
+                        )
+                    }
+                    return@launch
+                }
+                
+                AppLogger.d(TAG_TRANSCRIPT, "Segment saved successfully -> segmentId: %d", editingSegmentId)
+                _uiState.update { 
+                    it.copy(
+                        editingSegmentId = null,
+                        editingText = ""
+                    )
+                }
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Error saving segment", e)
+                _uiState.update { 
+                    it.copy(
+                        error = "Failed to save: ${e.message}",
+                        editingSegmentId = null,
+                        editingText = ""
+                    )
+                }
+            }
+        }
+    }
+    
+    fun cancelEditing() {
+        AppLogger.d(TAG_TRANSCRIPT, "Canceling edit mode")
+        _uiState.update { 
+            it.copy(
+                editingSegmentId = null,
+                editingText = ""
+            )
         }
     }
 }

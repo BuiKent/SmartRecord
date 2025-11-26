@@ -28,6 +28,12 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -255,7 +261,11 @@ fun TranscriptScreen(
                             onGenerateTranscript = {
                                 AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
                                 viewModel.generateTranscript()
-                            }
+                            },
+                            onEditClick = { segmentId -> viewModel.startEditing(segmentId) },
+                            onTextChange = { text -> viewModel.updateEditingText(text) },
+                            onSaveClick = { viewModel.saveEditing() },
+                            onCancelClick = { viewModel.cancelEditing() }
                         )
                         
                         // Floating action buttons at bottom right
@@ -383,7 +393,11 @@ private fun TranscriptTabContent(
     showSpeakerMode: Boolean = false,
     onToggleSpeakerMode: () -> Unit = {},
     onSegmentClick: (com.yourname.smartrecorder.domain.model.TranscriptSegment) -> Unit,
-    onGenerateTranscript: () -> Unit = {}
+    onGenerateTranscript: () -> Unit = {},
+    onEditClick: (Long) -> Unit = {},
+    onTextChange: (String) -> Unit = {},
+    onSaveClick: () -> Unit = {},
+    onCancelClick: () -> Unit = {}
 ) {
     val segmentsToShow = if (uiState.searchQuery.isNotEmpty() && uiState.searchResults.isNotEmpty()) {
         uiState.searchResults
@@ -459,15 +473,25 @@ private fun TranscriptTabContent(
                 }
             }
             items(segmentsToShow) { segment ->
-                TranscriptLineItem(
-                    segment = segment,
-                    isCurrent = segment.id == uiState.currentSegmentId,
-                    isHighlighted = uiState.searchQuery.isNotEmpty() && 
-                        segment.text.lowercase().contains(uiState.searchQuery.lowercase()),
-                    searchQuery = uiState.searchQuery,
-                    showSpeaker = showSpeakerMode,
-                    onClick = { onSegmentClick(segment) }
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TranscriptLineItem(
+                        segment = segment,
+                        isCurrent = segment.id == uiState.currentSegmentId,
+                        isHighlighted = uiState.searchQuery.isNotEmpty() && 
+                            segment.text.lowercase().contains(uiState.searchQuery.lowercase()),
+                        searchQuery = uiState.searchQuery,
+                        showSpeaker = showSpeakerMode,
+                        isEditing = segment.id == uiState.editingSegmentId,
+                        editingText = if (segment.id == uiState.editingSegmentId) uiState.editingText else segment.text,
+                    onClick = { onSegmentClick(segment) },
+                    onEditClick = { onEditClick(segment.id) },
+                    onTextChange = onTextChange,
+                    onSaveClick = onSaveClick,
+                    onCancelClick = onCancelClick
+                    )
+                }
             }
         }
     }
@@ -480,54 +504,131 @@ private fun TranscriptLineItem(
     isHighlighted: Boolean = false,
     searchQuery: String = "",
     showSpeaker: Boolean = false,
-    onClick: () -> Unit
+    isEditing: Boolean = false,
+    editingText: String = "",
+    onClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onTextChange: (String) -> Unit,
+    onSaveClick: () -> Unit,
+    onCancelClick: () -> Unit
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    
     val bgColor = when {
+        isEditing -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
         isCurrent -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         isHighlighted -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
         else -> Color.Transparent
     }
 
-    Column(
+    LaunchedEffect(isEditing) {
+        if (isEditing) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .background(bgColor)
             .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
-        // Show speaker label if showSpeaker is true, otherwise show timeline
-        if (showSpeaker) {
-            // Show speaker label (even if null, show "Unknown Speaker")
-            Text(
-                text = if (segment.speaker != null) {
-                    "Speaker ${segment.speaker}:"
-                } else {
-                    "Unknown Speaker:"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-        } else {
-            // Show timeline
-            Text(
-                text = "[${formatDuration(segment.startTimeMs)}]",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            // Show speaker label if showSpeaker is true, otherwise show timeline
+            if (showSpeaker) {
+                // Show speaker label (even if null, show "Unknown Speaker")
+                Text(
+                    text = if (segment.speaker != null) {
+                        "Speaker ${segment.speaker}:"
+                    } else {
+                        "Unknown Speaker:"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                // Show timeline
+                Text(
+                    text = "[${formatDuration(segment.startTimeMs)}]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Edit mode: show TextField
+            if (isEditing) {
+                OutlinedTextField(
+                    value = editingText,
+                    onValueChange = onTextChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { onSaveClick() }
+                    ),
+                    singleLine = false,
+                    maxLines = 5,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+            } else {
+                // Normal mode: show text with click to seek
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onClick)
+                ) {
+                    // Highlight search query in text
+                    if (isHighlighted && searchQuery.isNotEmpty()) {
+                        HighlightedText(
+                            text = segment.text,
+                            query = searchQuery
+                        )
+                    } else {
+                        Text(
+                            text = segment.text,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        // Highlight search query in text
-        if (isHighlighted && searchQuery.isNotEmpty()) {
-            HighlightedText(
-                text = segment.text,
-                query = searchQuery
-            )
+        
+        // Edit/Check icon
+        Spacer(modifier = Modifier.width(8.dp))
+        if (isEditing) {
+            IconButton(
+                onClick = onSaveClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Save",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         } else {
-            Text(
-                text = segment.text,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            IconButton(
+                onClick = onEditClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

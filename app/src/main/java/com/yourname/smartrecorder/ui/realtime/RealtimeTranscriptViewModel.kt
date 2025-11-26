@@ -16,8 +16,10 @@ import javax.inject.Inject
 
 data class RealtimeTranscriptUiState(
     val isRecording: Boolean = false,
-    val transcriptText: String = "",
-    val error: String? = null
+    val transcriptText: String = "",  // Accumulated final text
+    val partialText: String = "",      // Current partial (real-time) text
+    val error: String? = null,
+    val isRestarting: Boolean = false
 )
 
 @HiltViewModel
@@ -36,15 +38,42 @@ class RealtimeTranscriptViewModel @Inject constructor(
                     it.copy(
                         isRecording = true,
                         transcriptText = "",
-                        error = null
+                        partialText = "",
+                        error = null,
+                        isRestarting = false
                     )
                 }
                 
                 // Start realtime transcription
                 realtimeTranscript.start { text ->
                     AppLogger.d(TAG_REALTIME, "Received transcript update: %s", text)
-                    _uiState.update { 
-                        it.copy(transcriptText = it.transcriptText + " " + text)
+                    _uiState.update { currentState ->
+                        // Parse the text to determine if it's partial or final
+                        when {
+                            text.startsWith("PARTIAL:") -> {
+                                // This is a partial result
+                                val partialText = text.removePrefix("PARTIAL:")
+                                currentState.copy(partialText = partialText)
+                            }
+                            text.startsWith("FINAL:") -> {
+                                // This is accumulated final text
+                                val finalText = text.removePrefix("FINAL:")
+                                currentState.copy(
+                                    transcriptText = finalText,
+                                    partialText = ""  // Clear partial when we have final
+                                )
+                            }
+                            else -> {
+                                // Fallback for old format or error messages
+                                if (text.startsWith("[") || text.startsWith("Error:")) {
+                                    // Error message
+                                    currentState.copy(error = text)
+                                } else {
+                                    // Assume it's final text (backward compatibility)
+                                    currentState.copy(transcriptText = text, partialText = "")
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -66,17 +95,41 @@ class RealtimeTranscriptViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 realtimeTranscript.stop()
-                _uiState.update { it.copy(isRecording = false) }
+                _uiState.update { 
+                    it.copy(
+                        isRecording = false,
+                        partialText = "",
+                        isRestarting = false
+                    )
+                }
                 AppLogger.d(TAG_REALTIME, "Realtime transcription stopped")
             } catch (e: Exception) {
                 AppLogger.e(TAG_REALTIME, "Failed to stop realtime transcription", e)
                 _uiState.update { 
                     it.copy(
                         isRecording = false,
+                        partialText = "",
                         error = "Failed to stop: ${e.message}"
                     )
                 }
             }
+        }
+    }
+    
+    /**
+     * Get the current display text (final + partial).
+     */
+    fun getDisplayText(): String {
+        val state = _uiState.value
+        return if (state.partialText.isNotEmpty()) {
+            // Show final text + partial text
+            if (state.transcriptText.isNotEmpty()) {
+                "${state.transcriptText} ${state.partialText}"
+            } else {
+                state.partialText
+            }
+        } else {
+            state.transcriptText
         }
     }
     
