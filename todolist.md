@@ -270,7 +270,7 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - **CON:** Có thể mất recording nếu ViewModel cleared (nhưng đã có auto-save)
   - **RECOMMENDATION:** Implement với force save trước khi reset
 
-### 🎯 Task BUG.2: Fix Playback State Stuck khi ViewModel Cleared
+### 🎯 Task BUG.2: Fix Playback State Stuck khi ViewModel Cleared ✅ COMPLETED
 - **Files:** 
   - `app/src/main/java/com/yourname/smartrecorder/ui/transcript/TranscriptViewModel.kt`
   - `app/src/main/java/com/yourname/smartrecorder/core/audio/AudioPlayer.kt`
@@ -288,6 +288,13 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   4. Test tương tự BUG.1
 - **Priority:** High
 - **Estimated Time:** 1 giờ
+- **Status:** ✅ COMPLETED
+  - ✅ Thêm `forceReset()` method vào `AudioPlayer` interface
+  - ✅ Implement `forceReset()` trong `AudioPlayerImpl` với error handling
+  - ✅ Sửa `TranscriptViewModel.onCleared()` để gọi `forceReset()` khi playback active
+  - ✅ Thêm recovery logic trong `togglePlayPause()` để detect và fix stuck state
+  - ✅ Logging đầy đủ cho rare conditions
+  - ✅ Wrap `togglePlayPause()` logic trong `viewModelScope.launch` để support suspend functions
 - **Test Cases:**
   1. Start playback
   2. Clear ViewModel

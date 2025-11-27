@@ -30,6 +30,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import com.yourname.smartrecorder.core.utils.VolumeChecker
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -317,74 +318,95 @@ class TranscriptViewModel @Inject constructor(
         }
         
         isToggling = true
-        try {
-            if (_uiState.value.isPlaying) {
-                AppLogger.logMain(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", _uiState.value.currentPositionMs)
-                audioPlayer.pause()
-                positionUpdateJob?.cancel()
-                _uiState.update { it.copy(isPlaying = false) }
-                
-                // Update foreground service notification
-                foregroundServiceManager.updatePlaybackNotification(
-                    _uiState.value.currentPositionMs,
-                    recording.durationMs,
-                    isPaused = true
-                )
-            } else {
-                AppLogger.logMain(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s, size: %d bytes", 
-                    file.absolutePath, file.length())
-                
-                // Check volume before playing
-                if (VolumeChecker.isVolumeLow(context)) {
-                    val volumePercent = VolumeChecker.getVolumePercent(context)
-                    AppLogger.w(TAG_TRANSCRIPT, "Volume is low: %d%%, showing warning toast", volumePercent)
-                    _uiState.update { 
-                        it.copy(toastMessage = "Volume too low (${volumePercent}%). Please increase volume for better audio quality.")
-                    }
-                } else {
-                    _uiState.update { it.copy(toastMessage = null) }
-                }
-                
-                if (audioPlayer.isPlaying()) {
-                    audioPlayer.resume()
-                    AppLogger.logMain(TAG_TRANSCRIPT, "Resumed existing playback -> position: %d ms", 
-                        _uiState.value.currentPositionMs)
-                } else {
-                    // Start foreground service before playing
-                    foregroundServiceManager.startPlaybackService(
-                        recording.title.ifEmpty { "Recording" },
-                        recording.durationMs
-                    )
+        viewModelScope.launch {
+            try {
+                if (_uiState.value.isPlaying) {
+                    AppLogger.logMain(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", _uiState.value.currentPositionMs)
+                    audioPlayer.pause()
+                    positionUpdateJob?.cancel()
+                    _uiState.update { it.copy(isPlaying = false) }
                     
-                    audioPlayer.play(file) {
-                        // On completion
-                        AppLogger.logMain(TAG_TRANSCRIPT, "Playback completed, looping: %b", _uiState.value.isLooping)
-                        if (!_uiState.value.isLooping) {
-                            _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
-                            positionUpdateJob?.cancel()
-                            // Stop foreground service
+                    // Update foreground service notification
+                    foregroundServiceManager.updatePlaybackNotification(
+                        _uiState.value.currentPositionMs,
+                        recording.durationMs,
+                        isPaused = true
+                    )
+                } else {
+                    AppLogger.logMain(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s, size: %d bytes", 
+                        file.absolutePath, file.length())
+                    
+                    // Check volume before playing
+                    if (VolumeChecker.isVolumeLow(context)) {
+                        val volumePercent = VolumeChecker.getVolumePercent(context)
+                        AppLogger.w(TAG_TRANSCRIPT, "Volume is low: %d%%, showing warning toast", volumePercent)
+                        _uiState.update { 
+                            it.copy(toastMessage = "Volume too low (${volumePercent}%). Please increase volume for better audio quality.")
+                        }
+                    } else {
+                        _uiState.update { it.copy(toastMessage = null) }
+                    }
+                    
+                    // Recovery logic: Check if AudioPlayer is in stuck state
+                    // This can happen if ViewModel was cleared while playback was active
+                    if (audioPlayer.isPlaying() && !_uiState.value.isPlaying) {
+                        AppLogger.logRareCondition(TAG_TRANSCRIPT, 
+                            "Playback stuck state detected - forcing reset", 
+                            "audioPlayer.isPlaying=${audioPlayer.isPlaying()}, uiState.isPlaying=${_uiState.value.isPlaying}")
+                        // Force reset AudioPlayer to recover from stuck state
+                        try {
+                            audioPlayer.forceReset()
+                            AppLogger.d(TAG_TRANSCRIPT, "AudioPlayer force reset completed, starting new playback")
+                        } catch (resetException: Exception) {
+                            AppLogger.e(TAG_TRANSCRIPT, "Failed to force reset AudioPlayer before playback", resetException)
+                            _uiState.update { it.copy(error = resetException.message, isPlaying = false) }
                             foregroundServiceManager.stopPlaybackService()
-                        } else {
-                            // Loop: reset position but keep playing
-                            audioPlayer.seekTo(0)
-                            _uiState.update { it.copy(currentPositionMs = 0L) }
+                            isToggling = false
+                            return@launch
                         }
                     }
-                    // Set looping state
-                    audioPlayer.setLooping(_uiState.value.isLooping)
-                    AppLogger.logMain(TAG_TRANSCRIPT, "Started new playback -> duration: %d ms, looping: %b", 
-                        recording.durationMs, _uiState.value.isLooping)
+                    
+                    if (audioPlayer.isPlaying()) {
+                        audioPlayer.resume()
+                        AppLogger.logMain(TAG_TRANSCRIPT, "Resumed existing playback -> position: %d ms", 
+                            _uiState.value.currentPositionMs)
+                    } else {
+                        // Start foreground service before playing
+                        foregroundServiceManager.startPlaybackService(
+                            recording.title.ifEmpty { "Recording" },
+                            recording.durationMs
+                        )
+                        
+                        audioPlayer.play(file) {
+                            // On completion
+                            AppLogger.logMain(TAG_TRANSCRIPT, "Playback completed, looping: %b", _uiState.value.isLooping)
+                            if (!_uiState.value.isLooping) {
+                                _uiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
+                                positionUpdateJob?.cancel()
+                                // Stop foreground service
+                                foregroundServiceManager.stopPlaybackService()
+                            } else {
+                                // Loop: reset position but keep playing
+                                audioPlayer.seekTo(0)
+                                _uiState.update { it.copy(currentPositionMs = 0L) }
+                            }
+                        }
+                        // Set looping state
+                        audioPlayer.setLooping(_uiState.value.isLooping)
+                        AppLogger.logMain(TAG_TRANSCRIPT, "Started new playback -> duration: %d ms, looping: %b", 
+                            recording.durationMs, _uiState.value.isLooping)
+                    }
+                    startPositionUpdates()
+                    _uiState.update { it.copy(isPlaying = true) }
                 }
-                startPositionUpdates()
-                _uiState.update { it.copy(isPlaying = true) }
+            } catch (e: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Failed to toggle play/pause", e)
+                _uiState.update { it.copy(error = e.message, isPlaying = false) }
+                // Stop service on error
+                foregroundServiceManager.stopPlaybackService()
+            } finally {
+                isToggling = false
             }
-        } catch (e: Exception) {
-            AppLogger.e(TAG_TRANSCRIPT, "Failed to toggle play/pause", e)
-            _uiState.update { it.copy(error = e.message, isPlaying = false) }
-            // Stop service on error
-            foregroundServiceManager.stopPlaybackService()
-        } finally {
-            isToggling = false
         }
     }
     
@@ -697,12 +719,41 @@ class TranscriptViewModel @Inject constructor(
             AppLogger.logRareCondition(TAG_TRANSCRIPT, 
                 "ViewModel cleared while playback active", 
                 "position=${_uiState.value.currentPositionMs}ms")
-            try {
-                audioPlayer.stop()
-                foregroundServiceManager.stopPlaybackService()
-                AppLogger.logMain(TAG_TRANSCRIPT, "Playback stopped during cleanup")
-            } catch (e: Exception) {
-                AppLogger.e(TAG_TRANSCRIPT, "Error stopping playback during cleanup", e)
+            viewModelScope.launch {
+                try {
+                    // Stop service first
+                    foregroundServiceManager.stopPlaybackService()
+                    
+                    // Force reset AudioPlayer to prevent stuck state
+                    // This is critical: AudioPlayer is a singleton and will keep state
+                    // even after ViewModel is cleared, causing issues when starting new playback
+                    audioPlayer.forceReset()
+                    AppLogger.logMain(TAG_TRANSCRIPT, "Playback stopped and AudioPlayer force reset during cleanup")
+                } catch (e: Exception) {
+                    AppLogger.e(TAG_TRANSCRIPT, "Error stopping playback during cleanup", e)
+                    // Still try to force reset even if other cleanup fails
+                    try {
+                        audioPlayer.forceReset()
+                    } catch (resetException: Exception) {
+                        AppLogger.e(TAG_TRANSCRIPT, "Failed to force reset AudioPlayer in onCleared()", resetException)
+                    }
+                }
+            }
+        } else {
+            // Even if not playing, check if AudioPlayer is in stuck state
+            // This can happen if previous playback wasn't properly cleaned up
+            viewModelScope.launch {
+                try {
+                    // Check if MediaPlayer exists but ViewModel state says not playing
+                    if (audioPlayer.isPlaying() && !_uiState.value.isPlaying) {
+                        AppLogger.logRareCondition(TAG_TRANSCRIPT, 
+                            "AudioPlayer stuck state detected - forcing reset", 
+                            "isPlaying=${audioPlayer.isPlaying()}")
+                        audioPlayer.forceReset()
+                    }
+                } catch (e: Exception) {
+                    AppLogger.w(TAG_TRANSCRIPT, "Unexpected error in onCleared() cleanup", e)
+                }
             }
         }
     }

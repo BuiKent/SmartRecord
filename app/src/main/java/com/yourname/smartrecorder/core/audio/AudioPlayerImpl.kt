@@ -3,6 +3,8 @@ package com.yourname.smartrecorder.core.audio
 import android.media.MediaPlayer
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_AUDIO
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -227,6 +229,57 @@ class AudioPlayerImpl @Inject constructor() : AudioPlayer {
                 mediaPlayer = null
                 currentFile = null
                 isLooping = false
+            }
+        }
+    }
+    
+    override suspend fun forceReset() = withContext(Dispatchers.IO) {
+        val startTime = System.currentTimeMillis()
+        AppLogger.logRareCondition(TAG_AUDIO, "Force resetting AudioPlayer", 
+            "isPlaying=${isPlaying()}, hasMediaPlayer=${mediaPlayer != null}, hasCurrentFile=${currentFile != null}")
+        
+        synchronized(this@AudioPlayerImpl) {
+            try {
+                if (mediaPlayer != null) {
+                    try {
+                        // Try to stop if playing
+                        if (isPlaying()) {
+                            try {
+                                mediaPlayer?.stop()
+                                AppLogger.d(TAG_AUDIO, "MediaPlayer.stop() called during force reset")
+                            } catch (e: Exception) {
+                                AppLogger.w(TAG_AUDIO, "Error calling stop() during force reset (expected if not playing): %s", e.message)
+                                // Continue - MediaPlayer might already be stopped or in invalid state
+                            }
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.w(TAG_AUDIO, "Error during force reset stop attempt: %s", e.message)
+                    }
+                    
+                    try {
+                        // Release MediaPlayer
+                        mediaPlayer?.release()
+                        AppLogger.d(TAG_AUDIO, "MediaPlayer released during force reset")
+                    } catch (e: Exception) {
+                        AppLogger.e(TAG_AUDIO, "Error releasing MediaPlayer during force reset", e)
+                        // Continue - try to reset state anyway
+                    }
+                }
+                
+                // Reset all state
+                mediaPlayer = null
+                currentFile = null
+                isLooping = false
+                
+                val duration = System.currentTimeMillis() - startTime
+                AppLogger.i(TAG_AUDIO, "AudioPlayer force reset completed -> duration: %dms", duration)
+            } catch (e: Exception) {
+                AppLogger.e(TAG_AUDIO, "Failed to force reset AudioPlayer", e)
+                // Force reset state even if cleanup fails
+                mediaPlayer = null
+                currentFile = null
+                isLooping = false
+                throw e
             }
         }
     }
