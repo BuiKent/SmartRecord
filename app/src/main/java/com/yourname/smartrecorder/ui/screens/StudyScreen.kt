@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.ui.study.StudyViewModel
 
@@ -62,7 +63,10 @@ fun StudyScreen(
                     text = "No flashcards available",
                     style = MaterialTheme.typography.bodyLarge
                 )
-                Button(onClick = { viewModel.loadFlashcardsForReview() }) {
+                Button(
+                    onClick = { viewModel.loadFlashcardsForReview() },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
                     Icon(Icons.Default.Refresh, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Load Flashcards for Review")
@@ -74,6 +78,7 @@ fun StudyScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
@@ -106,6 +111,7 @@ fun StudyScreen(
                     if (uiState.showAnswer) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer
                             )
@@ -138,6 +144,7 @@ fun StudyScreen(
                             OutlinedButton(
                                 onClick = { viewModel.rateFlashcard(3) },
                                 modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = MaterialTheme.colorScheme.error
                                 )
@@ -148,13 +155,15 @@ fun StudyScreen(
                             }
                             OutlinedButton(
                                 onClick = { viewModel.rateFlashcard(2) },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("Medium")
                             }
                             OutlinedButton(
                                 onClick = { viewModel.rateFlashcard(1) },
                                 modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = MaterialTheme.colorScheme.primary
                                 )
@@ -168,7 +177,8 @@ fun StudyScreen(
                         // Reveal answer button
                         Button(
                             onClick = { viewModel.revealAnswer() },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Show Answer")
                         }
@@ -184,7 +194,8 @@ fun StudyScreen(
                 OutlinedButton(
                     onClick = { viewModel.previousFlashcard() },
                     enabled = uiState.currentFlashcardIndex > 0,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
@@ -192,6 +203,7 @@ fun StudyScreen(
                 }
                 OutlinedButton(
                     onClick = { viewModel.nextFlashcard() },
+                    shape = RoundedCornerShape(12.dp),
                     enabled = uiState.currentFlashcardIndex < uiState.flashcards.size - 1,
                     modifier = Modifier.weight(1f)
                 ) {

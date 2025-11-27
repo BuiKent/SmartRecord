@@ -195,6 +195,12 @@ class RecordViewModel @Inject constructor(
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onPauseClick", null)
         viewModelScope.launch {
             try {
+                // Validate state: must have active recording
+                if (currentRecording == null && !_uiState.value.isRecording && !_uiState.value.isPaused) {
+                    AppLogger.w(TAG_RECORDING, "Pause/Resume called but no recording in progress - ignoring")
+                    return@launch
+                }
+                
                 if (isPaused) {
                     // Resume recording
                     resumeRecording()
@@ -226,9 +232,15 @@ class RecordViewModel @Inject constructor(
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStopClick", null)
         viewModelScope.launch {
             try {
+                // Validate state: must have active recording (recording or paused)
+                if (currentRecording == null && !_uiState.value.isRecording && !_uiState.value.isPaused) {
+                    AppLogger.w(TAG_RECORDING, "Stop called but no recording in progress - ignoring")
+                    return@launch
+                }
+                
                 timerJob?.cancel()
                 val recording = currentRecording ?: run {
-                    AppLogger.w(TAG_RECORDING, "Stop called but no recording in progress")
+                    AppLogger.w(TAG_RECORDING, "Stop called but no recording in progress - currentRecording is null")
                     return@launch
                 }
                 

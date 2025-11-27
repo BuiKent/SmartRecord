@@ -1,5 +1,11 @@
 # 📊 TRẠNG THÁI FOREGROUND SERVICE - SMART RECORDER NOTES
 
+**📚 Tài liệu liên quan:**
+- `todolist.md` - Checklist tổng thể (section: Notification System > Phase 1)
+- `NOTIFICATION_PLAN.md` - Kế hoạch triển khai đầy đủ (Phase 1.1, 1.2)
+
+**🎯 Mục đích:** Document này liệt kê chi tiết những gì đã có và còn thiếu trong foreground service, kèm code examples cần sửa.
+
 ## ✅ ĐÃ CÓ
 
 ### RecordingForegroundService.kt
@@ -241,7 +247,10 @@ ACTION_PAUSE -> {
 
 ## 📝 CHECKLIST
 
+**📋 Checklist tổng thể:** Xem `todolist.md` section "Notification System > Phase 1"
+
 ### RecordingForegroundService.kt
+**📖 Code examples:** Xem `NOTIFICATION_PLAN.md` section "1.1. RecordingForegroundService.kt"
 - [ ] Thêm ACTION_PAUSE constant
 - [ ] Thêm ACTION_RESUME constant
 - [ ] Xử lý ACTION_PAUSE trong onStartCommand
@@ -255,6 +264,8 @@ ACTION_PAUSE -> {
 - [ ] Test pause/resume từ lock screen
 
 ### PlaybackForegroundService.kt
+**📖 Code examples:** Xem `NOTIFICATION_PLAN.md` section "1.2. PlaybackForegroundService.kt"
+
 - [ ] Thêm MediaStyle notification
 - [ ] Thêm MediaSession
 - [ ] Set VISIBILITY_PUBLIC cho notification
@@ -270,6 +281,10 @@ ACTION_PAUSE -> {
 ---
 
 ## 🎯 KẾT LUẬN
+
+**📚 Tiếp theo:**
+- Xem `NOTIFICATION_PLAN.md` để biết cách triển khai chi tiết
+- Xem `todolist.md` để track progress
 
 **Foreground service đã có nhưng chưa đầy đủ:**
 

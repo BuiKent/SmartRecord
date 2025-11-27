@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +79,7 @@ fun LibraryScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
+            shape = RoundedCornerShape(12.dp),
             placeholder = { Text("Search recordings...") },
             leadingIcon = {
                 Icon(

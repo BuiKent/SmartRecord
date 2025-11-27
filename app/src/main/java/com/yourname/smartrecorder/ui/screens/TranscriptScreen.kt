@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -210,6 +211,7 @@ fun TranscriptScreen(
                         value = uiState.searchQuery,
                         onValueChange = { viewModel.searchInTranscript(it) },
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                         placeholder = { Text("Search in transcript...") },
                         leadingIcon = {
                             Icon(Icons.Default.Search, contentDescription = null)
@@ -569,6 +571,7 @@ private fun TranscriptLineItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester),
+                    shape = RoundedCornerShape(12.dp),
                     textStyle = MaterialTheme.typography.bodyMedium,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
@@ -709,7 +712,8 @@ private fun NotesTabContent(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onBookmarkClick(bookmark) }
+                            .clickable { onBookmarkClick(bookmark) },
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp)
@@ -753,7 +757,8 @@ private fun NotesTabContent(
                 }
                 items(uiState.notes) { note ->
                     Card(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp)
@@ -789,7 +794,8 @@ private fun SummaryTabContent(
         // Summary
         item {
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -811,7 +817,8 @@ private fun SummaryTabContent(
         if (uiState.keywords.isNotEmpty()) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -840,7 +847,8 @@ private fun SummaryTabContent(
         if (uiState.questions.isNotEmpty()) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -867,6 +875,7 @@ private fun SummaryTabContent(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -900,7 +909,8 @@ private fun SummaryTabContent(
                         } else {
                             Button(
                                 onClick = onGenerateFlashcards,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("Generate Flashcards")
                             }
@@ -929,6 +939,7 @@ private fun FloatingActionButtons(
         FloatingActionButton(
             onClick = onCopyClick,
             modifier = Modifier.size(56.dp),
+            shape = CircleShape,
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         ) {
@@ -943,6 +954,7 @@ private fun FloatingActionButtons(
         FloatingActionButton(
             onClick = onToggleSpeakerMode,
             modifier = Modifier.size(56.dp),
+            shape = CircleShape,
             containerColor = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
             contentColor = if (showSpeakerMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
         ) {

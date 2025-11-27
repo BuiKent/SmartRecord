@@ -4,16 +4,23 @@
 
 Tài liệu này liệt kê các task cần thực hiện để cải thiện UI/UX và tính năng của app Smart Recorder.
 
+**📚 Tài liệu liên quan:**
+- `NOTIFICATION_PLAN.md` - Kế hoạch chi tiết hệ thống notification
+- `FOREGROUND_SERVICE_STATUS.md` - Trạng thái và checklist foreground service
+- `teststatus.md` - Trạng thái unit tests
+- `architure.md` - Kiến trúc app
+
 ---
 
 ## 🎨 UI/UX Design Improvements (Priority: High)
 
-### 🎯 Task UI.1: Bo tròn các khung vuông và giảm màu nền không cần thiết
+### 🎯 Task UI.1: Bo tròn các khung vuông và giảm màu nền không cần thiết ✅ COMPLETED
 - **Files:** 
   - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/screens/LibraryScreen.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/components/RecordingCard.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/StudyScreen.kt`
 - **Mô tả:** 
   - Bo tròn tất cả các card, button, khung chữ nhật
   - Giảm màu nền không cần thiết (background colors)
@@ -27,6 +34,11 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 - **Priority:** High
 - **Estimated Time:** 2-3 giờ
 - **User Feedback:** "Tôi thích bo tròn và ít màu nền không cần thiết, các khung vuông chữ nhật tôi không thích"
+- **Status:** ✅ COMPLETED
+  - Đã bo tròn tất cả Card với `RoundedCornerShape(16.dp)`
+  - Đã bo tròn tất cả Button và OutlinedButton với `RoundedCornerShape(12.dp)`
+  - Đã bo tròn tất cả OutlinedTextField với `RoundedCornerShape(12.dp)`
+  - Áp dụng cho: RecordingCard, LibraryScreen, TranscriptScreen, RecordScreen, StudyScreen
 
 ### 🎯 Task UI.2: Bo tròn Floating Action Buttons ở Transcript Screen
 - **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
@@ -99,6 +111,74 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 ---
 
 ## 🐛 Bug Fixes & Rare Conditions (Priority: Critical)
+
+### 🎯 Task BUG.0: Notification Suppressed - User Disabled Notifications
+- **File:** 
+  - `app/src/main/java/com/yourname/smartrecorder/core/service/RecordingForegroundService.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/core/service/PlaybackForegroundService.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsScreen.kt`
+- **Vấn đề:** 
+  - User đã tắt notifications trong system settings
+  - Foreground service notifications bị suppress: "Suppressing notification from package com.yourname.smartrecorder by user request"
+  - User không thấy recording/playback status khi app ở background
+  - **Evidence từ log:** Line 902, 908 trong logtest.txt
+- **Giải pháp:**
+  1. **Check notification permission trước khi start service:**
+     ```kotlin
+     if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+         // Show dialog hoặc navigate to Settings
+         // Hoặc show in-app warning
+     }
+     ```
+  2. **Show warning trong Settings screen** khi notifications bị tắt
+  3. **Provide alternative feedback** khi notifications bị tắt:
+     - In-app status indicator
+     - Toast messages
+     - Status bar icon (nếu có)
+  4. **Guide user** để enable notifications trong Settings screen
+- **Priority:** High
+- **Estimated Time:** 2-3 giờ
+- **Status:** Pending
+
+### 🎯 Task BUG.0.1: UI State Not Synced với Recording State
+- **File:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/record/RecordViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+- **Vấn đề:** 
+  - User click "Stop" nhưng không có recording đang chạy
+  - Log: "Stop called but no recording in progress" (Line 1035 trong logtest.txt)
+  - UI state không sync với actual recording state
+- **Giải pháp:**
+  1. **Validate state trước khi execute action:**
+     ```kotlin
+     fun onStopClick() {
+         if (!uiState.value.isRecording) {
+             AppLogger.w(TAG_RECORDING, "Stop called but not recording - ignoring")
+             return
+         }
+         // ... stop logic
+     }
+     ```
+  2. **Disable button** khi không có recording active
+  3. **Sync UI state** với ViewModel state trong LaunchedEffect
+  4. **Add state validation** trong tất cả recording actions
+- **Priority:** Medium
+- **Estimated Time:** 1 giờ
+- **Status:** Pending
+
+### 🎯 Task BUG.0.2: Enable OnBackInvokedCallback trong Manifest
+- **File:** 
+  - `app/src/main/AndroidManifest.xml`
+- **Vấn đề:** 
+  - Warning: "OnBackInvokedCallback is not enabled for the application"
+  - Cần set `android:enableOnBackInvokedCallback="true"` trong manifest
+  - **Evidence từ log:** Line 1100-1101 trong logtest.txt
+- **Giải pháp:**
+  1. Thêm `android:enableOnBackInvokedCallback="true"` vào `<application>` tag
+  2. Test back navigation behavior
+- **Priority:** Low
+- **Estimated Time:** 5 phút
+- **Status:** Pending
 
 ### 🎯 Task BUG.1: Fix Recording State Stuck khi ViewModel Cleared
 - **Files:** 
@@ -1438,7 +1518,12 @@ Box(modifier = Modifier.fillMaxSize()) {
 
 ## 🔔 Notification System (Priority: High)
 
+**📚 Tài liệu chi tiết:**
+- `NOTIFICATION_PLAN.md` - Kế hoạch triển khai đầy đủ
+- `FOREGROUND_SERVICE_STATUS.md` - Checklist và trạng thái hiện tại
+
 ### Phase 1: Cải thiện Foreground Service Notifications
+**📖 Xem chi tiết:** `FOREGROUND_SERVICE_STATUS.md` (sections: RecordingForegroundService, PlaybackForegroundService)
 - [ ] **RecordingForegroundService.kt**:
   - [ ] Thêm ACTION_PAUSE, ACTION_RESUME constants
   - [ ] Xử lý pause/resume actions trong onStartCommand
@@ -1497,7 +1582,24 @@ Box(modifier = Modifier.fillMaxSize()) {
 - `androidx.hilt:hilt-work:1.1.0`
 - `androidx.media3:media3-session:1.2.0` (optional, for better media controls)
 
-**Tài liệu:** Xem `NOTIFICATION_PLAN.md` để biết chi tiết triển khai
+**📚 Tài liệu chi tiết:**
+- `NOTIFICATION_PLAN.md` - Kế hoạch triển khai đầy đủ (Phase 1-4)
+- `FOREGROUND_SERVICE_STATUS.md` - Checklist và code examples cần sửa
+
+---
+
+## 📚 QUICK REFERENCE - Tài liệu theo chủ đề
+
+### Notification System
+- **Checklist tổng thể:** `todolist.md` (section: Notification System)
+- **Kế hoạch chi tiết:** `NOTIFICATION_PLAN.md`
+- **Trạng thái hiện tại:** `FOREGROUND_SERVICE_STATUS.md`
+
+### Testing
+- **Unit tests:** `teststatus.md`
+
+### Architecture
+- **Kiến trúc app:** `architure.md`
 
 ---
 

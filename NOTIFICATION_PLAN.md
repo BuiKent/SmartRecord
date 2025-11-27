@@ -1,6 +1,10 @@
 # 🎯 KẾ HOẠCH HỆ THỐNG THÔNG BÁO - SMART RECORDER NOTES
 ## (Notification System Plan - Smart Recorder Notes)
 
+**📚 Tài liệu liên quan:**
+- `todolist.md` - Checklist tổng thể (section: Notification System)
+- `FOREGROUND_SERVICE_STATUS.md` - Trạng thái hiện tại và checklist chi tiết
+
 **Mục tiêu:** Hệ thống thông báo toàn diện, production-ready cho app Smart Recorder Notes, tập trung vào điều khiển ghi âm qua màn hình khóa và thanh công cụ.
 
 **Nguyên tắc:**
@@ -166,9 +170,13 @@ ACTION_STOP = "com.yourname.smartrecorder.STOP_PLAYBACK"
 
 ### Phase 1: Cải thiện Foreground Service Notifications
 
+**📖 Xem trạng thái hiện tại:** `FOREGROUND_SERVICE_STATUS.md`
+
 #### 1.1. RecordingForegroundService.kt (CẢI THIỆN)
 
 **File:** `app/src/main/java/com/yourname/smartrecorder/core/service/RecordingForegroundService.kt`
+
+**📋 Checklist:** Xem `FOREGROUND_SERVICE_STATUS.md` section "RecordingForegroundService.kt"
 
 **Thay đổi:**
 1. Thêm action constants cho Pause/Resume:
@@ -353,6 +361,8 @@ fun handleServiceAction(action: String) {
 #### 1.2. PlaybackForegroundService.kt (CẢI THIỆN)
 
 **File:** `app/src/main/java/com/yourname/smartrecorder/core/service/PlaybackForegroundService.kt`
+
+**📋 Checklist:** Xem `FOREGROUND_SERVICE_STATUS.md` section "PlaybackForegroundService.kt"
 
 **Thay đổi:**
 1. Sử dụng MediaStyle notification:
