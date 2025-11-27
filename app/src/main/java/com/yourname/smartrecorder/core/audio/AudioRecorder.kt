@@ -8,5 +8,11 @@ interface AudioRecorder {
     suspend fun pause()
     suspend fun resume()
     fun getAmplitude(): Int
+    /**
+     * Force reset recording state without saving file.
+     * Used when ViewModel is cleared or recording needs to be aborted.
+     * This will release MediaRecorder and reset all state.
+     */
+    suspend fun forceReset()
 }
 

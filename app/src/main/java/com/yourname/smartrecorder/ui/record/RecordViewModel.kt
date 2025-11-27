@@ -159,11 +159,40 @@ class RecordViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 isStarting = true
-                AppLogger.d(TAG_RECORDING, "Getting recordings directory")
-                val outputDir = getRecordingsDirectory()
-                AppLogger.d(TAG_RECORDING, "Starting recording -> outputDir: %s", outputDir.absolutePath)
                 
-                currentRecording = startRecording(outputDir)
+                // Recovery logic: Check if AudioRecorder is in stuck state
+                // This can happen if ViewModel was cleared while recording was active
+                try {
+                    // Try to start - if it fails with "already in progress", force reset
+                    AppLogger.d(TAG_RECORDING, "Getting recordings directory")
+                    val outputDir = getRecordingsDirectory()
+                    AppLogger.d(TAG_RECORDING, "Starting recording -> outputDir: %s", outputDir.absolutePath)
+                    
+                    currentRecording = startRecording(outputDir)
+                } catch (e: IllegalStateException) {
+                    if (e.message?.contains("already in progress") == true) {
+                        AppLogger.logRareCondition(TAG_RECORDING, 
+                            "Recording stuck state detected - forcing reset", 
+                            "error=${e.message}")
+                        // Force reset AudioRecorder to recover from stuck state
+                        try {
+                            audioRecorder.forceReset()
+                            AppLogger.d(TAG_RECORDING, "AudioRecorder force reset completed, retrying start")
+                            // Retry after reset
+                            val outputDir = getRecordingsDirectory()
+                            currentRecording = startRecording(outputDir)
+                        } catch (retryException: Exception) {
+                            AppLogger.e(TAG_RECORDING, "Failed to start recording after force reset", retryException)
+                            _uiState.update { it.copy(error = retryException.message, isRecording = false) }
+                            currentRecording = null
+                            isStarting = false
+                            return@launch
+                        }
+                    } else {
+                        throw e
+                    }
+                }
+                
                 startTimeMs = System.currentTimeMillis()
                 totalPausedDurationMs = 0L  // Reset pause duration
                 pauseStartTimeMs = 0L
@@ -428,21 +457,51 @@ class RecordViewModel @Inject constructor(
         timerJob?.cancel()
         
         // Cleanup if recording was active
-        if (_uiState.value.isRecording && currentRecording != null) {
+        if ((_uiState.value.isRecording || _uiState.value.isPaused) && currentRecording != null) {
             AppLogger.logRareCondition(TAG_RECORDING, 
                 "ViewModel cleared while recording active", 
-                "recordingId=${currentRecording?.id}")
-            // Stop service and auto-save
-            foregroundServiceManager.stopRecordingService()
-            autoSaveManager.stopAutoSave()
+                "recordingId=${currentRecording?.id}, isRecording=${_uiState.value.isRecording}, isPaused=${_uiState.value.isPaused}")
+            
+            // Try to save recording first (if possible)
+            viewModelScope.launch {
+                try {
+                    // Stop service and auto-save first
+                    foregroundServiceManager.stopRecordingService()
+                    autoSaveManager.stopAutoSave()
+                    
+                    // Force reset AudioRecorder to prevent stuck state
+                    // This is critical: AudioRecorder is a singleton and will keep state
+                    // even after ViewModel is cleared, causing "already in progress" errors
+                    audioRecorder.forceReset()
+                    AppLogger.d(TAG_RECORDING, "AudioRecorder force reset completed in onCleared()")
+                } catch (e: Exception) {
+                    AppLogger.e(TAG_RECORDING, "Error during cleanup in onCleared()", e)
+                    // Still try to force reset even if other cleanup fails
+                    try {
+                        audioRecorder.forceReset()
+                    } catch (resetException: Exception) {
+                        AppLogger.e(TAG_RECORDING, "Failed to force reset AudioRecorder in onCleared()", resetException)
+                    }
+                }
+            }
+        } else {
+            // Even if not recording, check if AudioRecorder is in stuck state
+            // This can happen if previous recording wasn't properly cleaned up
+            viewModelScope.launch {
+                try {
+                    // Try to start - if it fails silently, AudioRecorder might be stuck
+                    // We'll detect this in onStartClick() recovery logic
+                    AppLogger.d(TAG_RECORDING, "ViewModel cleared - no active recording, skipping AudioRecorder reset")
+                } catch (e: Exception) {
+                    AppLogger.w(TAG_RECORDING, "Unexpected error in onCleared() cleanup", e)
+                }
+            }
         }
         
         // Stop live transcribe if active
         if (_uiState.value.isLiveTranscribeMode) {
             stopLiveTranscribe()
         }
-        
-        // Note: AudioRecorder cleanup is handled by singleton lifecycle
     }
 }
 

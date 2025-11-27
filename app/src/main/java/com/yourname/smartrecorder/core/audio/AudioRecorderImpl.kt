@@ -228,5 +228,65 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
             }
         }
     }
+    
+    override suspend fun forceReset() = withContext(Dispatchers.IO) {
+        val startTime = System.currentTimeMillis()
+        AppLogger.logRareCondition(TAG_AUDIO, "Force resetting AudioRecorder", 
+            "isRecording=$isRecording, hasMediaRecorder=${mediaRecorder != null}, hasOutputFile=${outputFile != null}")
+        
+        synchronized(this@AudioRecorderImpl) {
+            try {
+                if (mediaRecorder != null) {
+                    try {
+                        // Try to stop if recording
+                        if (isRecording) {
+                            try {
+                                mediaRecorder?.stop()
+                                AppLogger.d(TAG_AUDIO, "MediaRecorder.stop() called during force reset")
+                            } catch (e: Exception) {
+                                AppLogger.w(TAG_AUDIO, "Error calling stop() during force reset (expected if not recording): %s", e.message)
+                                // Continue - MediaRecorder might already be stopped or in invalid state
+                            }
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.w(TAG_AUDIO, "Error during force reset stop attempt: %s", e.message)
+                    }
+                    
+                    try {
+                        // Reset before release
+                        mediaRecorder?.reset()
+                        AppLogger.d(TAG_AUDIO, "MediaRecorder.reset() called during force reset")
+                    } catch (e: Exception) {
+                        AppLogger.w(TAG_AUDIO, "Error calling reset() during force reset: %s", e.message)
+                        // Continue - reset() might not be available on all API levels
+                    }
+                    
+                    try {
+                        // Release MediaRecorder
+                        mediaRecorder?.release()
+                        AppLogger.d(TAG_AUDIO, "MediaRecorder released during force reset")
+                    } catch (e: Exception) {
+                        AppLogger.e(TAG_AUDIO, "Error releasing MediaRecorder during force reset", e)
+                        // Continue - try to reset state anyway
+                    }
+                }
+                
+                // Reset all state
+                mediaRecorder = null
+                outputFile = null
+                isRecording = false
+                
+                val duration = System.currentTimeMillis() - startTime
+                AppLogger.i(TAG_AUDIO, "AudioRecorder force reset completed -> duration: %dms", duration)
+            } catch (e: Exception) {
+                AppLogger.e(TAG_AUDIO, "Failed to force reset AudioRecorder", e)
+                // Force reset state even if cleanup fails
+                mediaRecorder = null
+                outputFile = null
+                isRecording = false
+                throw e
+            }
+        }
+    }
 }
 
