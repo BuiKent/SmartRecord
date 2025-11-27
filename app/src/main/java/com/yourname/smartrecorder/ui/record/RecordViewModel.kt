@@ -1,5 +1,9 @@
 package com.yourname.smartrecorder.ui.record
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.core.logging.AppLogger
@@ -9,6 +13,7 @@ import com.yourname.smartrecorder.core.logging.AppLogger.TAG_TRANSCRIPT
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_REALTIME
 import com.yourname.smartrecorder.core.service.AutoSaveManager
 import com.yourname.smartrecorder.core.service.ForegroundServiceManager
+import com.yourname.smartrecorder.core.service.RecordingForegroundService
 import com.yourname.smartrecorder.data.stt.WhisperModelManager
 import com.yourname.smartrecorder.domain.usecase.AddBookmarkUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
@@ -19,6 +24,7 @@ import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
 import com.yourname.smartrecorder.domain.usecase.RealtimeTranscriptUseCase
 import com.yourname.smartrecorder.core.speech.RecognitionState
 import com.yourname.smartrecorder.ui.screens.RecordUiState
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,14 +51,48 @@ class RecordViewModel @Inject constructor(
     private val foregroundServiceManager: ForegroundServiceManager,
     private val autoSaveManager: AutoSaveManager,
     private val modelManager: WhisperModelManager,
-    private val realtimeTranscript: RealtimeTranscriptUseCase
+    private val realtimeTranscript: RealtimeTranscriptUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecordUiState())
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
     
+    private val serviceActionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                RecordingForegroundService.BROADCAST_PAUSE -> {
+                    AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Received PAUSE broadcast from service")
+                    onPauseClick()
+                }
+                RecordingForegroundService.BROADCAST_RESUME -> {
+                    AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Received RESUME broadcast from service")
+                    // onPauseClick() handles both pause and resume based on isPaused state
+                    if (isPaused) {
+                        onPauseClick() // This will resume if isPaused is true
+                    }
+                }
+                RecordingForegroundService.BROADCAST_STOP -> {
+                    AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Received STOP broadcast from service")
+                    onStopClick()
+                }
+            }
+        }
+    }
+    
     init {
         checkModelReady()
+        registerServiceActionReceiver()
+    }
+    
+    private fun registerServiceActionReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(RecordingForegroundService.BROADCAST_PAUSE)
+            addAction(RecordingForegroundService.BROADCAST_RESUME)
+            addAction(RecordingForegroundService.BROADCAST_STOP)
+        }
+        context.registerReceiver(serviceActionReceiver, filter)
+        AppLogger.d(TAG_RECORDING, "Registered service action receiver")
     }
     
     private val _navigateToTranscript = MutableStateFlow<String?>(null)
@@ -455,6 +495,14 @@ class RecordViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        
+        // Unregister receiver
+        try {
+            context.unregisterReceiver(serviceActionReceiver)
+            AppLogger.d(TAG_RECORDING, "Unregistered service action receiver")
+        } catch (e: Exception) {
+            AppLogger.w(TAG_RECORDING, "Error unregistering receiver", e)
+        }
         
         // Cleanup if recording was active
         if ((_uiState.value.isRecording || _uiState.value.isPaused) && currentRecording != null) {

@@ -32,16 +32,16 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF818CF8), // Brighter indigo for dark mode
-    onPrimary = Color(0xFF1E1B4B),
-    primaryContainer = Color(0xFF4338CA),
-    onPrimaryContainer = Color(0xFFE0E7FF),
-    surface = Color(0xFF0F172A), // Darker, richer background
-    onSurface = Color(0xFFF1F5F9), // Brighter text for contrast
-    surfaceVariant = Color(0xFF1E293B), // Lighter variant for dark mode
-    onSurfaceVariant = Color(0xFFCBD5E1),
-    background = Color(0xFF0F172A), // Consistent with surface
-    onBackground = Color(0xFFF1F5F9), // Bright text
+    primary = Color(0xFFFF8A65), // Lighter orange for dark mode
+    onPrimary = Color(0xFF5C1F00),
+    primaryContainer = Color(0xFFBF360C), // Darker orange container
+    onPrimaryContainer = Color(0xFFFFE5DE),
+    surface = Color(0xFF1C1C1C), // Dark background
+    onSurface = Color(0xFFF5F5F5), // Bright text for contrast
+    surfaceVariant = Color(0xFF2E2E2E), // Lighter variant for dark mode
+    onSurfaceVariant = Color(0xFFE0E0E0),
+    background = Color(0xFF1C1C1C), // Consistent with surface
+    onBackground = Color(0xFFF5F5F5), // Bright text
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )

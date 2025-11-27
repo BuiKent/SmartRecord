@@ -2,11 +2,11 @@ package com.yourname.smartrecorder.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Material3 Primary Color - Brighter, more vibrant
-val Primary = Color(0xFF6366F1) // Indigo - brighter than purple
+// Material3 Primary Color - Orange theme
+val Primary = Color(0xFFFF6B35) // Vibrant orange
 val OnPrimary = Color(0xFFFFFFFF)
-val PrimaryContainer = Color(0xFFE0E7FF) // Lighter indigo container
-val OnPrimaryContainer = Color(0xFF1E1B4B)
+val PrimaryContainer = Color(0xFFFFE5DE) // Light orange container
+val OnPrimaryContainer = Color(0xFF5C1F00)
 
 // Surface colors - Brighter, cleaner whites
 val Surface = Color(0xFFFFFFFF) // Pure white instead of off-white

@@ -1569,13 +1569,13 @@ Box(modifier = Modifier.fillMaxSize()) {
 
 ### Phase 1: Cải thiện Foreground Service Notifications
 **📖 Xem chi tiết:** `FOREGROUND_SERVICE_STATUS.md` (sections: RecordingForegroundService, PlaybackForegroundService)
-- [ ] **RecordingForegroundService.kt**:
-  - [ ] Thêm ACTION_PAUSE, ACTION_RESUME constants
-  - [ ] Xử lý pause/resume actions trong onStartCommand
-  - [ ] Cải thiện notification với action buttons (Pause/Resume, Stop)
-  - [ ] Set visibility PUBLIC cho lock screen
-  - [ ] Set priority HIGH
-  - [ ] Thêm BroadcastReceiver hoặc callback để giao tiếp với RecordViewModel
+- [x] **RecordingForegroundService.kt**: ✅ COMPLETED
+  - [x] Thêm ACTION_PAUSE, ACTION_RESUME constants
+  - [x] Xử lý pause/resume actions trong onStartCommand
+  - [x] Cải thiện notification với action buttons (Pause/Resume, Stop)
+  - [x] Set visibility PUBLIC cho lock screen
+  - [x] Set priority HIGH
+  - [x] Thêm BroadcastReceiver trong RecordViewModel để nhận actions từ service
   - [ ] Test pause/resume/stop từ notification và lock screen
 - [ ] **PlaybackForegroundService.kt**:
   - [ ] Sử dụng MediaStyle notification (androidx.media.app.NotificationCompat.MediaStyle)

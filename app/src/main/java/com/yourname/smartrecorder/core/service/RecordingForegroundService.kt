@@ -5,7 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -30,6 +33,7 @@ class RecordingForegroundService : Service() {
     private val binder = LocalBinder()
     private var notificationManager: NotificationManager? = null
     private var isRecording = false
+    private var isPaused = false
     private var recordingStartTime: Long = 0L
     private var lastBackgroundTime: Long = 0L
     private val BACKGROUND_WARNING_THRESHOLD = 30 * 60 * 1000L // 30 minutes
@@ -37,7 +41,14 @@ class RecordingForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "recording_channel"
         private const val NOTIFICATION_ID = 1
-        private const val ACTION_STOP = "com.yourname.smartrecorder.STOP_RECORDING"
+        const val ACTION_PAUSE = "com.yourname.smartrecorder.PAUSE_RECORDING"
+        const val ACTION_RESUME = "com.yourname.smartrecorder.RESUME_RECORDING"
+        const val ACTION_STOP = "com.yourname.smartrecorder.STOP_RECORDING"
+        
+        // Broadcast actions
+        const val BROADCAST_PAUSE = "com.yourname.smartrecorder.BROADCAST_PAUSE"
+        const val BROADCAST_RESUME = "com.yourname.smartrecorder.BROADCAST_RESUME"
+        const val BROADCAST_STOP = "com.yourname.smartrecorder.BROADCAST_STOP"
         
         fun createIntent(context: android.content.Context): Intent {
             return Intent(context, RecordingForegroundService::class.java)
@@ -60,6 +71,16 @@ class RecordingForegroundService : Service() {
             "action=${intent?.action}, flags=$flags, startId=$startId")
         
         when (intent?.action) {
+            ACTION_PAUSE -> {
+                AppLogger.logCritical(TAG_SERVICE, "Pause recording requested from notification")
+                pauseRecording()
+                return START_NOT_STICKY
+            }
+            ACTION_RESUME -> {
+                AppLogger.logCritical(TAG_SERVICE, "Resume recording requested from notification")
+                resumeRecording()
+                return START_NOT_STICKY
+            }
             ACTION_STOP -> {
                 AppLogger.logCritical(TAG_SERVICE, "Stop recording requested from notification")
                 stopRecording()
@@ -72,7 +93,8 @@ class RecordingForegroundService : Service() {
                 val recordingId = intent?.getStringExtra("recordingId")
                 val fileName = intent?.getStringExtra("fileName")
                 val durationMs = intent?.getLongExtra("durationMs", 0L) ?: 0L
-                val isPaused = intent?.getBooleanExtra("isPaused", false) ?: false
+                val pausedState = intent?.getBooleanExtra("isPaused", false) ?: false
+                isPaused = pausedState
                 
                 if (recordingId != null && fileName != null && !isRecording) {
                     startRecording(recordingId, fileName)
@@ -120,6 +142,34 @@ class RecordingForegroundService : Service() {
         recordingStateManager.setRecordingActive(recordingId, fileName, recordingStartTime)
     }
     
+    fun pauseRecording() {
+        if (!isRecording || isPaused) {
+            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to pause when not recording or already paused")
+            return
+        }
+        
+        isPaused = true
+        AppLogger.logCritical(TAG_SERVICE, "Recording paused in foreground service")
+        
+        // Send broadcast to ViewModel
+        sendBroadcast(BROADCAST_PAUSE)
+        updateNotification(System.currentTimeMillis() - recordingStartTime, true)
+    }
+    
+    fun resumeRecording() {
+        if (!isRecording || !isPaused) {
+            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to resume when not recording or not paused")
+            return
+        }
+        
+        isPaused = false
+        AppLogger.logCritical(TAG_SERVICE, "Recording resumed in foreground service")
+        
+        // Send broadcast to ViewModel
+        sendBroadcast(BROADCAST_RESUME)
+        updateNotification(System.currentTimeMillis() - recordingStartTime, false)
+    }
+    
     fun stopRecording() {
         if (!isRecording) {
             AppLogger.logRareCondition(TAG_SERVICE, "Attempted to stop recording when not recording")
@@ -131,9 +181,21 @@ class RecordingForegroundService : Service() {
             "duration=${duration}ms")
         
         isRecording = false
+        isPaused = false
         recordingStartTime = 0L
         lastBackgroundTime = 0L
         recordingStateManager.clearRecordingState()
+        
+        // Send broadcast to ViewModel
+        sendBroadcast(BROADCAST_STOP)
+    }
+    
+    private fun sendBroadcast(action: String) {
+        val broadcastIntent = Intent(action).apply {
+            setPackage(packageName)
+        }
+        sendBroadcast(broadcastIntent)
+        AppLogger.d(TAG_SERVICE, "Sent broadcast: $action")
     }
     
     fun updateNotification(durationMs: Long, isPaused: Boolean = false) {
@@ -178,9 +240,12 @@ class RecordingForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Recording",
-                NotificationManager.IMPORTANCE_LOW // Low priority to avoid interruption
+                NotificationManager.IMPORTANCE_HIGH // HIGH để hiển thị lock screen
             ).apply {
-                description = "Ongoing recording notification"
+                description = "Ongoing recording notification with controls"
+                enableVibration(false) // Không rung khi recording
+                enableLights(true)
+                lockscreenVisibility = 1 // NotificationManager.VISIBILITY_PUBLIC
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -188,7 +253,7 @@ class RecordingForegroundService : Service() {
         }
     }
     
-    private fun createNotification(durationMs: Long, isRecording: Boolean): Notification {
+    private fun createNotification(durationMs: Long, isPausedState: Boolean): Notification {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -197,30 +262,56 @@ class RecordingForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         
+        // Pause/Resume action
+        val pauseResumeAction = if (isPausedState) {
+            val resumeIntent = Intent(this, RecordingForegroundService::class.java).apply {
+                action = ACTION_RESUME
+            }
+            NotificationCompat.Action(
+                android.R.drawable.ic_media_play,
+                "Resume",
+                PendingIntent.getService(this, 1, resumeIntent, PendingIntent.FLAG_IMMUTABLE)
+            )
+        } else {
+            val pauseIntent = Intent(this, RecordingForegroundService::class.java).apply {
+                action = ACTION_PAUSE
+            }
+            NotificationCompat.Action(
+                android.R.drawable.ic_media_pause,
+                "Pause",
+                PendingIntent.getService(this, 2, pauseIntent, PendingIntent.FLAG_IMMUTABLE)
+            )
+        }
+        
+        // Stop action
         val stopIntent = Intent(this, RecordingForegroundService::class.java).apply {
             action = ACTION_STOP
         }
         val stopPendingIntent = PendingIntent.getService(
-            this, 0, stopIntent,
+            this, 3, stopIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val stopAction = NotificationCompat.Action(
+            android.R.drawable.ic_menu_close_clear_cancel,
+            "Stop",
+            stopPendingIntent
         )
         
         val durationText = formatDuration(durationMs)
-        val statusText = if (isRecording) "Recording" else "Paused"
+        val statusText = if (isPausedState) "Paused" else "Recording"
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("$statusText - $durationText")
             .setContentText("Tap to return to app")
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now) // Mic icon
             .setContentIntent(pendingIntent)
-            .addAction(
-                android.R.drawable.ic_media_pause,
-                "Stop",
-                stopPendingIntent
-            )
-            .setOngoing(isRecording)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(pauseResumeAction)
+            .addAction(stopAction)
+            .setOngoing(!isPausedState) // Cho phép dismiss khi paused
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Lock screen
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setShowWhen(true)
             .build()
     }
     
