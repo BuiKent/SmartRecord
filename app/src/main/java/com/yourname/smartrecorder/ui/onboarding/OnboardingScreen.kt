@@ -268,11 +268,15 @@ fun OnboardingScreen(
                                     // OnboardingScreen chỉ hiện khi cài lại app/data bị xóa
                                     // → Luôn cần hiện System Permission nếu màn hình này hiện
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        // Always check system state - single source of truth
-                                        val currentSystemState = notificationPermissionManager.areNotificationsEnabled(context)
-                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 3 (Notification) Next clicked -> currentSystemState: $currentSystemState")
+                                        // Check permission directly using ContextCompat (more reliable)
+                                        val hasPermission = ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                                         
-                                        if (!currentSystemState) {
+                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 3 (Notification) Next clicked -> hasPermission: $hasPermission")
+                                        
+                                        if (!hasPermission) {
                                             // Permission not granted → Always request permission dialog
                                             AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Requesting notification permission dialog")
                                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

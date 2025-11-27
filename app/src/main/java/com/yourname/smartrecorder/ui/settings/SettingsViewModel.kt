@@ -1,6 +1,8 @@
 package com.yourname.smartrecorder.ui.settings
 
 import android.content.Context
+import android.Manifest
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.core.logging.AppLogger
@@ -67,30 +69,34 @@ class SettingsViewModel @Inject constructor(
     
     /**
      * Initialize state synchronously (called from DisposableEffect)
+     * 
+     * Theo đúng pattern Onboarding.md:
+     * - Dùng NotificationManagerCompat.areNotificationsEnabled() (system state as source of truth)
      */
     fun initializeState(context: Context) {
         val enabled = notificationPermissionManager.areNotificationsEnabled(context)
         _systemNotificationAllowed.value = enabled
-        AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "initializeState", 
-            "notificationsEnabled=$enabled")
     }
     
     /**
      * Refresh state asynchronously (called from LaunchedEffect)
+     * 
+     * Theo đúng pattern Onboarding.md (Pattern 1):
+     * - Chỉ refresh system state, không sync SettingsStore
+     * - Retry logic: repeat(3) với delay(180ms) để handle Samsung/Xiaomi delay
      */
     fun refreshState(context: Context) {
         viewModelScope.launch {
             val firstCheck = notificationPermissionManager.areNotificationsEnabled(context)
             _systemNotificationAllowed.value = firstCheck
             
-            // Retry logic for Samsung/Xiaomi delay
+            // ✅ Retry if system hasn't updated yet (handle Samsung/Xiaomi delay)
             if (!firstCheck) {
                 repeat(3) { attempt ->
                     kotlinx.coroutines.delay(180)
                     val retryState = notificationPermissionManager.areNotificationsEnabled(context)
                     if (retryState != firstCheck) {
                         _systemNotificationAllowed.value = retryState
-                        AppLogger.d(TAG_VIEWMODEL, "Notification state changed after retry: $retryState")
                         return@launch
                     }
                 }
@@ -100,41 +106,20 @@ class SettingsViewModel @Inject constructor(
     
     /**
      * Handle notification toggle change
+     * 
+     * Theo đúng pattern Onboarding.md:
+     * - Toggle ON → Request permission dialog
+     * - Toggle OFF → Cancel notifications, sync SettingsStore, open system settings
      */
-    fun onNotificationToggleChanged(wantsToEnable: Boolean, context: Context) {
+    fun onNotificationToggleChanged(wantsToEnable: Boolean) {
         viewModelScope.launch {
-            val currentSystemValue = notificationPermissionManager.areNotificationsEnabled(context)
-            val currentUiValue = _uiState.value.notificationsEnabled
+            val currentValue = _uiState.value.notificationsEnabled
             
-            AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                "wantsToEnable=$wantsToEnable, currentSystemValue=$currentSystemValue, currentUiValue=$currentUiValue")
-            
-            if (wantsToEnable) {
-                // User wants to enable notifications
-                if (!currentSystemValue) {
-                    // System permission is disabled → Request permission dialog (Android 13+)
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                            "Requesting notification permission (Android 13+)")
-                        _eventFlow.emit(SettingsEvent.RequestNotificationPermission)
-                    } else {
-                        // Android < 13: Notifications are enabled by default, just open system settings
-                        AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                            "Opening system settings (Android < 13)")
-                        _eventFlow.emit(SettingsEvent.OpenSystemSettings)
-                    }
-                } else {
-                    // System permission is already enabled, just update UI state and schedule notifications
-                    AppLogger.d(TAG_VIEWMODEL, "Notifications already enabled in system, updating UI state and scheduling")
-                    _systemNotificationAllowed.value = true
-                    settingsStore.setNotificationsEnabled(true)
-                    notificationScheduler.scheduleDailyNotifications()
-                }
-            } else {
-                // User wants to disable notifications
-                // Cancel scheduled notifications and open system settings
-                AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                    "Cancelling notifications and opening system settings")
+            if (wantsToEnable && !currentValue) {
+                // ✅ Toggle ON → Request permission dialog
+                _eventFlow.emit(SettingsEvent.RequestNotificationPermission)
+            } else if (!wantsToEnable && currentValue) {
+                // ✅ Toggle OFF → Cancel notifications, sync SettingsStore, open system settings
                 settingsStore.setNotificationsEnabled(false)
                 notificationScheduler.cancelAllNotifications()
                 _eventFlow.emit(SettingsEvent.OpenSystemSettings)
@@ -162,45 +147,19 @@ class SettingsViewModel @Inject constructor(
     
     /**
      * Schedule daily notifications (called after permission granted)
+     * 
+     * Theo đúng pattern mẫu:
+     * - Update DataStore preference
+     * - Schedule daily notifications
      */
     fun scheduleNotifications() {
         viewModelScope.launch {
             AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "scheduleNotifications", 
                 "Scheduling daily notifications")
+            settingsStore.setNotificationsEnabled(true) // Update DataStore preference
             notificationScheduler.scheduleDailyNotifications()
         }
     }
     
-    /**
-     * Handle notification permission result (called from permission launcher)
-     * 
-     * Đồng bộ theo Onboarding.md pattern:
-     * - System state là single source of truth cho UI display
-     * - SettingsStore chỉ lưu user preference (không phải system state)
-     * - Khi permission granted → update SettingsStore để sync user preference
-     */
-    fun onNotificationPermissionResult(isGranted: Boolean, context: Context) {
-        viewModelScope.launch {
-            AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationPermissionResult", 
-                "isGranted=$isGranted")
-            
-            if (isGranted) {
-                // Update system state immediately (single source of truth)
-                _systemNotificationAllowed.value = true
-                // Update SettingsStore để sync user preference (theo Onboarding.md)
-                settingsStore.setNotificationsEnabled(true)
-                // Refresh to ensure sync với system
-                refreshState(context)
-                // Schedule notifications
-                notificationScheduler.scheduleDailyNotifications()
-            } else {
-                // Permission denied - keep state as disabled
-                _systemNotificationAllowed.value = false
-                // Update SettingsStore để sync user preference
-                settingsStore.setNotificationsEnabled(false)
-                refreshState(context)
-            }
-        }
-    }
 }
 

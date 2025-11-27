@@ -1725,11 +1725,90 @@ Box(modifier = Modifier.fillMaxSize()) {
 - **Kế hoạch chi tiết:** `NOTIFICATION_PLAN.md`
 - **Trạng thái hiện tại:** `FOREGROUND_SERVICE_STATUS.md`
 
+### AdMob Integration
+- **Hướng dẫn chi tiết:** `ADMOB_INTEGRATION.md`
+- **Task list:** `todolist.md` (section: AdMob Integration)
+
 ### Testing
 - **Unit tests:** `teststatus.md`
 
 ### Architecture
 - **Kiến trúc app:** `architure.md`
+
+---
+
+## 📱 AdMob Integration (Priority: Low - Triển khai sau)
+
+### 🎯 Task ADS.1: Integrate AdMob Banner Ads
+- **Mô tả:** Tích hợp quảng cáo banner vào app
+- **AdMob App ID:** `ca-app-pub-7030881794489733~3017072817`
+- **Banner Ad Unit ID:** `ca-app-pub-7030881794489733/5332955408`
+- **Ad Unit Name:** `banner_smartrecoder`
+- **Loại:** Banner ads
+- **Files cần tạo/sửa:**
+  - `app/build.gradle.kts` - Thêm AdMob dependency
+  - `app/src/main/AndroidManifest.xml` - Thêm AdMob App ID
+  - Tạo `app/src/main/java/com/yourname/smartrecorder/ui/ads/AdMobBanner.kt`
+  - Tích hợp vào các màn hình chính (RecordScreen, LibraryScreen, StudyScreen)
+- **Cách làm:**
+  1. Add dependency: `com.google.android.gms:play-services-ads:22.6.0`
+  2. Add App ID vào AndroidManifest.xml
+  3. Tạo AdMobBanner composable
+  4. Tích hợp vào các màn hình (có thể ở bottom hoặc top)
+  5. Test với test ad unit IDs
+- **Priority:** Low (triển khai sau)
+- **Estimated Time:** 2-3 giờ
+- **Status:** ⏸️ DEFERRED
+
+### 🎯 Task ADS.2: Integrate AdMob Interstitial Ads (Full Screen)
+- **Mô tả:** Tích hợp quảng cáo full screen khi mở ứng dụng
+- **AdMob App ID:** `ca-app-pub-7030881794489733~3017072817`
+- **Interstitial Ad Unit ID:** `ca-app-pub-7030881794489733/8544731663`
+- **Ad Unit Name:** `fullads_smartrecorder`
+- **Loại:** Interstitial ads (full screen)
+- **Files cần tạo/sửa:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/ads/AdMobInterstitial.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/SmartRecorderApplication.kt` - Preload ads
+  - `app/src/main/java/com/yourname/smartrecorder/ui/SmartRecorderApp.kt` - Show ads khi mở app
+- **Cách làm:**
+  1. Tạo AdMobInterstitial manager
+  2. Preload interstitial ads khi app start
+  3. Show ads khi mở app (sau onboarding nếu có)
+  4. Show ads sau khi complete recording (optional)
+  5. Test với test ad unit IDs
+- **Priority:** Low (triển khai sau)
+- **Estimated Time:** 2-3 giờ
+- **Status:** ⏸️ DEFERRED
+
+### 📋 AdMob Configuration Details
+
+**App Information:**
+- **App Name:** Smart Recorder & Transcripts
+- **App ID:** `ca-app-pub-7030881794489733~3017072817`
+
+**Ad Units:**
+1. **Banner Ad:**
+   - Unit ID: `ca-app-pub-7030881794489733/5332955408`
+   - Unit Name: `banner_smartrecoder`
+   - Type: Banner
+   - Placement: Bottom of main screens (RecordScreen, LibraryScreen, StudyScreen)
+
+2. **Interstitial Ad:**
+   - Unit ID: `ca-app-pub-7030881794489733/8544731663`
+   - Unit Name: `fullads_smartrecorder`
+   - Type: Interstitial (Full Screen)
+   - Placement: App open, after recording completion (optional)
+
+**Implementation Notes:**
+- Sử dụng Google Mobile Ads SDK
+- Test với test ad unit IDs trước khi publish
+- Tuân thủ AdMob policies
+- Consider user experience (không quá nhiều ads)
+- Có thể thêm Premium option để remove ads
+
+**References:**
+- Google Mobile Ads SDK Documentation
+- AdMob Policies: https://support.google.com/admob/answer/6128543
 
 ---
 
@@ -1740,4 +1819,5 @@ Box(modifier = Modifier.fillMaxSize()) {
 3. Document các thay đổi
 4. Update UI/UX guide nếu cần
 5. **Triển khai Notification System** (xem NOTIFICATION_PLAN.md)
+6. **Triển khai AdMob Ads** (sau khi app stable)
 

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Alignment
@@ -26,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,12 +72,33 @@ fun SettingsScreen(
     }
     
     // Permission launcher for notifications
+    // Theo đúng pattern Onboarding.md: delay(150ms) rồi refreshState()
+    val coroutineScope = rememberCoroutineScope()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Notification permission result -> granted: %b", isGranted)
-        // Handle permission result in ViewModel
-        viewModel.onNotificationPermissionResult(isGranted, context)
+    ) { _ ->
+        // ✅ Theo pattern Onboarding.md: delay(150ms) để allow system to update
+        coroutineScope.launch {
+            delay(150) // Allow system to update
+            viewModel.refreshState(context)
+        }
+    }
+    
+    // LaunchedEffect riêng để schedule notifications sau khi permission granted
+    // Theo đúng pattern mẫu: check permission và schedule nếu granted
+    LaunchedEffect(uiState.notificationsEnabled) {
+        // Check if permission was just granted and schedule notifications
+        kotlinx.coroutines.delay(200) // Small delay to allow permission state to update
+        if (uiState.notificationsEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            
+            if (hasPermission) {
+                viewModel.scheduleNotifications()
+            }
+        }
     }
     
     // Event handler
@@ -84,17 +107,25 @@ fun SettingsScreen(
             AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Event received: ${event::class.simpleName}")
             when (event) {
                 is SettingsEvent.RequestNotificationPermission -> {
-                    AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Requesting notification permission dialog")
+                    // ✅ Theo pattern Onboarding.md: Request permission dialog (Android 13+)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        try {
+                        // Check permission trước khi launch (giống OnboardingScreen)
+                        val hasPermission = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        
+                        AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] RequestNotificationPermission -> hasPermission: $hasPermission")
+                        
+                        if (!hasPermission) {
+                            // Permission not granted → Request permission dialog
+                            AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Launching notification permission dialog")
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Permission launcher launched")
-                        } catch (e: Exception) {
-                            AppLogger.e(TAG_VIEWMODEL, "[SettingsScreen] Error launching permission launcher", e)
+                        } else {
+                            // Permission already granted → Schedule notifications
+                            AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Permission already granted, scheduling notifications")
+                            viewModel.scheduleNotifications()
                         }
-                    } else {
-                        AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Android < 13, opening system settings")
-                        viewModel.openSystemSettings(context)
                     }
                 }
                 is SettingsEvent.OpenSystemSettings -> {
@@ -149,7 +180,7 @@ fun SettingsScreen(
                 )
                 Switch(
                     checked = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onNotificationToggleChanged(it, context) }
+                    onCheckedChange = { viewModel.onNotificationToggleChanged(it) }
                 )
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
