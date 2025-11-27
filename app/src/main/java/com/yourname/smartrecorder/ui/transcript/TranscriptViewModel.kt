@@ -19,6 +19,7 @@ import com.yourname.smartrecorder.domain.usecase.ExportTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.ExtractKeywordsUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateSummaryUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateTranscriptUseCase
+import com.yourname.smartrecorder.domain.usecase.ProcessTranscriptUseCase
 import com.yourname.smartrecorder.domain.usecase.GenerateFlashcardsUseCase
 import com.yourname.smartrecorder.domain.usecase.GetBookmarksUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingDetailUseCase
@@ -55,6 +56,7 @@ data class TranscriptUiState(
     val isLoading: Boolean = false,
     val isGeneratingTranscript: Boolean = false,
     val transcriptProgress: Int = 0,
+    val isProcessingTranscript: Boolean = false,  // Background processing (speaker detection)
     val isPlaying: Boolean = false,
     val isLooping: Boolean = false,
     val currentPositionMs: Long = 0L,
@@ -81,6 +83,7 @@ class TranscriptViewModel @Inject constructor(
     private val generateSummary: GenerateSummaryUseCase,
     private val extractKeywords: ExtractKeywordsUseCase,
     private val generateTranscript: GenerateTranscriptUseCase,
+    private val processTranscript: ProcessTranscriptUseCase,
     private val exportTranscript: ExportTranscriptUseCase,
     private val getBookmarks: GetBookmarksUseCase,
     private val addBookmark: AddBookmarkUseCase,
@@ -152,6 +155,17 @@ class TranscriptViewModel @Inject constructor(
                     }
                     
                     AppLogger.d(TAG_TRANSCRIPT, "Segments updated in UI -> count: %d", segments.size)
+                    
+                    // Check if segments need processing (speaker detection)
+                    val needsProcessing = segments.isNotEmpty() && segments.any { it.speaker == null }
+                    if (needsProcessing) {
+                        AppLogger.d(TAG_TRANSCRIPT, "Segments need processing -> triggering background processing")
+                        // Wait for UI to stabilize (a few hundred ms), then start background processing
+                        launch(Dispatchers.Default) {
+                            delay(300) // Wait for UI to stabilize
+                            processTranscriptInBackground(recordingId)
+                        }
+                    }
                     
                     // Generate summary and keywords in background if segments available
                     if (segments.isNotEmpty() && !summaryGenerated) {
@@ -705,6 +719,31 @@ class TranscriptViewModel @Inject constructor(
     
     fun clearToastMessage() {
         _uiState.update { it.copy(toastMessage = null) }
+    }
+    
+    /**
+     * Process transcript in background (speaker detection, etc.)
+     * This runs after UI has stabilized to avoid blocking.
+     */
+    private suspend fun processTranscriptInBackground(recordingId: String) {
+        try {
+            AppLogger.d(TAG_TRANSCRIPT, "Starting background transcript processing -> recordingId: %s", recordingId)
+            _uiState.update { it.copy(isProcessingTranscript = true) }
+            
+            // Process transcript (speaker detection, etc.)
+            val processedSegments = processTranscript(recordingId)
+            
+            AppLogger.d(TAG_TRANSCRIPT, "Background processing completed -> segments: %d", processedSegments.size)
+            
+            // Update UI state - segments will be updated via Flow automatically
+            _uiState.update { it.copy(isProcessingTranscript = false) }
+            
+            AppLogger.logMain(TAG_TRANSCRIPT, "Transcript processing completed -> recordingId: %s", recordingId)
+        } catch (e: Exception) {
+            AppLogger.e(TAG_TRANSCRIPT, "Background transcript processing failed", e)
+            _uiState.update { it.copy(isProcessingTranscript = false) }
+            // Don't show error to user - raw segments are still usable
+        }
     }
     
     override fun onCleared() {

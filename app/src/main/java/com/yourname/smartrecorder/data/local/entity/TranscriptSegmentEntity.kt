@@ -27,6 +27,7 @@ data class TranscriptSegmentEntity(
     val startTimeMs: Long,
     val endTimeMs: Long,
     val text: String,
-    val isQuestion: Boolean = false
+    val isQuestion: Boolean = false,
+    val speaker: Int? = null  // Speaker number (1, 2, 3, ...), null if not processed yet
 )
 

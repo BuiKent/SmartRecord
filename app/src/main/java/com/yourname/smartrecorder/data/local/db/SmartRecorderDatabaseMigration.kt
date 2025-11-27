@@ -78,5 +78,31 @@ object SmartRecorderDatabaseMigration {
             MIGRATION_2_3.migrate(db)
         }
     }
+    
+    /**
+     * Migration from version 3 to 4: Add speaker field to transcript_segments table
+     */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                ALTER TABLE transcript_segments 
+                ADD COLUMN speaker INTEGER
+            """)
+        }
+    }
+    
+    /**
+     * Migration from version 1 to 4: Combined migration for new installations
+     */
+    val MIGRATION_1_4 = object : Migration(1, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Apply migration 1->2
+            MIGRATION_1_2.migrate(db)
+            // Apply migration 2->3
+            MIGRATION_2_3.migrate(db)
+            // Apply migration 3->4
+            MIGRATION_3_4.migrate(db)
+        }
+    }
 }
 

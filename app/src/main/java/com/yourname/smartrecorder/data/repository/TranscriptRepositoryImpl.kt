@@ -62,6 +62,21 @@ class TranscriptRepositoryImpl @Inject constructor(
             "segmentId=${segment.id}")
     }
     
+    override suspend fun updateTranscriptSegments(
+        recordingId: String,
+        segments: List<TranscriptSegment>
+    ) {
+        val startTime = System.currentTimeMillis()
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE", "transcript_segments", 
+            "recordingId=$recordingId, count=${segments.size}")
+        
+        transcriptDao.updateSegments(segments.map { it.toEntity() })
+        
+        val duration = System.currentTimeMillis() - startTime
+        AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE_COMPLETE", "transcript_segments", 
+            "recordingId=$recordingId, count=${segments.size}, duration=${duration}ms")
+    }
+    
     override fun getQuestions(recordingId: String): Flow<List<TranscriptSegment>> {
         AppLogger.logFlow(TAG_REPOSITORY, "getQuestions", "Subscribed", "recordingId=$recordingId")
         return transcriptDao.getQuestions(recordingId).map { entities ->
@@ -116,7 +131,8 @@ class TranscriptRepositoryImpl @Inject constructor(
             startTimeMs = startTimeMs,
             endTimeMs = endTimeMs,
             text = text,
-            isQuestion = isQuestion
+            isQuestion = isQuestion,
+            speaker = speaker  // Include speaker field
         )
     }
     
@@ -128,7 +144,7 @@ class TranscriptRepositoryImpl @Inject constructor(
             endTimeMs = endTimeMs,
             text = text,
             isQuestion = isQuestion,
-            speaker = null  // Speaker not stored in DB, will be recalculated when needed
+            speaker = speaker  // Read speaker from entity
         )
     }
 }

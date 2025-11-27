@@ -57,7 +57,9 @@ object AppModule {
             .addMigrations(
                 SmartRecorderDatabaseMigration.MIGRATION_1_2,
                 SmartRecorderDatabaseMigration.MIGRATION_2_3,
-                SmartRecorderDatabaseMigration.MIGRATION_1_3
+                SmartRecorderDatabaseMigration.MIGRATION_1_3,
+                SmartRecorderDatabaseMigration.MIGRATION_3_4,
+                SmartRecorderDatabaseMigration.MIGRATION_1_4
             )
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true) // For development only - remove in production
             .build()

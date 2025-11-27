@@ -27,7 +27,7 @@ import com.yourname.smartrecorder.data.local.entity.TranscriptSegmentFtsEntity
         BookmarkEntity::class,
         FlashcardEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class SmartRecorderDatabase : RoomDatabase() {

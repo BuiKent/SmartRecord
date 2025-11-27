@@ -21,6 +21,9 @@ interface TranscriptDao {
     @Update
     suspend fun updateSegment(segment: TranscriptSegmentEntity)
     
+    @Update
+    suspend fun updateSegments(segments: List<TranscriptSegmentEntity>)
+    
     @Query("DELETE FROM transcript_segments WHERE recordingId = :recordingId")
     suspend fun deleteSegmentsByRecordingId(recordingId: String)
     

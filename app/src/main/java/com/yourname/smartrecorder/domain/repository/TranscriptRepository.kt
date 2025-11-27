@@ -12,6 +12,7 @@ interface TranscriptRepository {
     suspend fun getTranscriptSegmentsSync(recordingId: String): List<TranscriptSegment>
     suspend fun deleteSegmentsByRecordingId(recordingId: String)
     suspend fun updateSegment(segment: TranscriptSegment)
+    suspend fun updateTranscriptSegments(recordingId: String, segments: List<TranscriptSegment>)
     fun getQuestions(recordingId: String): Flow<List<TranscriptSegment>>
     
     // FTS search methods

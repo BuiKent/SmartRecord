@@ -76,7 +76,7 @@ class GenerateTranscriptUseCase @Inject constructor(
                 progressLogger.logProgress(progress)
             }
             
-            // Convert WhisperEngine.WhisperSegment to TranscriptSegment
+            // Convert WhisperEngine.WhisperSegment to TranscriptSegment (RAW - no speaker processing)
             val rawSegments = whisperSegments.mapIndexed { index, whisperSegment ->
                 TranscriptSegment(
                     id = index.toLong(),
@@ -84,18 +84,19 @@ class GenerateTranscriptUseCase @Inject constructor(
                     startTimeMs = (whisperSegment.start * 1000).toLong(),
                     endTimeMs = (whisperSegment.end * 1000).toLong(),
                     text = whisperSegment.text,
-                    isQuestion = whisperSegment.text.trim().endsWith("?")
+                    isQuestion = whisperSegment.text.trim().endsWith("?"),
+                    speaker = null  // Not processed yet - will be processed in background
                 )
             }
-            
-            // Apply speaker detection
-            val segments = detectSpeakers(rawSegments)
         
-            AppLogger.d(TAG_TRANSCRIPT, "Generated %d transcript segments with speaker detection", segments.size)
+            AppLogger.d(TAG_TRANSCRIPT, "Generated %d RAW transcript segments (no speaker processing)", rawSegments.size)
             
-            // Save to repository
-            AppLogger.d(TAG_TRANSCRIPT, "Saving transcript segments to database")
-            transcriptRepository.saveTranscriptSegments(recording.id, segments)
+            // Save RAW segments to repository immediately (fast - no processing)
+            AppLogger.d(TAG_TRANSCRIPT, "Saving RAW transcript segments to database (fast path)")
+            transcriptRepository.saveTranscriptSegments(recording.id, rawSegments)
+            
+            // Return raw segments (speaker processing will happen in background later)
+            val segments = rawSegments
             
             onProgress(100)
             

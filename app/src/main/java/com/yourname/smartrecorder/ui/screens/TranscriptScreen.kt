@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -291,6 +292,7 @@ fun TranscriptScreen(
                         // Floating action buttons at bottom right
                         FloatingActionButtons(
                             showSpeakerMode = showSpeakerMode,
+                            isProcessing = uiState.isProcessingTranscript,
                             onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
                             onCopyClick = {
                                 val exportedText = if (showSpeakerMode) {
@@ -950,6 +952,7 @@ private fun SummaryTabContent(
 @Composable
 private fun FloatingActionButtons(
     showSpeakerMode: Boolean,
+    isProcessing: Boolean = false,
     onToggleSpeakerMode: () -> Unit,
     onCopyClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -977,15 +980,17 @@ private fun FloatingActionButtons(
         
         // Subtitle/Timeline button (when not in speaker mode) or People button (when in speaker mode)
         FloatingActionButton(
-            onClick = onToggleSpeakerMode,
-            modifier = Modifier.size(56.dp),
+            onClick = { if (!isProcessing) onToggleSpeakerMode() },
+            modifier = Modifier
+                .size(56.dp)
+                .alpha(if (isProcessing) 0.5f else 1f),  // Visual feedback when disabled
             shape = CircleShape,
             containerColor = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
             contentColor = if (showSpeakerMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
         ) {
             Icon(
                 imageVector = if (showSpeakerMode) Icons.Default.Person else Icons.Default.Subtitles,
-                contentDescription = if (showSpeakerMode) "Show timeline" else "Show speakers",
+                contentDescription = if (showSpeakerMode) "Show timeline" else if (isProcessing) "Processing transcript..." else "Show speakers",
                 modifier = Modifier.size(24.dp)
             )
         }
