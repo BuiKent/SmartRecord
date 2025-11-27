@@ -119,10 +119,9 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ## 🐛 Bug Fixes & Rare Conditions (Priority: Critical)
 
-### 🎯 Task BUG.0: Notification Suppressed - User Disabled Notifications
+### 🎯 Task BUG.0: Notification Suppressed - User Disabled Notifications ✅ COMPLETED
 - **File:** 
-  - `app/src/main/java/com/yourname/smartrecorder/core/service/RecordingForegroundService.kt`
-  - `app/src/main/java/com/yourname/smartrecorder/core/service/PlaybackForegroundService.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/core/service/ForegroundServiceManager.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsScreen.kt`
 - **Vấn đề:** 
   - User đã tắt notifications trong system settings
@@ -145,7 +144,13 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   4. **Guide user** để enable notifications trong Settings screen
 - **Priority:** High
 - **Estimated Time:** 2-3 giờ
-- **Status:** Pending
+- **Status:** ✅ COMPLETED
+  - ✅ Check notification permission trong `ForegroundServiceManager.startRecordingService()` và `startPlaybackService()`
+  - ✅ Show Toast warning khi notifications bị tắt và user cố start service
+  - ✅ Show warning card trong Settings screen khi notifications disabled
+  - ✅ Warning card hướng dẫn user enable notifications
+  - ✅ Logging đầy đủ cho rare conditions
+  - ✅ Service vẫn hoạt động ngay cả khi notifications bị tắt (chỉ notification bị suppress)
 
 ### 🎯 Task BUG.0.1: UI State Not Synced với Recording State
 - **File:** 

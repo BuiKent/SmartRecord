@@ -2,6 +2,8 @@ package com.yourname.smartrecorder.core.service
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
@@ -19,13 +21,28 @@ class ForegroundServiceManager @Inject constructor(
 ) {
     
     fun startRecordingService(recordingId: String, fileName: String) {
+        // Check notification permission before starting service
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            AppLogger.logRareCondition(TAG_SERVICE, 
+                "Cannot start recording service - notifications disabled", 
+                "recordingId=$recordingId")
+            // Show warning toast
+            Toast.makeText(
+                context,
+                "Notifications are disabled. Recording status won't be visible in background. Please enable notifications in Settings.",
+                Toast.LENGTH_LONG
+            ).show()
+            // Still start service - it will work but notification will be suppressed
+            // This allows recording to continue even if notifications are disabled
+        }
+        
         val intent = RecordingForegroundService.createIntent(context).apply {
             putExtra("recordingId", recordingId)
             putExtra("fileName", fileName)
         }
         ContextCompat.startForegroundService(context, intent)
         AppLogger.logCritical(TAG_SERVICE, "Recording foreground service started", 
-            "recordingId=$recordingId, fileName=$fileName")
+            "recordingId=$recordingId, fileName=$fileName, notificationsEnabled=${NotificationManagerCompat.from(context).areNotificationsEnabled()}")
     }
     
     fun stopRecordingService() {
@@ -43,13 +60,27 @@ class ForegroundServiceManager @Inject constructor(
     }
     
     fun startPlaybackService(title: String, duration: Long) {
+        // Check notification permission before starting service
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            AppLogger.logRareCondition(TAG_SERVICE, 
+                "Cannot start playback service - notifications disabled", 
+                "title=$title")
+            // Show warning toast
+            Toast.makeText(
+                context,
+                "Notifications are disabled. Playback status won't be visible in background. Please enable notifications in Settings.",
+                Toast.LENGTH_LONG
+            ).show()
+            // Still start service - it will work but notification will be suppressed
+        }
+        
         val intent = PlaybackForegroundService.createIntent(context).apply {
             putExtra("title", title)
             putExtra("duration", duration)
         }
         ContextCompat.startForegroundService(context, intent)
         AppLogger.logCritical(TAG_SERVICE, "Playback foreground service started", 
-            "title=$title, duration=${duration}ms")
+            "title=$title, duration=${duration}ms, notificationsEnabled=${NotificationManagerCompat.from(context).areNotificationsEnabled()}")
     }
     
     fun stopPlaybackService() {
