@@ -77,6 +77,10 @@ fun SettingsScreen(
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
             delay(150) // Allow system to update
             viewModel.refreshState(context)
+            // If granted, schedule notifications
+            if (isGranted) {
+                viewModel.scheduleNotifications()
+            }
         }
     }
     

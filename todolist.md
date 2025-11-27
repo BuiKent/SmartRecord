@@ -1583,15 +1583,17 @@ Box(modifier = Modifier.fillMaxSize()) {
   - [ ] Cải thiện media controls (Play/Pause, Stop)
   - [ ] Test media controls từ notification và lock screen
 
-### Phase 2: App Content Notifications
-- [ ] Tạo `NotificationChannelManager.kt` (3 channels: recording, playback, app_content)
-- [ ] Tạo `NotificationContent.kt` với messages phù hợp Smart Recorder
-- [ ] Tạo `NotificationDeepLinkHandler.kt` với routes (record, library, transcript, settings)
-- [ ] Tạo `AppNotificationManager.kt` cho app content notifications
-- [ ] Tạo `NotificationFrequencyCap.kt` (max 3/ngày, min 4h interval)
-- [ ] Tạo `NotificationScheduler.kt` với WorkManager
-- [ ] Tạo `NotificationWorker.kt` cho background scheduling
-- [ ] Cấu hình Hilt WorkManager trong `AppModule.kt` và `SmartRecorderApplication.kt`
+### Phase 2: App Content Notifications ✅ COMPLETED
+- [x] Tạo `NotificationChannelManager.kt` (3 channels: recording, playback, app_content) ✅
+- [x] Tạo `NotificationContent.kt` với messages phù hợp Smart Recorder ✅
+- [x] Tạo `NotificationDeepLinkHandler.kt` với routes (record, library, transcript, settings) ✅
+- [x] Tạo `AppNotificationManager.kt` cho app content notifications ✅
+- [x] Tạo `NotificationFrequencyCap.kt` (max 3/ngày, min 4h interval) ✅
+- [x] Tạo `NotificationScheduler.kt` với WorkManager ✅
+- [x] Tạo `NotificationWorker.kt` cho background scheduling ✅
+- [x] Cấu hình Hilt WorkManager trong `AppModule.kt` và `SmartRecorderApplication.kt` ✅
+- [x] Update SettingsViewModel để schedule/cancel notifications khi toggle ✅
+- [x] Handle deep links trong MainActivity và SmartRecorderApp ✅
 
 ### Phase 3: UI Integration
 - [x] Thêm notification toggle vào `SettingsScreen.kt` ✅ COMPLETED

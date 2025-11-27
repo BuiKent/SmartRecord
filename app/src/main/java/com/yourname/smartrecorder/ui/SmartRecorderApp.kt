@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -87,6 +88,40 @@ private fun MainAppContent() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("/") 
         ?: AppRoutes.RECORD
+    val context = LocalContext.current
+
+    // Handle deep link from notification
+    LaunchedEffect(Unit) {
+        val activity = context as? android.app.Activity
+        val route = activity?.intent?.getStringExtra("notification_route")
+        if (route != null) {
+            // Clear the extra to avoid re-navigation
+            activity.intent.removeExtra("notification_route")
+            // Navigate to the route
+            when (route) {
+                AppRoutes.RECORD -> navController.navigate(AppRoutes.RECORD) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                AppRoutes.LIBRARY -> navController.navigate(AppRoutes.LIBRARY) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                AppRoutes.STUDY -> navController.navigate(AppRoutes.STUDY) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                AppRoutes.REALTIME_TRANSCRIPT -> navController.navigate(AppRoutes.REALTIME_TRANSCRIPT) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

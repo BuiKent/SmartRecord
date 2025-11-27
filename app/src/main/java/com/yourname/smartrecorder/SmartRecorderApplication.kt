@@ -26,7 +26,6 @@ class SmartRecorderApplication : Application() {
         AppLogger.d(TAG_TRANSCRIPT, "SmartRecorderApplication onCreate")
         
         // Initialize model download in background after Hilt injection
-        // Use post to ensure Hilt has initialized
         applicationScope.launch {
             // Small delay to ensure Hilt injection is complete
             kotlinx.coroutines.delay(100)

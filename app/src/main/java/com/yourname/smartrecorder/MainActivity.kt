@@ -1,5 +1,6 @@
 package com.yourname.smartrecorder
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +20,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        // Handle deep link from notification
+        handleNotificationDeepLink(intent)
+        
         setContent {
             AppTheme {
                 Surface(
@@ -29,6 +33,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationDeepLink(intent)
+    }
+    
+    private fun handleNotificationDeepLink(intent: Intent?) {
+        val route = intent?.getStringExtra("notification_route") ?: return
+        // Route will be handled by SmartRecorderApp navigation
+        // The route is passed via intent extra and can be accessed in SmartRecorderApp
     }
 }
 

@@ -31,6 +31,7 @@ import com.yourname.smartrecorder.domain.repository.FlashcardRepository
 import com.yourname.smartrecorder.domain.repository.NoteRepository
 import com.yourname.smartrecorder.domain.repository.RecordingRepository
 import com.yourname.smartrecorder.domain.repository.TranscriptRepository
+import androidx.work.WorkManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -178,6 +179,12 @@ object AppModule {
         engine: WhisperEngine
     ): WhisperAudioTranscriber {
         return WhisperAudioTranscriber(context, converter, modelProvider, modelManager, engine)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
+        return WorkManager.getInstance(context)
     }
 }
 

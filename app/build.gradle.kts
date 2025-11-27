@@ -150,6 +150,11 @@ dependencies {
     // DataStore Preferences
     implementation("androidx.datastore:datastore-preferences:1.1.2")
     
+    // WorkManager for scheduled notifications
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
+    
     // Testing
     testImplementation(libs.junit)
     testImplementation("org.mockito:mockito-core:5.11.0")

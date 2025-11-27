@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import com.yourname.smartrecorder.core.notification.NotificationScheduler
 import com.yourname.smartrecorder.core.permissions.NotificationPermissionManager
 import com.yourname.smartrecorder.data.preferences.SettingsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +26,8 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
-    private val notificationPermissionManager: NotificationPermissionManager
+    private val notificationPermissionManager: NotificationPermissionManager,
+    private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -121,15 +123,19 @@ class SettingsViewModel @Inject constructor(
                         _eventFlow.emit(SettingsEvent.OpenSystemSettings)
                     }
                 } else {
-                    // System permission is already enabled, just update UI state
-                    AppLogger.d(TAG_VIEWMODEL, "Notifications already enabled in system, updating UI state")
+                    // System permission is already enabled, just update UI state and schedule notifications
+                    AppLogger.d(TAG_VIEWMODEL, "Notifications already enabled in system, updating UI state and scheduling")
                     _systemNotificationAllowed.value = true
+                    settingsStore.setNotificationsEnabled(true)
+                    notificationScheduler.scheduleDailyNotifications()
                 }
             } else {
                 // User wants to disable notifications
-                // Permission dialog cannot disable, must open system settings
+                // Cancel scheduled notifications and open system settings
                 AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                    "Opening system settings to disable notifications")
+                    "Cancelling notifications and opening system settings")
+                settingsStore.setNotificationsEnabled(false)
+                notificationScheduler.cancelAllNotifications()
                 _eventFlow.emit(SettingsEvent.OpenSystemSettings)
             }
         }
@@ -151,6 +157,17 @@ class SettingsViewModel @Inject constructor(
      */
     fun openSystemSettings(context: Context) {
         notificationPermissionManager.openSystemSettings(context)
+    }
+    
+    /**
+     * Schedule daily notifications (called after permission granted)
+     */
+    fun scheduleNotifications() {
+        viewModelScope.launch {
+            AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "scheduleNotifications", 
+                "Scheduling daily notifications")
+            notificationScheduler.scheduleDailyNotifications()
+        }
     }
 }
 
