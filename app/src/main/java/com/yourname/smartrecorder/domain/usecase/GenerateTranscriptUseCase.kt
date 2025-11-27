@@ -14,81 +14,28 @@ import java.io.File
 import javax.inject.Inject
 
 /**
- * Detect speakers in transcript segments using question-based and time-gap heuristics.
- * Similar logic to WhisperPostProcessor.processWithTimestamps() but works with TranscriptSegment.
+ * Detect speakers in transcript segments based on "Speaker one/two/three..." markers.
+ * This replaces heuristic-based detection with marker-based detection for accuracy.
  */
 private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSegment> {
     if (segments.isEmpty()) return segments
     
-    val speakerAssignments = mutableListOf<Int>()
-    var currentSpeaker = 1
-    var lastEndTime = 0L
+    // Step 1: Log raw Whisper segments
+    SpeakerSegmentationHelper.logWhisperRaw(segments)
     
-    segments.forEachIndexed { index, segment ->
-        val isQuestion = segment.isQuestion || segment.text.trim().endsWith("?")
-        val prevSegment = segments.getOrNull(index - 1)
-        val prevIsQuestion = prevSegment?.isQuestion ?: false
-        
-        // Check if current segment or previous segment ends with comma - never break speaker after comma
-        val endsWithComma = segment.text.trim().endsWith(",") || segment.text.trim().endsWith("，")
-        val prevEndsWithComma = prevSegment?.text?.trim()?.endsWith(",") == true || 
-                                 prevSegment?.text?.trim()?.endsWith("，") == true
-        
-        // Calculate time gap (silence) in seconds
-        val silenceGap = if (index > 0) {
-            (segment.startTimeMs - lastEndTime) / 1000.0
-        } else {
-            0.0
-        }
-        val isLongPause = silenceGap > 1.5
-        val isMediumPause = silenceGap > 0.8  // Reduced threshold for better detection
-        
-        // Logic: Priority 1 = question mark, Priority 2 = time gap
-        // BUT: Never change speaker if current or previous segment ends with comma
-        var shouldChangeSpeaker = false
-        
-        if (endsWithComma || prevEndsWithComma) {
-            // Never change speaker after comma - keep same speaker
-            shouldChangeSpeaker = false
-        } else if (isQuestion) {
-            // Priority 1: Question → change speaker
-            shouldChangeSpeaker = true
-        } else if (isLongPause && !prevIsQuestion) {
-            // Priority 2: Time gap > 1.5s (only if not after question)
-            shouldChangeSpeaker = true
-        } else if (isMediumPause && !prevIsQuestion && index > 0) {
-            // Priority 3: Time gap > 0.8s (improved detection for conversations)
-            shouldChangeSpeaker = true
-        } else if (prevIsQuestion && !isQuestion) {
-            // After question, next sentence is not question → back to speaker 1
-            shouldChangeSpeaker = true
-        }
-        
-        // Change speaker if needed
-        if (shouldChangeSpeaker && index > 0) {
-            currentSpeaker = if (currentSpeaker == 1) 2 else 1
-            AppLogger.d(TAG_TRANSCRIPT, "Speaker changed -> segment %d: Speaker %d (reason: %s, gap: %.2fs)", 
-                index, currentSpeaker, 
-                when {
-                    isQuestion -> "question"
-                    isLongPause -> "long pause"
-                    isMediumPause -> "medium pause"
-                    prevIsQuestion -> "after question"
-                    else -> "unknown"
-                },
-                silenceGap
-            )
-        }
-        
-        speakerAssignments.add(currentSpeaker)
-        lastEndTime = segment.endTimeMs
-    }
+    // Step 2: Detect "Speaker X" markers in transcript
+    val markers = SpeakerSegmentationHelper.detectSpeakerMarkers(segments)
+    SpeakerSegmentationHelper.logSpeakerMarkers(markers)
     
-    // Always assign speaker labels (even for single speaker, assign "Speaker 1")
-    // This ensures consistent display in People mode
-    return segments.mapIndexed { index, segment ->
-        segment.copy(speaker = speakerAssignments[index])
-    }
+    // Step 3: Build speaker blocks from markers
+    val blocks = SpeakerSegmentationHelper.buildSpeakerBlocks(segments, markers)
+    SpeakerSegmentationHelper.logSpeakerBlocks(blocks)
+    
+    // Step 4: Assign speakers to original segments based on blocks
+    val segmentsWithSpeakers = SpeakerSegmentationHelper.assignSpeakersToSegments(segments, blocks)
+    SpeakerSegmentationHelper.logFinalSegments(segmentsWithSpeakers)
+    
+    return segmentsWithSpeakers
 }
 
 /**
