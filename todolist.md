@@ -53,7 +53,7 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 - **Estimated Time:** 30 phút
 - **User Feedback:** "Các icon floating ở transcript screen cũng thế --> bo tròn lại cho tôi"
 
-### 🎯 Task UI.3: Chuyển nền tươi sáng, đẹp đẽ hơn
+### 🎯 Task UI.3: Chuyển nền tươi sáng, đẹp đẽ hơn ✅ COMPLETED
 - **Files:** 
   - `app/src/main/java/com/yourname/smartrecorder/ui/theme/Color.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/theme/Theme.kt`
@@ -69,6 +69,13 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 - **Priority:** High
 - **Estimated Time:** 1-2 giờ
 - **User Feedback:** "Chuyển nền tươi sáng, đẹp đẽ hơn"
+- **Status:** ✅ COMPLETED
+  - Background: `0xFFFFFBFE` → `0xFFFAFBFF` (trắng xanh nhạt, tươi sáng)
+  - Surface: `0xFFFFFBFE` → `0xFFFFFFFF` (trắng tinh khiết)
+  - Primary: `0xFF6750A4` → `0xFF6366F1` (indigo, tươi sáng hơn)
+  - SurfaceVariant: `0xFFE7E0EC` → `0xFFF1F5F9` (xanh xám nhạt, tươi sáng)
+  - Tăng contrast: OnSurface và OnBackground đều tối hơn (`0xFF0F172A`) để dễ đọc
+  - Dark mode: Cập nhật tương ứng với màu indigo và background tối hơn
 
 ### 🎯 Task UI.4: Sửa logic màu cho Card Transcribing/Uploading
 - **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
