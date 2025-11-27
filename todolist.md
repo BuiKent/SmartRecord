@@ -40,7 +40,7 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - Đã bo tròn tất cả OutlinedTextField với `RoundedCornerShape(12.dp)`
   - Áp dụng cho: RecordingCard, LibraryScreen, TranscriptScreen, RecordScreen, StudyScreen
 
-### 🎯 Task UI.2: Bo tròn Floating Action Buttons ở Transcript Screen
+### 🎯 Task UI.2: Bo tròn Floating Action Buttons ở Transcript Screen ✅ COMPLETED
 - **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
 - **Mô tả:** 
   - Bo tròn các floating action buttons (Copy, Subtitle, People)
@@ -52,6 +52,8 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 - **Priority:** High
 - **Estimated Time:** 30 phút
 - **User Feedback:** "Các icon floating ở transcript screen cũng thế --> bo tròn lại cho tôi"
+- **Status:** ✅ COMPLETED
+  - Đã thêm `shape = CircleShape` cho tất cả FloatingActionButtons (Copy, Subtitle, People)
 
 ### 🎯 Task UI.3: Chuyển nền tươi sáng, đẹp đẽ hơn ✅ COMPLETED
 - **Files:** 
@@ -77,7 +79,7 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - Tăng contrast: OnSurface và OnBackground đều tối hơn (`0xFF0F172A`) để dễ đọc
   - Dark mode: Cập nhật tương ứng với màu indigo và background tối hơn
 
-### 🎯 Task UI.4: Sửa logic màu cho Card Transcribing/Uploading
+### 🎯 Task UI.4: Sửa logic màu cho Card Transcribing/Uploading ✅ COMPLETED
 - **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
 - **Mô tả:** 
   - Thay đổi logic màu từ pha loãng (interpolation) sang fill theo progress
@@ -98,8 +100,11 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - "Ko phải màu bị pha loãng, đậm như này mà là theo kiểu upload xong và bắt đầu thì thanh đó toàn màu đỏ"
   - "Khi tiến trình xong được 33,3333% thì 1/3 thanh đầu sẽ xanh, còn lại đỏ, có ranh giới"
   - "% xong tới đâu thì màu xanh fill, chiếm diện tích màu đỏ tới đó"
+- **Status:** ✅ COMPLETED
+  - Đã sử dụng `Box` với 2 `Box` con: red background (full width) và blue fill (fillMaxWidth(progress))
+  - Logic fill từ trái sang phải với ranh giới rõ ràng
 
-### 🎯 Task UI.5: Bo tròn và căn giữa text cho Cards ở Record Screen
+### 🎯 Task UI.5: Bo tròn và căn giữa text cho Cards ở Record Screen ✅ COMPLETED
 - **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
 - **Mô tả:** 
   - Bo tròn các card "Upload audio file" và "Live Transcribe"
@@ -114,6 +119,9 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 - **User Feedback:** 
   - "Mấy card ở floating ở màn hình record này cũng đang chưa bo tròn"
   - "Chữ Upload audio file và Live transcribe chưa căn giữa card"
+- **Status:** ✅ COMPLETED
+  - Đã thêm `shape = RoundedCornerShape(16.dp)` cho cả 2 cards
+  - Đã sử dụng `Arrangement.Center` và `TextAlign.Center` để căn giữa text
 
 ---
 
@@ -152,7 +160,7 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - ✅ Logging đầy đủ cho rare conditions
   - ✅ Service vẫn hoạt động ngay cả khi notifications bị tắt (chỉ notification bị suppress)
 
-### 🎯 Task BUG.0.1: UI State Not Synced với Recording State
+### 🎯 Task BUG.0.1: UI State Not Synced với Recording State ✅ COMPLETED
 - **File:** 
   - `app/src/main/java/com/yourname/smartrecorder/ui/record/RecordViewModel.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
@@ -176,9 +184,11 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   4. **Add state validation** trong tất cả recording actions
 - **Priority:** Medium
 - **Estimated Time:** 1 giờ
-- **Status:** Pending
+- **Status:** ✅ COMPLETED
+  - Đã thêm validation trong `onStopClick()` và `onPauseClick()` trong RecordViewModel
+  - Đã disable buttons (Bookmark, Pause/Resume, Stop) khi `hasActiveRecording` là false trong RecordScreen
 
-### 🎯 Task BUG.0.2: Enable OnBackInvokedCallback trong Manifest
+### 🎯 Task BUG.0.2: Enable OnBackInvokedCallback trong Manifest ✅ COMPLETED
 - **File:** 
   - `app/src/main/AndroidManifest.xml`
 - **Vấn đề:** 
@@ -190,7 +200,8 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   2. Test back navigation behavior
 - **Priority:** Low
 - **Estimated Time:** 5 phút
-- **Status:** Pending
+- **Status:** ✅ COMPLETED
+  - Đã thêm `android:enableOnBackInvokedCallback="true"` vào `<application>` tag trong AndroidManifest.xml
 
 ### 🎯 Task BUG.1: Fix Recording State Stuck khi ViewModel Cleared ✅ COMPLETED
 - **Files:** 
