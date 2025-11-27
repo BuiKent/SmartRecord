@@ -74,21 +74,20 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - `app/src/main/java/com/yourname/smartrecorder/ui/transcript/TranscriptViewModel.kt`
 - **Status:** ✅ COMPLETED
 
-### 🎯 Task CRITICAL.5: Transcript Screen - Speaker Labels trong People Mode ⚠️ PENDING
+### 🎯 Task CRITICAL.5: Transcript Screen - Speaker Labels trong People Mode ✅ COMPLETED
 - **Vấn đề:** Trong màn hình transcript khi chuyển qua tab People thì đang hiện "unknown speaker" thay vì "Speaker 1", "Speaker 2". Logic copy/paste đã đúng (có hiện speaker 1, 2) nhưng hiển thị trong tab chưa đúng.
 - **Chi tiết:**
   - Code hiện tại: `if (segment.speaker != null) "Speaker ${segment.speaker}:" else "Unknown Speaker:"`
   - Vấn đề: `segment.speaker` có thể null hoặc không được detect đúng
-  - Cần check logic detect speakers trong `GenerateTranscriptUseCase`
-- **Cách làm:**
-  1. Check `GenerateTranscriptUseCase` - verify `detectSpeakers()` có được gọi không
-  2. Verify segments có `speaker` field được set đúng không
-  3. Nếu speaker null → cần fallback logic (ví dụ: assign "Speaker 1", "Speaker 2" dựa trên segment order)
-  4. Test với audio có nhiều người nói
+  - `detectSpeakers()` chỉ assign speaker nếu có multiple speakers detected
+- **Giải pháp:**
+  1. ✅ Sửa UI: Fallback "Speaker 1" khi `segment.speaker == null` thay vì "Unknown Speaker"
+  2. ✅ Sửa `detectSpeakers()`: Luôn assign speaker labels (kể cả khi chỉ có 1 speaker)
+  3. ✅ Đảm bảo tất cả segments đều có speaker label (Speaker 1, Speaker 2, ...)
 - **Files:**
-  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt` (line 544-550)
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
   - `app/src/main/java/com/yourname/smartrecorder/domain/usecase/GenerateTranscriptUseCase.kt`
-- **Status:** ⚠️ PENDING
+- **Status:** ✅ COMPLETED
 
 ### 🎯 Task CRITICAL.6: Bookmark - Giải thích và Hiển thị ⚠️ PENDING
 - **Vấn đề:** 

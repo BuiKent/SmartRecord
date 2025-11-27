@@ -560,13 +560,10 @@ private fun TranscriptLineItem(
         ) {
             // Show speaker label if showSpeaker is true, otherwise show timeline
             if (showSpeaker) {
-                // Show speaker label (even if null, show "Unknown Speaker")
+                // Show speaker label - fallback to "Speaker 1" if null
+                // This ensures consistent display even when detectSpeakers() doesn't detect multiple speakers
                 Text(
-                    text = if (segment.speaker != null) {
-                        "Speaker ${segment.speaker}:"
-                    } else {
-                        "Unknown Speaker:"
-                    },
+                    text = "Speaker ${segment.speaker ?: 1}:",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold

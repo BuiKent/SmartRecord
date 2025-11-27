@@ -29,6 +29,9 @@ private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSe
         val prevSegment = segments.getOrNull(index - 1)
         val prevIsQuestion = prevSegment?.isQuestion ?: false
         
+        // Check if segment ends with comma - never break speaker after comma
+        val endsWithComma = segment.text.trim().endsWith(",") || segment.text.trim().endsWith("，")
+        
         // Calculate time gap (silence) in seconds
         val silenceGap = if (index > 0) {
             (segment.startTimeMs - lastEndTime) / 1000.0
@@ -38,9 +41,13 @@ private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSe
         val isLongPause = silenceGap > 1.5
         
         // Logic: Priority 1 = question mark, Priority 2 = time gap
+        // BUT: Never change speaker if segment ends with comma
         var shouldChangeSpeaker = false
         
-        if (isQuestion) {
+        if (endsWithComma) {
+            // Never change speaker after comma - keep same speaker
+            shouldChangeSpeaker = false
+        } else if (isQuestion) {
             // Priority 1: Question → change speaker
             shouldChangeSpeaker = true
         } else if (isLongPause && !prevIsQuestion) {
@@ -60,18 +67,10 @@ private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSe
         lastEndTime = segment.endTimeMs
     }
     
-    // Check if we have multiple speakers
-    val uniqueSpeakers = speakerAssignments.distinct()
-    val hasMultipleSpeakers = uniqueSpeakers.size > 1
-    
-    // Return segments with speaker info (only if multiple speakers detected)
-    return if (hasMultipleSpeakers) {
-        segments.mapIndexed { index, segment ->
-            segment.copy(speaker = speakerAssignments[index])
-        }
-    } else {
-        // Single speaker - no speaker labels needed
-        segments
+    // Always assign speaker labels (even for single speaker, assign "Speaker 1")
+    // This ensures consistent display in People mode
+    return segments.mapIndexed { index, segment ->
+        segment.copy(speaker = speakerAssignments[index])
     }
 }
 

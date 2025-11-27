@@ -121,37 +121,7 @@ fun OnboardingScreen(
         notificationPermissionDialogShown = false
     }
     
-    // Auto-launch notification permission dialog when Page 3 is shown
-    LaunchedEffect(currentPage) {
-        if (currentPage == 3 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Check if permission already granted
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            
-            if (!hasPermission) {
-                // Không cần check gì, cứ gọi system permission dialog lên
-                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 3 shown - auto-launching notification permission dialog")
-                notificationPermissionDialogShown = true // Mark that we're attempting to show dialog
-                kotlinx.coroutines.delay(300) // Small delay để page animation hoàn tất
-                try {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission dialog launched automatically")
-                } catch (e: Exception) {
-                    AppLogger.e(TAG_VIEWMODEL, "[OnboardingScreen] Error auto-launching notification permission dialog", e)
-                    notificationPermissionDialogShown = false // Reset if launch failed
-                }
-            } else {
-                // Permission already granted → Navigate to next page
-                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission already granted, navigating to page 4")
-                viewModel.enableNotifications() // Sync with SettingsStore
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(4)
-                }
-            }
-        }
-    }
+    // Removed auto-launch: Permission dialog will only show when user clicks "Next" button
     
     Box(
         modifier = Modifier
