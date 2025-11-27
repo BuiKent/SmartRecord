@@ -149,11 +149,22 @@ class SettingsViewModel @Inject constructor(
      * Schedule daily notifications (called after permission granted)
      * 
      * Theo đúng pattern mẫu:
+     * - Guard: Check state trước để tránh duplicate scheduling
      * - Update DataStore preference
      * - Schedule daily notifications
      */
     fun scheduleNotifications() {
         viewModelScope.launch {
+            // ✅ Guard: Check state trước để tránh duplicate scheduling
+            val currentState = _systemNotificationAllowed.value
+            val storeState = settingsStore.notificationsEnabled.first()
+            
+            if (currentState && storeState) {
+                // Already scheduled → Skip
+                AppLogger.d(TAG_VIEWMODEL, "[SettingsViewModel] Already scheduled, skipping")
+                return@launch
+            }
+            
             AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "scheduleNotifications", 
                 "Scheduling daily notifications")
             settingsStore.setNotificationsEnabled(true) // Update DataStore preference

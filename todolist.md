@@ -14,14 +14,16 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ## 🚨 Critical Issues from User Testing (Priority: High)
 
-### 🎯 Task CRITICAL.1: Fix Theme Màu Cam ⚠️ IN PROGRESS
+### 🎯 Task CRITICAL.1: Fix Theme Màu Cam ✅ COMPLETED
 - **Vấn đề:** App vẫn hiện theme màu xanh, chưa có theme màu cam
 - **Nguyên nhân:** `Theme.kt` có `dynamicColor = true` nên Android tự động dùng màu hệ thống
 - **Giải pháp:** 
   - [x] Set `dynamicColor = false` trong `Theme.kt`
-  - [ ] Verify màu cam được apply đúng
-- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/theme/Theme.kt`
-- **Status:** ⚠️ IN PROGRESS
+  - [x] Verify màu cam được apply đúng (Primary = Color(0xFFFF6B35) - Vibrant orange)
+- **File:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/theme/Theme.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/theme/Color.kt`
+- **Status:** ✅ COMPLETED
 
 ### 🎯 Task CRITICAL.2: Fix Notification Permission Dialog ở Onboarding ✅ COMPLETED
 - **Vấn đề:** App chưa hiện system notification permission dialog ở onboarding screen thứ 3 (notification screen). Khi ấn "Tiếp tục" thì phải hiện system permission dialog.
@@ -53,12 +55,33 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ### 🎯 Task CRITICAL.4: Transcript Screen - Save khi Click Outside ❌ PENDING
 - **Vấn đề:** Save khi click outside chưa làm được
-- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Chi tiết:** 
+  - Code có `saveEditing()` và `cancelEditing()` trong ViewModel
+  - Nhưng chỉ được gọi từ check icon hoặc keyboard action (ImeAction.Done)
+  - Chưa có logic detect click outside TextField để auto-save
+- **Cách làm:**
+  1. Thêm `Modifier.clickable` vào LazyColumn hoặc Box container
+  2. Khi click outside → check `isEditing` → gọi `saveEditing()`
+  3. Hoặc dùng `FocusRequester` và detect focus loss
+- **File:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/transcript/TranscriptViewModel.kt`
 - **Status:** ❌ PENDING
 
 ### 🎯 Task CRITICAL.5: Transcript Screen - Speaker Labels trong People Mode ⚠️ PENDING
 - **Vấn đề:** Trong màn hình transcript khi chuyển qua tab People thì đang hiện "unknown speaker" thay vì "Speaker 1", "Speaker 2". Logic copy/paste đã đúng (có hiện speaker 1, 2) nhưng hiển thị trong tab chưa đúng.
-- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Chi tiết:**
+  - Code hiện tại: `if (segment.speaker != null) "Speaker ${segment.speaker}:" else "Unknown Speaker:"`
+  - Vấn đề: `segment.speaker` có thể null hoặc không được detect đúng
+  - Cần check logic detect speakers trong `GenerateTranscriptUseCase`
+- **Cách làm:**
+  1. Check `GenerateTranscriptUseCase` - verify `detectSpeakers()` có được gọi không
+  2. Verify segments có `speaker` field được set đúng không
+  3. Nếu speaker null → cần fallback logic (ví dụ: assign "Speaker 1", "Speaker 2" dựa trên segment order)
+  4. Test với audio có nhiều người nói
+- **Files:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt` (line 544-550)
+  - `app/src/main/java/com/yourname/smartrecorder/domain/usecase/GenerateTranscriptUseCase.kt`
 - **Status:** ⚠️ PENDING
 
 ### 🎯 Task CRITICAL.6: Bookmark - Giải thích và Hiển thị ⚠️ PENDING
@@ -66,18 +89,37 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - Không rõ bookmark lưu vào đâu
   - Sau này mở file lên thì làm sao biết chỗ nào bookmark?
   - Hiện tại khi ấn bookmark và thêm thì vẫn ghi âm được
+- **Chi tiết:**
+  - ✅ Bookmark được lưu vào database: `BookmarkEntity` (table: `bookmarks`)
+  - ✅ Có `timestampMs`, `note`, `recordingId` trong database
+  - ✅ Có UI để xem danh sách bookmarks trong NotesTabContent
+  - ❌ Chưa có UI để hiển thị bookmark markers trong transcript/playback timeline
+  - ❌ Chưa có visual indicator trong transcript segments
 - **Yêu cầu:** 
-  - Cần giải thích rõ bookmark lưu vào đâu (database? file metadata?)
-  - Cần hiển thị bookmark markers trong transcript/playback
-  - Cần UI để xem danh sách bookmarks
+  - ✅ Giải thích: Bookmark lưu vào Room database (`bookmarks` table)
+  - ❌ Hiển thị bookmark markers trong transcript/playback timeline
+  - ❌ Visual indicator trong transcript segments (icon hoặc highlight)
+  - ❌ Click bookmark marker → seek to timestamp
 - **Files:** 
-  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
-  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/data/local/entity/BookmarkEntity.kt` (đã có)
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt` (cần thêm markers)
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt` (cần verify bookmark khi recording)
 - **Status:** ⚠️ PENDING
 
 ### 🎯 Task CRITICAL.7: Realtime ASR - Thêm Wave Animation ⚠️ PENDING
 - **Vấn đề:** Realtime ASR đã hoạt động nhưng cần thêm wave hiện liên tục (trạng thái idle và active) để user biết mic vẫn đang nghe ngóng.
-- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+- **Chi tiết:**
+  - ✅ `WaveformVisualizer` có animation nhưng chỉ khi `isRecording = true`
+  - ❌ Khi idle (không recording, nhưng ASR đang listen), amplitude = 0, không có wave animation
+  - ❌ Cần wave animation liên tục cho idle state (mic đang listen nhưng chưa có audio input)
+- **Cách làm:**
+  1. Thêm idle wave animation vào `WaveformVisualizer`
+  2. Khi `isRecording = false` nhưng ASR active → hiển thị idle wave (low amplitude, slow animation)
+  3. Khi `isRecording = true` → hiển thị active wave (high amplitude, fast animation)
+  4. Sử dụng `infiniteRepeatable` animation cho idle state
+- **Files:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/components/WaveformVisualizer.kt` (cần sửa)
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt` (cần pass ASR state)
 - **Status:** ⚠️ PENDING
 
 ---
@@ -1809,6 +1851,25 @@ Box(modifier = Modifier.fillMaxSize()) {
 **References:**
 - Google Mobile Ads SDK Documentation
 - AdMob Policies: https://support.google.com/admob/answer/6128543
+
+---
+
+## 🔧 Settings & Initialization (Priority: Medium)
+
+### 🎯 Task SETTINGS.1: Lazy Initialization của SettingsViewModel ⚠️ PENDING
+- **Vấn đề:** 
+  - `initializeState()` được gọi trong SettingsScreen, nhưng ViewModel có thể được tạo sớm
+  - Khi cài app lần đầu, onboarding là chủ, không nên check settings state để quyết định
+  - Settings state không nên được check khi chưa vào SettingsScreen
+- **Giải pháp:**
+  - [x] Thay đổi `_systemNotificationAllowed` từ `MutableStateFlow(false)` → `MutableStateFlow<Boolean?>(null)` để biết chưa initialize
+  - [x] `initializeState()` chỉ được gọi trong `DisposableEffect(Unit)` ở SettingsScreen (đã có sẵn)
+  - [x] Thêm logging để track khi nào `initializeState()` được gọi
+  - [x] Đảm bảo onboarding không bị ảnh hưởng bởi settings state
+- **Files:**
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsScreen.kt`
+- **Status:** ⚠️ PENDING (đã sửa code, cần test)
 
 ---
 

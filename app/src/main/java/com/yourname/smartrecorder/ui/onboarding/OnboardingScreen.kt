@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import com.yourname.smartrecorder.core.permissions.NotificationPermissionManager
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
@@ -71,6 +72,9 @@ fun OnboardingScreen(
         }
     }
     
+    // Track if permission dialog was actually shown (user interaction)
+    var notificationPermissionDialogShown by remember { mutableStateOf(false) }
+    
     // Notification permission launcher
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -80,11 +84,72 @@ fun OnboardingScreen(
         // Update ViewModel state if granted (sync with SettingsStore)
         if (isGranted) {
             viewModel.enableNotifications()
+            // Permission granted → Navigate to next page
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(4) // Navigate to CTA page
+            }
+        } else {
+            // Permission denied → Check if dialog was actually shown
+            val activity = context as? android.app.Activity
+            val shouldShowRationale = if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity,
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            } else {
+                false
+            }
+            
+            AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Permission denied - shouldShowRationale: $shouldShowRationale, dialogShown: $notificationPermissionDialogShown")
+            
+            // Only navigate if dialog was actually shown (user interaction)
+            // If dialog wasn't shown (permanently denied), don't auto-navigate - let user click Next
+            if (shouldShowRationale || notificationPermissionDialogShown) {
+                // Dialog was shown, user denied → Navigate (user made a choice)
+                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Dialog was shown, user denied - navigating to next page")
+                coroutineScope.launch {
+                    pagerState.animateScrollToPage(4)
+                }
+            } else {
+                // Dialog might not have been shown (permanently denied)
+                AppLogger.w(TAG_VIEWMODEL, "[OnboardingScreen] Permission permanently denied - dialog may not have been shown, waiting for user to click Next")
+                // Don't navigate automatically - let user click Next button
+            }
         }
         
-        // Auto-navigate to next page
-        coroutineScope.launch {
-            pagerState.animateScrollToPage(4) // Navigate to CTA page
+        // Reset flag
+        notificationPermissionDialogShown = false
+    }
+    
+    // Auto-launch notification permission dialog when Page 3 is shown
+    LaunchedEffect(currentPage) {
+        if (currentPage == 3 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Check if permission already granted
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            
+            if (!hasPermission) {
+                // Không cần check gì, cứ gọi system permission dialog lên
+                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 3 shown - auto-launching notification permission dialog")
+                notificationPermissionDialogShown = true // Mark that we're attempting to show dialog
+                kotlinx.coroutines.delay(300) // Small delay để page animation hoàn tất
+                try {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission dialog launched automatically")
+                } catch (e: Exception) {
+                    AppLogger.e(TAG_VIEWMODEL, "[OnboardingScreen] Error auto-launching notification permission dialog", e)
+                    notificationPermissionDialogShown = false // Reset if launch failed
+                }
+            } else {
+                // Permission already granted → Navigate to next page
+                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission already granted, navigating to page 4")
+                viewModel.enableNotifications() // Sync with SettingsStore
+                coroutineScope.launch {
+                    pagerState.animateScrollToPage(4)
+                }
+            }
         }
     }
     
