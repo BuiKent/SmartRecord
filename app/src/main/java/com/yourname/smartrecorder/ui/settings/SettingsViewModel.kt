@@ -98,19 +98,38 @@ class SettingsViewModel @Inject constructor(
     /**
      * Handle notification toggle change
      */
-    fun onNotificationToggleChanged(wantsToEnable: Boolean) {
+    fun onNotificationToggleChanged(wantsToEnable: Boolean, context: Context) {
         viewModelScope.launch {
-            val currentValue = _uiState.value.notificationsEnabled
+            val currentSystemValue = notificationPermissionManager.areNotificationsEnabled(context)
+            val currentUiValue = _uiState.value.notificationsEnabled
             
-            if (wantsToEnable && !currentValue) {
-                // Toggle ON → Request permission dialog
+            AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
+                "wantsToEnable=$wantsToEnable, currentSystemValue=$currentSystemValue, currentUiValue=$currentUiValue")
+            
+            if (wantsToEnable) {
+                // User wants to enable notifications
+                if (!currentSystemValue) {
+                    // System permission is disabled → Request permission dialog (Android 13+)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
+                            "Requesting notification permission (Android 13+)")
+                        _eventFlow.emit(SettingsEvent.RequestNotificationPermission)
+                    } else {
+                        // Android < 13: Notifications are enabled by default, just open system settings
+                        AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
+                            "Opening system settings (Android < 13)")
+                        _eventFlow.emit(SettingsEvent.OpenSystemSettings)
+                    }
+                } else {
+                    // System permission is already enabled, just update UI state
+                    AppLogger.d(TAG_VIEWMODEL, "Notifications already enabled in system, updating UI state")
+                    _systemNotificationAllowed.value = true
+                }
+            } else {
+                // User wants to disable notifications
+                // Permission dialog cannot disable, must open system settings
                 AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                    "Requesting notification permission")
-                _eventFlow.emit(SettingsEvent.RequestNotificationPermission)
-            } else if (!wantsToEnable && currentValue) {
-                // Toggle OFF → Open system settings (permission dialog cannot disable)
-                AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationToggleChanged", 
-                    "Opening system settings")
+                    "Opening system settings to disable notifications")
                 _eventFlow.emit(SettingsEvent.OpenSystemSettings)
             }
         }

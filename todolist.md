@@ -927,7 +927,12 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
      - HorizontalPager với 4 pages
      - Page 0: Giới thiệu app (SmartRecorder - Record, Transcribe, Study)
      - Page 1: Tính năng chính (Real-time ASR, Whisper offline, Flashcards)
-     - Page 2: **Request NOTIFICATION permission** (Android 13+) - giải thích: để hiện notification khi recording
+     - Page 2: **Request NOTIFICATION permission** (Android 13+) - giải thích: để hiện notification khi recording ✅ COMPLETED
+       - ✅ Check permission state từ system trước khi request
+       - ✅ Request permission dialog khi user click "Next"
+       - ✅ Auto-navigate sau khi permission granted/denied
+       - ✅ Sync với NotificationPermissionManager
+       - ✅ Handle Android < 13 (notifications enabled by default)
      - Page 3: CTA (Start, Rate, có thể thêm Premium nếu cần)
      - Page indicators
      - Navigation buttons
@@ -1034,10 +1039,14 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
      - Add Settings route
      - Inject SettingsTopBar vào Scaffold
      - Navigate từ Settings icon (Task NAV.4)
-  5. **Notification permission handling:**
-     - Toggle ON → Request permission dialog
-     - Toggle OFF → Open system settings
-     - Retry logic cho Samsung/Xiaomi delay
+  5. **Notification permission handling:** ✅ COMPLETED
+     - ✅ Toggle ON → Request permission dialog (Android 13+)
+     - ✅ Toggle OFF → Open system settings (permission dialog cannot disable)
+     - ✅ Check system state trước khi request
+     - ✅ Refresh state khi user quay lại từ system settings
+     - ✅ Warning card khi notifications disabled
+     - ✅ Lifecycle-aware refresh (repeatOnLifecycle)
+     - ✅ Retry logic cho Samsung/Xiaomi delay
 - **Priority:** High (vì user đã hỏi về Settings)
 - **Estimated Time:** 3-4 giờ
 - **Dependencies:**
@@ -1585,7 +1594,20 @@ Box(modifier = Modifier.fillMaxSize()) {
 - [ ] Cấu hình Hilt WorkManager trong `AppModule.kt` và `SmartRecorderApplication.kt`
 
 ### Phase 3: UI Integration
-- [ ] Thêm notification toggle vào `SettingsScreen.kt`
+- [x] Thêm notification toggle vào `SettingsScreen.kt` ✅ COMPLETED
+  - ✅ Notification toggle với system state sync
+  - ✅ Warning card khi notifications disabled
+  - ✅ Permission request dialog khi toggle ON từ disabled
+  - ✅ Open system settings khi toggle OFF
+  - ✅ Refresh state khi user quay lại từ system settings
+  - ✅ Lifecycle-aware refresh (repeatOnLifecycle)
+  - ✅ Retry logic cho Samsung/Xiaomi delay
+- [x] Onboarding Screen - Notification Permission ✅ COMPLETED
+  - ✅ Check permission state từ system trước khi request
+  - ✅ Request permission ở page 2 (Notifications)
+  - ✅ Auto-navigate sau khi permission granted/denied
+  - ✅ Sync với NotificationPermissionManager
+  - ✅ Handle Android < 13 (notifications enabled by default)
 - [ ] Handle deep links trong `MainActivity.kt`
 - [ ] Handle service actions trong `RecordViewModel.kt` (BroadcastReceiver)
 - [ ] Test deep link navigation
@@ -1594,7 +1616,7 @@ Box(modifier = Modifier.fillMaxSize()) {
 - [ ] Test recording notification với pause/resume/stop từ notification bar
 - [ ] Test recording notification với controls từ lock screen
 - [ ] Test playback notification với media controls
-- [ ] Test với permission granted/denied (POST_NOTIFICATIONS)
+- [x] Test với permission granted/denied (POST_NOTIFICATIONS) ✅ COMPLETED (Settings & Onboarding)
 - [ ] Test frequency cap (max 3/ngày, min 4h interval)
 - [ ] Test worker schedule (daily notifications)
 - [ ] Test deep links (tap notification → navigate đúng route)

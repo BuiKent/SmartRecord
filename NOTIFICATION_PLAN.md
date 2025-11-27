@@ -984,35 +984,64 @@ class NotificationWorker @AssistedInject constructor(
 
 ### Phase 3: UI Integration
 
-#### 3.1. Settings Screen - Notification Toggle
+#### 3.1. Settings Screen - Notification Toggle ✅ COMPLETED
 
 **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/SettingsScreen.kt`
 
-Thêm toggle cho notifications:
-```kotlin
-// Trong SettingsScreen
-var notificationsEnabled by remember { mutableStateOf(false) }
+**Status:** ✅ COMPLETED
 
-LaunchedEffect(Unit) {
-    viewModel.uiState.collect { state ->
-        notificationsEnabled = state.notificationsEnabled
+**Đã triển khai:**
+1. ✅ Notification toggle với system state sync
+2. ✅ Warning card khi notifications disabled
+3. ✅ Permission request dialog khi toggle ON từ disabled
+4. ✅ Open system settings khi toggle OFF
+5. ✅ Refresh state khi user quay lại từ system settings
+
+**Implementation:**
+```kotlin
+// SettingsViewModel.kt
+fun onNotificationToggleChanged(wantsToEnable: Boolean, context: Context) {
+    viewModelScope.launch {
+        val currentSystemValue = notificationPermissionManager.areNotificationsEnabled(context)
+        
+        if (wantsToEnable) {
+            if (!currentSystemValue) {
+                // Request permission dialog (Android 13+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    _eventFlow.emit(SettingsEvent.RequestNotificationPermission)
+                } else {
+                    // Android < 13: Open system settings
+                    _eventFlow.emit(SettingsEvent.OpenSystemSettings)
+                }
+            } else {
+                // Already enabled, just update UI
+                _systemNotificationAllowed.value = true
+            }
+        } else {
+            // Toggle OFF → Open system settings
+            _eventFlow.emit(SettingsEvent.OpenSystemSettings)
+        }
     }
 }
 
-SwitchPreferenceItem(
-    title = "Cho phép thông báo",
-    description = "Nhận thông báo khích lệ và mẹo sử dụng app (1 lần/ngày)",
-    checked = notificationsEnabled,
-    onCheckedChange = { enabled ->
-        viewModel.setNotificationsEnabled(enabled)
-        if (enabled) {
-            notificationScheduler.scheduleDailyNotifications()
-        } else {
-            notificationScheduler.cancelAllNotifications()
-        }
-    }
+// SettingsScreen.kt
+Switch(
+    checked = uiState.notificationsEnabled,
+    onCheckedChange = { viewModel.onNotificationToggleChanged(it, context) }
 )
+
+// Warning card when disabled
+if (!uiState.notificationsEnabled) {
+    Card(/* warning card with open settings button */)
+}
 ```
+
+**Key Features:**
+- ✅ System state as single source of truth
+- ✅ Permission request dialog khi toggle ON từ disabled
+- ✅ Warning card hướng dẫn user enable notifications
+- ✅ Lifecycle-aware refresh (repeatOnLifecycle)
+- ✅ Retry logic cho Samsung/Xiaomi delay
 
 ---
 
@@ -1131,11 +1160,79 @@ dependencies {
 - [ ] Handle service actions trong `RecordViewModel`
 - [ ] Test deep link navigation
 
+#### 3.2. Onboarding Screen - Notification Permission ✅ COMPLETED
+
+**File:** `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingScreen.kt`
+
+**Status:** ✅ COMPLETED
+
+**Đã triển khai:**
+1. ✅ Check permission state từ system trước khi request
+2. ✅ Request permission ở page 2 (Notifications)
+3. ✅ Auto-navigate sau khi permission granted/denied
+4. ✅ Sync với NotificationPermissionManager
+5. ✅ Handle Android < 13 (notifications enabled by default)
+
+**Implementation:**
+```kotlin
+// Check system permission state
+val notificationPermissionManager = NotificationPermissionManager()
+
+LaunchedEffect(Unit) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        hasNotificationPermission = notificationPermissionManager.areNotificationsEnabled(context)
+    } else {
+        hasNotificationPermission = true // Android < 13
+    }
+}
+
+// Permission launcher
+val notificationPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission()
+) { isGranted ->
+    hasNotificationPermission = isGranted
+    if (isGranted) {
+        viewModel.enableNotifications()
+    }
+    // Refresh system state
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        delay(150)
+        val actualState = notificationPermissionManager.areNotificationsEnabled(context)
+        hasNotificationPermission = actualState
+    }
+    // Auto-navigate to next page
+    coroutineScope.launch {
+        pagerState.animateScrollToPage(3)
+    }
+}
+
+// Page 2 Next button
+if (currentPage == 2) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val currentSystemState = notificationPermissionManager.areNotificationsEnabled(context)
+        if (!currentSystemState && !hasNotificationPermission) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            // Already granted, navigate
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(3)
+            }
+        }
+    }
+}
+```
+
+**Key Features:**
+- ✅ Check system state trước khi request (tránh request nhiều lần)
+- ✅ Auto-navigate sau khi xử lý permission
+- ✅ Sync với system state sau khi permission granted
+- ✅ Handle Android version differences
+
 ### Phase 4: Testing
 - [ ] Test recording notification với pause/resume/stop
 - [ ] Test playback notification với media controls
 - [ ] Test lock screen controls
-- [ ] Test với permission granted/denied
+- [x] Test với permission granted/denied ✅ (Settings & Onboarding)
 - [ ] Test frequency cap
 - [ ] Test worker schedule
 - [ ] Test deep links

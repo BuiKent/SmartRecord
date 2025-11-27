@@ -140,7 +140,7 @@ fun SettingsScreen(
                 )
                 Switch(
                     checked = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onNotificationToggleChanged(it) }
+                    onCheckedChange = { viewModel.onNotificationToggleChanged(it, context) }
                 )
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

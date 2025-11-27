@@ -30,6 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.yourname.smartrecorder.core.permissions.NotificationPermissionManager
+import com.yourname.smartrecorder.core.logging.AppLogger
+import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -43,16 +47,20 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { 4 })
     val currentPage = pagerState.currentPage
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     
+    // Check notification permission state from system
     var hasNotificationPermission by remember { mutableStateOf(false) }
+    val notificationPermissionManager = NotificationPermissionManager()
     
-    // Check notification permission state
+    // Initialize permission state
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Permission state will be checked when requesting
-            hasNotificationPermission = false
+            // Check actual system permission state
+            hasNotificationPermission = notificationPermissionManager.areNotificationsEnabled(context)
+            AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Initial notification permission state: $hasNotificationPermission")
         } else {
-            // Android < 13 doesn't need notification permission
+            // Android < 13 doesn't need notification permission (enabled by default)
             hasNotificationPermission = true
         }
     }
@@ -61,10 +69,25 @@ fun OnboardingScreen(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission result -> granted: $isGranted")
         hasNotificationPermission = isGranted
+        
+        // Update ViewModel state if granted
         if (isGranted) {
             viewModel.enableNotifications()
         }
+        
+        // Refresh system state to ensure sync
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Small delay to allow system to update
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                kotlinx.coroutines.delay(150)
+                val actualState = notificationPermissionManager.areNotificationsEnabled(context)
+                hasNotificationPermission = actualState
+                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Refreshed permission state after result: $actualState")
+            }
+        }
+        
         // Auto-navigate to next page
         coroutineScope.launch {
             pagerState.animateScrollToPage(3)
@@ -224,10 +247,30 @@ fun OnboardingScreen(
                         onClick = {
                             if (currentPage == 2) {
                                 // Request notification permission
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU 
-                                    && !hasNotificationPermission) {
-                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    // Check current system state before requesting
+                                    val currentSystemState = notificationPermissionManager.areNotificationsEnabled(context)
+                                    AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 2 Next clicked -> currentSystemState: $currentSystemState, hasNotificationPermission: $hasNotificationPermission")
+                                    
+                                    if (!currentSystemState && !hasNotificationPermission) {
+                                        // Permission not granted → Request permission dialog
+                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Requesting notification permission")
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        // Permission already granted or Android < 13 → Navigate to next page
+                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Permission already granted or Android < 13, navigating to page 3")
+                                        hasNotificationPermission = true
+                                        if (currentSystemState) {
+                                            viewModel.enableNotifications()
+                                        }
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(3)
+                                        }
+                                    }
                                 } else {
+                                    // Android < 13: Notifications enabled by default
+                                    hasNotificationPermission = true
+                                    viewModel.enableNotifications()
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(3)
                                     }
