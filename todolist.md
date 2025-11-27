@@ -12,6 +12,76 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
 
 ---
 
+## 🚨 Critical Issues from User Testing (Priority: High)
+
+### 🎯 Task CRITICAL.1: Fix Theme Màu Cam ⚠️ IN PROGRESS
+- **Vấn đề:** App vẫn hiện theme màu xanh, chưa có theme màu cam
+- **Nguyên nhân:** `Theme.kt` có `dynamicColor = true` nên Android tự động dùng màu hệ thống
+- **Giải pháp:** 
+  - [x] Set `dynamicColor = false` trong `Theme.kt`
+  - [ ] Verify màu cam được apply đúng
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/theme/Theme.kt`
+- **Status:** ⚠️ IN PROGRESS
+
+### 🎯 Task CRITICAL.2: Fix Notification Permission Dialog ở Onboarding ✅ COMPLETED
+- **Vấn đề:** App chưa hiện system notification permission dialog ở onboarding screen thứ 3 (notification screen). Khi ấn "Tiếp tục" thì phải hiện system permission dialog.
+- **Nguyên nhân:** Logic check permission phức tạp, có thể `hasNotificationPermission` đã được set thành true từ LaunchedEffect
+- **Giải pháp:**
+  - [x] Đơn giản hóa logic: luôn request permission nếu system state là false (chỉ check system state, không check local state)
+  - [x] Loại bỏ local state `hasNotificationPermission`, luôn check system state trực tiếp
+  - [x] OnboardingScreen chỉ hiện khi cài lại app/data bị xóa → luôn cần hiện System Permission nếu màn hình này hiện
+  - [x] Khi permission already granted → vẫn update SettingsStore để sync
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingScreen.kt`
+- **Status:** ✅ COMPLETED
+
+### 🎯 Task CRITICAL.3: Fix Notification Toggle ở Settings Screen ✅ COMPLETED
+- **Vấn đề:** Ở trạng thái disable, nếu muốn bật lại toggle thì không ấn được, không hiện system permission dialog để cho phép hoặc không.
+- **Nguyên nhân:** Có thể state không được update đúng cách sau khi permission được grant
+- **Giải pháp:**
+  - [x] Thêm method `onNotificationPermissionResult()` trong SettingsViewModel để handle permission result
+  - [x] Update state ngay lập tức sau khi permission được grant
+  - [x] Đồng bộ theo Onboarding.md pattern:
+    - System state là single source of truth cho UI display
+    - SettingsStore chỉ lưu user preference (không phải system state)
+    - Khi permission granted → update SettingsStore để sync user preference
+  - [x] Thêm comments để làm rõ logic đồng bộ
+- **File:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsViewModel.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingViewModel.kt`
+- **Status:** ✅ COMPLETED
+
+### 🎯 Task CRITICAL.4: Transcript Screen - Save khi Click Outside ❌ PENDING
+- **Vấn đề:** Save khi click outside chưa làm được
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Status:** ❌ PENDING
+
+### 🎯 Task CRITICAL.5: Transcript Screen - Speaker Labels trong People Mode ⚠️ PENDING
+- **Vấn đề:** Trong màn hình transcript khi chuyển qua tab People thì đang hiện "unknown speaker" thay vì "Speaker 1", "Speaker 2". Logic copy/paste đã đúng (có hiện speaker 1, 2) nhưng hiển thị trong tab chưa đúng.
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Status:** ⚠️ PENDING
+
+### 🎯 Task CRITICAL.6: Bookmark - Giải thích và Hiển thị ⚠️ PENDING
+- **Vấn đề:** 
+  - Không rõ bookmark lưu vào đâu
+  - Sau này mở file lên thì làm sao biết chỗ nào bookmark?
+  - Hiện tại khi ấn bookmark và thêm thì vẫn ghi âm được
+- **Yêu cầu:** 
+  - Cần giải thích rõ bookmark lưu vào đâu (database? file metadata?)
+  - Cần hiển thị bookmark markers trong transcript/playback
+  - Cần UI để xem danh sách bookmarks
+- **Files:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+  - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Status:** ⚠️ PENDING
+
+### 🎯 Task CRITICAL.7: Realtime ASR - Thêm Wave Animation ⚠️ PENDING
+- **Vấn đề:** Realtime ASR đã hoạt động nhưng cần thêm wave hiện liên tục (trạng thái idle và active) để user biết mic vẫn đang nghe ngóng.
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/RecordScreen.kt`
+- **Status:** ⚠️ PENDING
+
+---
+
 ## 🎨 UI/UX Design Improvements (Priority: High)
 
 ### 🎯 Task UI.1: Bo tròn các khung vuông và giảm màu nền không cần thiết ✅ COMPLETED
@@ -1519,23 +1589,23 @@ Box(modifier = Modifier.fillMaxSize()) {
 ## 🧪 Testing Checklist
 
 ### Home Screen:
-- [ ] Waveform không có nền xám
-- [ ] Bookmark button text không bị cắt trên màn hình nhỏ
-- [ ] Bookmark hoạt động đúng (audio phát được sau bookmark)
-- [ ] Upload icon là folder
-- [ ] Realtime ASR hoạt động (live text hiển thị)
-- [ ] Không có beep sound khi ASR chạy
+- [x] Waveform không có nền xám ✅ (đã làm, cần verify)
+- [x] Bookmark button text không bị cắt trên màn hình nhỏ ✅ (đã làm, cần verify)
+- [ ] Bookmark hoạt động đúng (audio phát được sau bookmark) ⚠️ **VẤN ĐỀ:** Không rõ bookmark lưu vào đâu, sau này mở file lên thì làm sao biết chỗ nào bookmark? Cần giải thích thêm. Hiện tại khi ấn bookmark và thêm thì vẫn ghi âm được.
+- [x] Upload icon là folder ✅ (đã làm, cần verify)
+- [x] Realtime ASR hoạt động (live text hiển thị) ✅ (implement rồi, thấy chạy ok) ⚠️ **CẦN THÊM:** Wave hiện liên tục (trạng thái idle và active) để user biết mic vẫn đang nghe ngóng
+- [x] Không có beep sound khi ASR chạy ✅ (ok rồi, kiểm tra lại code)
 
 ### Transcript Screen:
-- [ ] Inline editing hoạt động
-- [ ] Save khi click outside
-- [ ] Save khi click check icon
-- [ ] Không có memory leak
-- [ ] Performance tốt (không lag khi edit)
-- [ ] Floating buttons hiển thị đúng vị trí
-- [ ] Copy button hoạt động đúng (subtitle/txt)
-- [ ] Speaker labels hiển thị trong People mode
-- [ ] Bottom menu luôn về màn hình chính
+- [x] Inline editing hoạt động ✅ (đã làm, cần verify)
+- [ ] Save khi click outside ❌ **CHƯA LÀM ĐƯỢC** - Cần implement
+- [x] Save khi click check icon ✅ (đã làm, cần verify)
+- [ ] Không có memory leak ⚠️ Chưa test
+- [x] Performance tốt (không lag khi edit) ✅ (đã làm, cần verify)
+- [x] Floating buttons hiển thị đúng vị trí ✅ (đã làm, cần verify)
+- [x] Copy button hoạt động đúng (subtitle/txt) ✅ (đã làm, cần verify) - Khi copy và paste thì có hiện speaker 1, 2 → logic đã đúng
+- [ ] Speaker labels hiển thị trong People mode ⚠️ **VẤN ĐỀ:** Trong màn hình transcript khi chuyển qua tab People thì đang hiện "unknown speaker" thay vì "Speaker 1", "Speaker 2". Logic copy/paste đã đúng nhưng hiển thị trong tab chưa đúng.
+- [x] Bottom menu luôn về màn hình chính ✅ (đã làm, cần verify)
 
 ---
 

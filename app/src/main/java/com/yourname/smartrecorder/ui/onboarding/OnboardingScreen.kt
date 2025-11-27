@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import com.yourname.smartrecorder.core.permissions.NotificationPermissionManager
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
@@ -44,53 +45,46 @@ fun OnboardingScreen(
     onNavigateToRate: () -> Unit = {},
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val pagerState = rememberPagerState(pageCount = { 5 }) // Thêm page xin quyền recording
     val currentPage = pagerState.currentPage
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    
-    // Check notification permission state from system
-    var hasNotificationPermission by remember { mutableStateOf(false) }
     val notificationPermissionManager = NotificationPermissionManager()
     
-    // Initialize permission state
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Check actual system permission state
-            hasNotificationPermission = notificationPermissionManager.areNotificationsEnabled(context)
-            AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Initial notification permission state: $hasNotificationPermission")
+    // Record audio permission launcher
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Record audio permission result -> granted: $isGranted")
+        
+        if (isGranted) {
+            // Permission granted → Navigate to next page
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(3) // Navigate to notification page
+            }
         } else {
-            // Android < 13 doesn't need notification permission (enabled by default)
-            hasNotificationPermission = true
+            // Permission denied → Show warning and navigate to next page anyway
+            AppLogger.w(TAG_VIEWMODEL, "[OnboardingScreen] Record audio permission denied - app may not work properly")
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(3)
+            }
         }
     }
     
-    // Permission launcher
+    // Notification permission launcher
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission result -> granted: $isGranted")
-        hasNotificationPermission = isGranted
         
-        // Update ViewModel state if granted
+        // Update ViewModel state if granted (sync with SettingsStore)
         if (isGranted) {
             viewModel.enableNotifications()
         }
         
-        // Refresh system state to ensure sync
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Small delay to allow system to update
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-                kotlinx.coroutines.delay(150)
-                val actualState = notificationPermissionManager.areNotificationsEnabled(context)
-                hasNotificationPermission = actualState
-                AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Refreshed permission state after result: $actualState")
-            }
-        }
-        
         // Auto-navigate to next page
         coroutineScope.launch {
-            pagerState.animateScrollToPage(3)
+            pagerState.animateScrollToPage(4) // Navigate to CTA page
         }
     }
     
@@ -161,7 +155,7 @@ fun OnboardingScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
-                repeat(4) { index ->
+                repeat(5) { index ->
                     val alpha by animateFloatAsState(
                         targetValue = if (index == currentPage) 1f else 0.3f,
                         animationSpec = tween(300),
@@ -180,7 +174,7 @@ fun OnboardingScreen(
             }
             
             // Navigation buttons
-            if (currentPage == 3) {
+            if (currentPage == 4) {
                 // Last page - CTA buttons
                 Column(
                     modifier = Modifier
@@ -245,39 +239,65 @@ fun OnboardingScreen(
                     }
                     Button(
                         onClick = {
-                            if (currentPage == 2) {
-                                // Request notification permission
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    // Check current system state before requesting
-                                    val currentSystemState = notificationPermissionManager.areNotificationsEnabled(context)
-                                    AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 2 Next clicked -> currentSystemState: $currentSystemState, hasNotificationPermission: $hasNotificationPermission")
+                            when (currentPage) {
+                                2 -> {
+                                    // Page 2: Request record audio permission
+                                    // OnboardingScreen chỉ hiện khi cài lại app/data bị xóa
+                                    // → Luôn cần hiện System Permission nếu màn hình này hiện
+                                    val hasPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.RECORD_AUDIO
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                                     
-                                    if (!currentSystemState && !hasNotificationPermission) {
-                                        // Permission not granted → Request permission dialog
-                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Requesting notification permission")
-                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 2 (Record Audio) Next clicked -> hasPermission: $hasPermission")
+                                    
+                                    if (!hasPermission) {
+                                        // Permission not granted → Always request permission dialog
+                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Requesting record audio permission dialog")
+                                        recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     } else {
-                                        // Permission already granted or Android < 13 → Navigate to next page
-                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Permission already granted or Android < 13, navigating to page 3")
-                                        hasNotificationPermission = true
-                                        if (currentSystemState) {
-                                            viewModel.enableNotifications()
-                                        }
+                                        // Permission already granted → Navigate to next page
+                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Record audio permission already granted, navigating to page 3")
                                         coroutineScope.launch {
                                             pagerState.animateScrollToPage(3)
                                         }
                                     }
-                                } else {
-                                    // Android < 13: Notifications enabled by default
-                                    hasNotificationPermission = true
-                                    viewModel.enableNotifications()
-                                    coroutineScope.launch {
-                                        pagerState.animateScrollToPage(3)
+                                }
+                                3 -> {
+                                    // Page 3: Request notification permission
+                                    // OnboardingScreen chỉ hiện khi cài lại app/data bị xóa
+                                    // → Luôn cần hiện System Permission nếu màn hình này hiện
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        // Always check system state - single source of truth
+                                        val currentSystemState = notificationPermissionManager.areNotificationsEnabled(context)
+                                        AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Page 3 (Notification) Next clicked -> currentSystemState: $currentSystemState")
+                                        
+                                        if (!currentSystemState) {
+                                            // Permission not granted → Always request permission dialog
+                                            AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Requesting notification permission dialog")
+                                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        } else {
+                                            // Permission already granted → Update SettingsStore and navigate
+                                            AppLogger.d(TAG_VIEWMODEL, "[OnboardingScreen] Notification permission already granted, updating SettingsStore and navigating to page 4")
+                                            viewModel.enableNotifications() // Sync with SettingsStore
+                                            coroutineScope.launch {
+                                                pagerState.animateScrollToPage(4)
+                                            }
+                                        }
+                                    } else {
+                                        // Android < 13: Notifications enabled by default
+                                        // Still update SettingsStore for consistency
+                                        viewModel.enableNotifications()
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(4)
+                                        }
                                     }
                                 }
-                            } else {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(currentPage + 1)
+                                else -> {
+                                    // Other pages - just navigate
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(currentPage + 1)
+                                    }
                                 }
                             }
                         },
@@ -336,7 +356,39 @@ private fun OnboardingPageContent(page: Int) {
             }
         }
         2 -> {
-            // Page 2: Request notification permission
+            // Page 2: Request record audio permission
+            Text(
+                text = "Microphone Permission",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Smart Recorder needs microphone access to record audio. This is essential for the app to function properly.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "⚠️ Without this permission, the app cannot record audio and will not work properly.",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+        3 -> {
+            // Page 3: Request notification permission
             Text(
                 text = "Notifications",
                 style = MaterialTheme.typography.titleLarge,
@@ -360,8 +412,8 @@ private fun OnboardingPageContent(page: Int) {
                 )
             }
         }
-        3 -> {
-            // Page 3: CTA
+        4 -> {
+            // Page 4: CTA
             Text(
                 text = "Ready to Start?",
                 style = MaterialTheme.typography.titleLarge,

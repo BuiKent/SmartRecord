@@ -74,26 +74,31 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Notification permission result -> granted: %b", isGranted)
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-            delay(150) // Allow system to update
-            viewModel.refreshState(context)
-            // If granted, schedule notifications
-            if (isGranted) {
-                viewModel.scheduleNotifications()
-            }
-        }
+        // Handle permission result in ViewModel
+        viewModel.onNotificationPermissionResult(isGranted, context)
     }
     
     // Event handler
     LaunchedEffect(key1 = viewModel) {
         viewModel.eventFlow.collect { event ->
+            AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Event received: ${event::class.simpleName}")
             when (event) {
                 is SettingsEvent.RequestNotificationPermission -> {
+                    AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Requesting notification permission dialog")
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        try {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Permission launcher launched")
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG_VIEWMODEL, "[SettingsScreen] Error launching permission launcher", e)
+                        }
+                    } else {
+                        AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Android < 13, opening system settings")
+                        viewModel.openSystemSettings(context)
                     }
                 }
                 is SettingsEvent.OpenSystemSettings -> {
+                    AppLogger.d(TAG_VIEWMODEL, "[SettingsScreen] Opening system settings")
                     viewModel.openSystemSettings(context)
                 }
             }

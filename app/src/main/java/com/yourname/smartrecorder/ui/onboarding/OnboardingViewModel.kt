@@ -22,10 +22,18 @@ class OnboardingViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Enable notifications in SettingsStore (user preference)
+     * 
+     * Đồng bộ theo Onboarding.md pattern:
+     * - System state là single source of truth cho UI display
+     * - SettingsStore chỉ lưu user preference (không phải system state)
+     * - Khi permission granted → update SettingsStore để sync với SettingsScreen
+     */
     fun enableNotifications() {
         viewModelScope.launch {
             AppLogger.logViewModel(TAG_VIEWMODEL, "OnboardingViewModel", "enableNotifications", 
-                "Enabling notifications in settings")
+                "Enabling notifications in SettingsStore (user preference)")
             settingsStore.setNotificationsEnabled(true)
         }
     }

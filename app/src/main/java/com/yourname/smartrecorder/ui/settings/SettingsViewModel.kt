@@ -33,7 +33,8 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
     
-    // System notification state as single source of truth
+    // System notification state as single source of truth (theo Onboarding.md pattern)
+    // UI hiển thị dựa trên system state, không phải DataStore
     private val _systemNotificationAllowed = MutableStateFlow(false)
     val systemNotificationAllowed = _systemNotificationAllowed.asStateFlow()
     
@@ -167,6 +168,38 @@ class SettingsViewModel @Inject constructor(
             AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "scheduleNotifications", 
                 "Scheduling daily notifications")
             notificationScheduler.scheduleDailyNotifications()
+        }
+    }
+    
+    /**
+     * Handle notification permission result (called from permission launcher)
+     * 
+     * Đồng bộ theo Onboarding.md pattern:
+     * - System state là single source of truth cho UI display
+     * - SettingsStore chỉ lưu user preference (không phải system state)
+     * - Khi permission granted → update SettingsStore để sync user preference
+     */
+    fun onNotificationPermissionResult(isGranted: Boolean, context: Context) {
+        viewModelScope.launch {
+            AppLogger.logViewModel(TAG_VIEWMODEL, "SettingsViewModel", "onNotificationPermissionResult", 
+                "isGranted=$isGranted")
+            
+            if (isGranted) {
+                // Update system state immediately (single source of truth)
+                _systemNotificationAllowed.value = true
+                // Update SettingsStore để sync user preference (theo Onboarding.md)
+                settingsStore.setNotificationsEnabled(true)
+                // Refresh to ensure sync với system
+                refreshState(context)
+                // Schedule notifications
+                notificationScheduler.scheduleDailyNotifications()
+            } else {
+                // Permission denied - keep state as disabled
+                _systemNotificationAllowed.value = false
+                // Update SettingsStore để sync user preference
+                settingsStore.setNotificationsEnabled(false)
+                refreshState(context)
+            }
         }
     }
 }
