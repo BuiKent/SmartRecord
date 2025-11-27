@@ -33,7 +33,12 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - [x] Loại bỏ local state `hasNotificationPermission`, luôn check system state trực tiếp
   - [x] OnboardingScreen chỉ hiện khi cài lại app/data bị xóa → luôn cần hiện System Permission nếu màn hình này hiện
   - [x] Khi permission already granted → vẫn update SettingsStore để sync
-- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingScreen.kt`
+  - [x] Auto-launch permission dialog khi vào Page 3 (LaunchedEffect với delay 300ms)
+  - [x] Smart navigation logic: chỉ navigate khi dialog thực sự được hiển thị (check `shouldShowRequestPermissionRationale()`)
+  - [x] Thêm POST_NOTIFICATIONS permission vào AndroidManifest.xml
+- **File:** 
+  - `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingScreen.kt`
+  - `app/src/main/AndroidManifest.xml`
 - **Status:** ✅ COMPLETED
 
 ### 🎯 Task CRITICAL.3: Fix Notification Toggle ở Settings Screen ✅ COMPLETED
@@ -53,20 +58,21 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - `app/src/main/java/com/yourname/smartrecorder/ui/onboarding/OnboardingViewModel.kt`
 - **Status:** ✅ COMPLETED
 
-### 🎯 Task CRITICAL.4: Transcript Screen - Save khi Click Outside ❌ PENDING
+### 🎯 Task CRITICAL.4: Transcript Screen - Save khi Click Outside ✅ COMPLETED
 - **Vấn đề:** Save khi click outside chưa làm được
 - **Chi tiết:** 
   - Code có `saveEditing()` và `cancelEditing()` trong ViewModel
   - Nhưng chỉ được gọi từ check icon hoặc keyboard action (ImeAction.Done)
   - Chưa có logic detect click outside TextField để auto-save
-- **Cách làm:**
-  1. Thêm `Modifier.clickable` vào LazyColumn hoặc Box container
-  2. Khi click outside → check `isEditing` → gọi `saveEditing()`
-  3. Hoặc dùng `FocusRequester` và detect focus loss
+- **Giải pháp:**
+  1. ✅ Thêm `onFocusChanged` modifier vào TextField để detect focus loss
+  2. ✅ Khi TextField mất focus → tự động gọi `saveEditing()`
+  3. ✅ Khi click vào segment khác → save segment đang edit trước
+  4. ✅ Khi click edit segment khác → save segment đang edit trước
 - **File:** 
   - `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/transcript/TranscriptViewModel.kt`
-- **Status:** ❌ PENDING
+- **Status:** ✅ COMPLETED
 
 ### 🎯 Task CRITICAL.5: Transcript Screen - Speaker Labels trong People Mode ⚠️ PENDING
 - **Vấn đề:** Trong màn hình transcript khi chuyển qua tab People thì đang hiện "unknown speaker" thay vì "Speaker 1", "Speaker 2". Logic copy/paste đã đúng (có hiện speaker 1, 2) nhưng hiển thị trong tab chưa đúng.
@@ -1156,9 +1162,10 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
      - ✅ Toggle OFF → Open system settings (permission dialog cannot disable)
      - ✅ Check system state trước khi request
      - ✅ Refresh state khi user quay lại từ system settings
-     - ✅ Warning card khi notifications disabled
+     - ✅ Warning card khi notifications disabled (hiển thị trực tiếp, tốt hơn BottomSheet)
      - ✅ Lifecycle-aware refresh (repeatOnLifecycle)
      - ✅ Retry logic cho Samsung/Xiaomi delay
+     - ✅ Guard trong `scheduleNotifications()` để tránh duplicate scheduling
 - **Priority:** High (vì user đã hỏi về Settings)
 - **Estimated Time:** 3-4 giờ
 - **Dependencies:**
@@ -1700,6 +1707,7 @@ Box(modifier = Modifier.fillMaxSize()) {
 - [x] Tạo `NotificationContent.kt` với messages phù hợp Smart Recorder ✅
 - [x] Tạo `NotificationDeepLinkHandler.kt` với routes (record, library, transcript, settings) ✅
 - [x] Tạo `AppNotificationManager.kt` cho app content notifications ✅
+- [x] Guard trong `scheduleNotifications()` để tránh duplicate scheduling ✅
 - [x] Tạo `NotificationFrequencyCap.kt` (max 3/ngày, min 4h interval) ✅
 - [x] Tạo `NotificationScheduler.kt` với WorkManager ✅
 - [x] Tạo `NotificationWorker.kt` cho background scheduling ✅
@@ -1718,8 +1726,11 @@ Box(modifier = Modifier.fillMaxSize()) {
   - ✅ Retry logic cho Samsung/Xiaomi delay
 - [x] Onboarding Screen - Notification Permission ✅ COMPLETED
   - ✅ Check permission state từ system trước khi request
-  - ✅ Request permission ở page 2 (Notifications)
-  - ✅ Auto-navigate sau khi permission granted/denied
+  - ✅ Request permission ở page 3 (Notifications) - thứ tự: Record Audio (Page 2) → Notification (Page 3)
+  - ✅ Auto-launch permission dialog khi vào Page 3 (LaunchedEffect với delay 300ms)
+  - ✅ Smart navigation: chỉ navigate khi dialog thực sự được hiển thị (check `shouldShowRequestPermissionRationale()`)
+  - ✅ Xử lý permanently denied: không auto-navigate, chờ user click Next
+  - ✅ POST_NOTIFICATIONS permission đã được thêm vào AndroidManifest.xml
   - ✅ Sync với NotificationPermissionManager
   - ✅ Handle Android < 13 (notifications enabled by default)
 - [ ] Handle deep links trong `MainActivity.kt`
@@ -1731,6 +1742,10 @@ Box(modifier = Modifier.fillMaxSize()) {
 - [ ] Test recording notification với controls từ lock screen
 - [ ] Test playback notification với media controls
 - [x] Test với permission granted/denied (POST_NOTIFICATIONS) ✅ COMPLETED (Settings & Onboarding)
+  - ✅ POST_NOTIFICATIONS permission đã được thêm vào AndroidManifest.xml
+  - ✅ Onboarding auto-launch permission dialog khi vào Page 3
+  - ✅ Settings toggle hoạt động đúng với system state
+  - ✅ Guard trong scheduleNotifications() để tránh duplicate scheduling
 - [ ] Test frequency cap (max 3/ngày, min 4h interval)
 - [ ] Test worker schedule (daily notifications)
 - [ ] Test deep links (tap notification → navigate đúng route)
@@ -1856,7 +1871,7 @@ Box(modifier = Modifier.fillMaxSize()) {
 
 ## 🔧 Settings & Initialization (Priority: Medium)
 
-### 🎯 Task SETTINGS.1: Lazy Initialization của SettingsViewModel ⚠️ PENDING
+### 🎯 Task SETTINGS.1: Lazy Initialization của SettingsViewModel ✅ COMPLETED
 - **Vấn đề:** 
   - `initializeState()` được gọi trong SettingsScreen, nhưng ViewModel có thể được tạo sớm
   - Khi cài app lần đầu, onboarding là chủ, không nên check settings state để quyết định
@@ -1866,10 +1881,11 @@ Box(modifier = Modifier.fillMaxSize()) {
   - [x] `initializeState()` chỉ được gọi trong `DisposableEffect(Unit)` ở SettingsScreen (đã có sẵn)
   - [x] Thêm logging để track khi nào `initializeState()` được gọi
   - [x] Đảm bảo onboarding không bị ảnh hưởng bởi settings state
+  - [x] Guard trong `scheduleNotifications()` để tránh duplicate scheduling
 - **Files:**
   - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsViewModel.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/settings/SettingsScreen.kt`
-- **Status:** ⚠️ PENDING (đã sửa code, cần test)
+- **Status:** ✅ COMPLETED
 
 ---
 

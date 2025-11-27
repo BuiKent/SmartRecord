@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -258,13 +259,30 @@ fun TranscriptScreen(
                             showSpeakerMode = showSpeakerMode,
                             onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
                             onSegmentClick = { segment ->
+                                // Click on segment → Save if editing
+                                if (uiState.editingSegmentId != null) {
+                                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Click on segment while editing -> saving")
+                                    viewModel.saveEditing()
+                                }
                                 viewModel.seekTo(segment.startTimeMs)
                             },
                             onGenerateTranscript = {
+                                // Click generate → Save if editing
+                                if (uiState.editingSegmentId != null) {
+                                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Click generate while editing -> saving")
+                                    viewModel.saveEditing()
+                                }
                                 AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] User clicked Generate Transcript button")
                                 viewModel.generateTranscript()
                             },
-                            onEditClick = { segmentId -> viewModel.startEditing(segmentId) },
+                            onEditClick = { segmentId -> 
+                                // Click edit → Save if editing another segment
+                                if (uiState.editingSegmentId != null && uiState.editingSegmentId != segmentId) {
+                                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Click edit on different segment while editing -> saving")
+                                    viewModel.saveEditing()
+                                }
+                                viewModel.startEditing(segmentId) 
+                            },
                             onTextChange = { text -> viewModel.updateEditingText(text) },
                             onSaveClick = { viewModel.saveEditing() },
                             onCancelClick = { viewModel.cancelEditing() }
@@ -565,12 +583,22 @@ private fun TranscriptLineItem(
             
             // Edit mode: show TextField
             if (isEditing) {
+                var hasFocus by remember { mutableStateOf(false) }
                 OutlinedTextField(
                     value = editingText,
                     onValueChange = onTextChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(focusRequester),
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { focusState ->
+                            val wasFocused = hasFocus
+                            hasFocus = focusState.isFocused
+                            // Focus lost → Save if was previously focused
+                            if (wasFocused && !focusState.isFocused) {
+                                AppLogger.d(TAG_VIEWMODEL, "[TranscriptLineItem] TextField lost focus -> saving")
+                                onSaveClick()
+                            }
+                        },
                     shape = RoundedCornerShape(12.dp),
                     textStyle = MaterialTheme.typography.bodyMedium,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),

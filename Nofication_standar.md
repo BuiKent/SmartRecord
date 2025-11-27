@@ -2,8 +2,8 @@
 
 Tài liệu này mô tả chi tiết cách ứng dụng xử lý notification permission từ onboarding đến settings screen, đồng bộ với hệ thống Android.
 
-**Last Updated**: 2025-11-27  
-**Status**: ✅ Đã implement đầy đủ theo standard
+**Last Updated**: 2025-01-XX  
+**Status**: ✅ Đã implement đầy đủ theo standard (với một số cải tiến)
 
 ---
 
@@ -408,8 +408,9 @@ fun scheduleNotifications() {
 **Chi tiết:**
 - ✅ **Guard**: Check state trước để tránh duplicate scheduling
 - Lưu `notificationsEnabled = true` vào DataStore
-- Schedule promotion và tips notifications
+- Schedule daily notifications (SmartRecorder sử dụng `scheduleDailyNotifications()`)
 - Tránh tốn resources khi đã scheduled
+- ✅ **Status**: Đã implement trong SmartRecorder app
 
 **Lưu ý:**
 - `openSystemSettings()` được gọi trực tiếp từ SettingsScreen thông qua `NotificationPermissionManager`
@@ -778,15 +779,17 @@ fun scheduleNotifications() {
 ## 🎯 Tóm Tắt
 
 1. **Notification Permission Screen**: Post-sign-in onboarding, auto-navigate khi granted
-2. **Settings**: Toggle sync với hệ thống, ON → permission dialog, OFF → BottomSheet → system settings
+   - **SmartRecorder**: Sử dụng Pager với auto-launch permission dialog (Page 3)
+   - Smart navigation: chỉ navigate khi dialog thực sự được hiển thị
+2. **Settings**: Toggle sync với hệ thống, ON → permission dialog, OFF → system settings
+   - **SmartRecorder**: Warning card hiển thị trực tiếp (tốt hơn BottomSheet)
 3. **Sync**: Tự động refresh khi screen mở và khi app resume
 4. **Single source of truth**: NotificationManagerCompat (hệ thống Android)
 5. **Delay handling**: Retry và delay để xử lý Samsung/Xiaomi
-6. ✅ **Best Practice**: Rationale BottomSheet khi toggle OFF (cảnh báo trước khi tắt)
-7. ✅ **Best Practice**: Guard trong `scheduleNotifications()` để tránh duplicate scheduling
-8. ✅ **Best Practice**: "Don't ask again" handling - tự động mở system settings
-9. **Toggle ON**: Đơn giản, launch permission dialog trực tiếp (không cần rationale)
-10. **Cancel notifications**: Tự động cancel khi toggle OFF
+6. ✅ **Best Practice**: Guard trong `scheduleNotifications()` để tránh duplicate scheduling ✅ IMPLEMENTED
+7. **Toggle ON**: Đơn giản, launch permission dialog trực tiếp (không cần rationale)
+8. **Cancel notifications**: Tự động cancel khi toggle OFF
+9. **POST_NOTIFICATIONS permission**: Đã được thêm vào AndroidManifest.xml ✅ IMPLEMENTED
 
 ---
 
