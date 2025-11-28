@@ -13,6 +13,19 @@ Tài liệu này mô tả chi tiết thiết kế UI cho audio player trong app 
 
 ## 🎯 Design Consistency - Thống Nhất UI
 
+### 📌 Tóm Tắt Nhanh
+
+**Mục tiêu:** UI trong app (Option 1) và UI ngoài app (Option 3) **PHẢI thống nhất** về:
+- ✅ Màu sắc: `#FF6B35` (cam) cho tất cả accent
+- ✅ Icons: Cùng Material Icons (PlayArrow, Pause, Replay10, Forward10)
+- ✅ Time format: `MM:SS` (dùng shared `TimeFormatter`)
+- ✅ Progress bar: 4dp, màu cam, cùng style
+- ✅ Layout pattern: Button trái → Progress giữa → Time dưới
+
+**Khác nhau:** Layout structure, button size, spacing (do platform constraints)
+
+---
+
 ### Nguyên Tắc Chung
 
 Mặc dù UI trong app (Option 1) và UI ngoài app (Option 3 - Notification/Lock Screen) có **layout khác nhau** do constraints khác nhau, nhưng chúng phải **thống nhất** về:
@@ -845,10 +858,32 @@ dependencies {
 
 ## ✅ Final Notes
 
-- **Option 1** là UI chính trong app → Ưu tiên implement trước
-- **Option 3** là bắt buộc cho background playback → Implement sau
-- Cả 2 options đều dùng màu cam (#FF6B35) để đồng bộ brand
-- Test kỹ trên Android 8+ (notification channel) và Android 13+ (permission)
+### 🎯 Implementation Priority
 
-**Chúc team implement thành công! 🚀**
+1. **Option 1** là UI chính trong app → Ưu tiên implement trước
+2. **Option 3** là bắt buộc cho background playback → Implement sau
+3. **Shared Helpers** → Tạo ngay từ đầu để đảm bảo thống nhất
+
+### 🎨 Design Consistency (QUAN TRỌNG)
+
+- ✅ **Màu sắc:** Cả 2 options PHẢI dùng `#FF6B35` (primary orange)
+- ✅ **Icons:** Cùng Material Icons hoặc cùng style
+- ✅ **Time format:** Cùng `MM:SS` format (dùng `TimeFormatter`)
+- ✅ **Progress bar:** Cùng màu cam, cùng height 4dp
+- ✅ **Layout pattern:** Button trái, Progress giữa, Time dưới
+
+### ⚠️ Testing Checklist
+
+- Test kỹ trên Android 8+ (notification channel)
+- Test kỹ trên Android 13+ (permission `POST_NOTIFICATIONS`)
+- **Visual test:** So sánh Option 1 và Option 3 → Đảm bảo màu sắc, icons, format đều giống nhau
+- **Functional test:** Play/Pause từ cả 2 nơi phải sync với nhau
+
+### 📚 Reference
+
+- Design tokens: Xem section "Unified Design Tokens"
+- Shared code: Xem section "Shared Code/Helpers"
+- Consistency rules: Xem section "Design Consistency - Thống Nhất UI"
+
+**Chúc team implement thành công và đảm bảo UI thống nhất! 🚀**
 
