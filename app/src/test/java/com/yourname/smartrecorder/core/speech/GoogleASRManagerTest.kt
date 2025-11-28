@@ -69,13 +69,12 @@ class GoogleASRManagerTest {
         // In real test, we'd check the intent passed to startListening
     }
     
-    @Test
-    fun `setPreferOffline updates offline preference`() {
-        manager.setPreferOffline(true)
-        
-        // Preference is stored internally
-        // In real test, we'd check the intent passed to startListening
-    }
+    // Note: setPreferOffline method doesn't exist - preferOffline is auto-detected from network
+    // @Test
+    // fun `setPreferOffline updates offline preference`() {
+    //     manager.setPreferOffline(true)
+    //     // Preference is auto-detected from network availability
+    // }
     
     @Test
     fun `updateBiasingStrings updates biasing list`() {
