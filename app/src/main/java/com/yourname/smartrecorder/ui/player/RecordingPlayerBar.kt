@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,7 +87,7 @@ fun RecordingPlayerBar(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
-                // Thanh progress dài liên tục, thumb là dot tròn to
+                // Thanh progress dài liên tục, track hình tròn (pill shape), thumb là dot tròn to
                 Slider(
                     value = progressValue,
                     onValueChange = { value ->
@@ -93,29 +95,47 @@ fun RecordingPlayerBar(
                         onSeekTo(newPos)
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                    )
+                    track = { sliderState ->
+                        SliderDefaults.Track(
+                            sliderState = sliderState,
+                            colors = SliderDefaults.colors(
+                                activeTrackColor = MaterialTheme.colorScheme.primary,
+                                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                            ),
+                            modifier = Modifier
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)) // Track hình tròn (pill shape)
+                        )
+                    },
+                    thumb = {
+                        // Custom thumb - chỉ có 1 lớp màu cam, không có viền
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary) // Chỉ màu cam, không có viền
+                        )
+                    }
                 )
 
                 Spacer(Modifier.height(4.dp))
 
-                // Thời gian: current / total
+                // Thời gian: current / total - Tăng contrast để dễ thấy
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp), // Thêm padding để tách khỏi slider
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = TimeFormatter.formatTime(positionMs),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Đổi màu đậm hơn
                     )
                     Text(
                         text = TimeFormatter.formatTime(durationMs),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Đổi màu đậm hơn
                     )
                 }
             }
