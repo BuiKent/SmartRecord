@@ -67,8 +67,11 @@ class GenerateTranscriptUseCase @Inject constructor(
                 }
                 .filter { segment ->
                     // Filter out BLANK_AUDIO segments (case-insensitive)
+                    // Note: Whisper may return "[BLANK_AUDIO]" (with brackets) or "BLANK_AUDIO" (without brackets)
                     val textUpper = segment.text.trim().uppercase()
-                    textUpper != "BLANK_AUDIO" && textUpper.isNotBlank()
+                    textUpper != "BLANK_AUDIO" && 
+                    textUpper != "[BLANK_AUDIO]" && 
+                    textUpper.isNotBlank()
                 }
         
             AppLogger.d(TAG_TRANSCRIPT, "Generated %d RAW transcript segments (no speaker processing, filtered BLANK_AUDIO)", rawSegments.size)

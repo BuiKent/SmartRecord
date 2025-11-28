@@ -266,12 +266,13 @@ class RecordingForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Recording",
-                NotificationManager.IMPORTANCE_HIGH // HIGH để hiển thị lock screen
+                NotificationManager.IMPORTANCE_LOW // LOW để không alert khi update
             ).apply {
                 description = "Ongoing recording notification with controls"
+                setSound(null, null) // ⚠️ CRITICAL: Không có sound
                 enableVibration(false) // Không rung khi recording
-                enableLights(true)
-                lockscreenVisibility = 1 // NotificationManager.VISIBILITY_PUBLIC
+                enableLights(false) // Không flash LED
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC // Vẫn hiển thị trên lock screen
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -330,10 +331,12 @@ class RecordingForegroundService : Service() {
             .addAction(pauseResumeAction)
             .addAction(stopAction)
             .setOngoing(!isPausedState) // Cho phép dismiss khi paused
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_LOW) // LOW để không heads-up
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Lock screen
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setShowWhen(true)
+            .setOnlyAlertOnce(true) // ⚠️ CRITICAL: Chỉ alert lần đầu, update im lặng
+            .setSilent(true) // ⚠️ CRITICAL: Im lặng hoàn toàn
             .build()
     }
     

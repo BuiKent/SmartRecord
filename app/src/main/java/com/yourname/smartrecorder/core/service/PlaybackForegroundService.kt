@@ -260,6 +260,10 @@ class PlaybackForegroundService : Service() {
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Ongoing audio playback notification"
+                setSound(null, null) // ⚠️ CRITICAL: Không có sound
+                enableVibration(false) // Không rung
+                enableLights(false) // Không flash LED
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC // Vẫn hiển thị trên lock screen
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -317,6 +321,8 @@ class PlaybackForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Lock screen visibility
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setOnlyAlertOnce(true) // ⚠️ CRITICAL: Chỉ alert lần đầu, update im lặng
+            .setSilent(true) // ⚠️ CRITICAL: Im lặng hoàn toàn
         
         // TODO: Add MediaStyle for lock screen controls when MediaSession is available
         // mediaSession?.let { session ->

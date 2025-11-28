@@ -39,9 +39,12 @@ class ProcessTranscriptUseCase @Inject constructor(
             }
             
             // Filter out BLANK_AUDIO segments (in case they exist in DB from before filter was added)
+            // Note: Whisper may return "[BLANK_AUDIO]" (with brackets) or "BLANK_AUDIO" (without brackets)
             val rawSegments = rawSegmentsFromDb.filter { segment ->
                 val textUpper = segment.text.trim().uppercase()
-                textUpper != "BLANK_AUDIO" && textUpper.isNotBlank()
+                textUpper != "BLANK_AUDIO" && 
+                textUpper != "[BLANK_AUDIO]" && 
+                textUpper.isNotBlank()
             }
             
             // Log comparison: raw from DB vs filtered
@@ -407,9 +410,10 @@ class ProcessTranscriptUseCase @Inject constructor(
             AppLogger.d(TAG_TRANSCRIPT, "... and %d more processed segments", segments.size - sampleSize)
         }
         
-        // Check for BLANK_AUDIO in processed segments
+        // Check for BLANK_AUDIO in processed segments (with or without brackets)
         val blankAudioCount = segments.count { 
-            it.text.trim().uppercase() == "BLANK_AUDIO" 
+            val textUpper = it.text.trim().uppercase()
+            textUpper == "BLANK_AUDIO" || textUpper == "[BLANK_AUDIO]"
         }
         if (blankAudioCount > 0) {
             AppLogger.w(TAG_TRANSCRIPT, "WARNING: Found %d BLANK_AUDIO segments in processed results (should be filtered)", blankAudioCount)

@@ -65,7 +65,7 @@ import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
 import com.yourname.smartrecorder.ui.transcript.TranscriptViewModel
-import com.yourname.smartrecorder.ui.player.TranscriptPlayerBar
+import com.yourname.smartrecorder.ui.player.RecordingPlayerBar
 import com.yourname.smartrecorder.core.utils.TimeFormatter
 import com.yourname.smartrecorder.domain.model.TranscriptSegment
 
@@ -275,11 +275,11 @@ fun TranscriptScreen(
                 )
                 .fillMaxSize()
         ) {
-            // Player bar - Card design với màu cam
-            TranscriptPlayerBar(
-                title = recording?.title?.takeIf { it.isNotBlank() } ?: "",
+            // Player bar - Card mỏng, nhẹ, màu cam nhạt
+            RecordingPlayerBar(
+                title = recording?.title?.takeIf { it.isNotBlank() } ?: "Untitled Recording",
                 isPlaying = uiState.isPlaying,
-                currentPosMs = uiState.currentPositionMs,
+                positionMs = uiState.currentPositionMs,
                 durationMs = recording?.durationMs ?: 0L,
                 onPlayPauseClick = { viewModel.togglePlayPause() },
                 onSeekTo = { viewModel.seekTo(it) }
