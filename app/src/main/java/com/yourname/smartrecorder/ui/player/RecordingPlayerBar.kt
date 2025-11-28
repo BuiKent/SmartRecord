@@ -41,13 +41,12 @@ fun RecordingPlayerBar(
         0f
     }
 
-    // Box với gradient nhẹ - bỏ Card ngoài
+    // Box với gradient nhẹ - pill shape card (đơn giản như code cũ)
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 80.dp, max = 90.dp)
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(50)) // Pill shape - hình tròn (bo góc 50% = tròn)
+            .clip(RoundedCornerShape(50))
             .background(
                 Brush.horizontalGradient(
                     listOf(
@@ -62,7 +61,6 @@ fun RecordingPlayerBar(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Nút PLAY/PAUSE tròn
             IconButton(
                 onClick = onPlayPauseClick,
                 modifier = Modifier
@@ -71,10 +69,7 @@ fun RecordingPlayerBar(
                     .background(MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
-                    imageVector = if (isPlaying)
-                        Icons.Default.Pause
-                    else
-                        Icons.Default.PlayArrow,
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
                     tint = Color.White
                 )
@@ -82,12 +77,12 @@ fun RecordingPlayerBar(
 
             Spacer(Modifier.width(16.dp))
 
-            // Phần progress dots + time
-            Column(
+            // Phần progress: slider ở giữa, time label nhỏ bên trong
+            Box(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
+                contentAlignment = Alignment.Center
             ) {
-                // Thanh progress dài liên tục, track hình tròn (pill shape), thumb là dot tròn to
+                // Slider nằm giữa
                 Slider(
                     value = progressValue,
                     onValueChange = { value ->
@@ -104,38 +99,40 @@ fun RecordingPlayerBar(
                             ),
                             modifier = Modifier
                                 .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)) // Track hình tròn (pill shape)
+                                .clip(RoundedCornerShape(2.dp))
                         )
                     },
                     thumb = {
-                        // Custom thumb - chỉ có 1 lớp màu cam, không có viền
                         Box(
                             modifier = Modifier
                                 .size(12.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary) // Chỉ màu cam, không có viền
+                                .background(MaterialTheme.colorScheme.primary)
                         )
                     }
                 )
-
-                Spacer(Modifier.height(4.dp))
-
-                // Thời gian: current / total - Tăng contrast để dễ thấy
+                
+                // Time labels nhỏ, nằm dưới slider, hai bên
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 2.dp), // Thêm padding để tách khỏi slider
+                        .align(Alignment.BottomCenter)
+                        .padding(top = 24.dp), // Đẩy xuống dưới slider
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = TimeFormatter.formatTime(positionMs),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Đổi màu đậm hơn
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
                         text = TimeFormatter.formatTime(durationMs),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Đổi màu đậm hơn
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
