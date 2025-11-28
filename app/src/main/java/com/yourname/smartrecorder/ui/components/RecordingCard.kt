@@ -209,20 +209,6 @@ fun RecordingCard(
                     )
                 }
                 
-                // Stop button
-                IconButton(
-                    onClick = { 
-                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked stop -> recordingId: %s", recording.id)
-                        onStopClick() 
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Stop,
-                        contentDescription = "Stop",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-                
                 // Transcript button
                 OutlinedButton(
                     onClick = { 

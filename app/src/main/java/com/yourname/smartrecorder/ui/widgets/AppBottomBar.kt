@@ -25,17 +25,17 @@ fun AppBottomBar(
     onStudyClick: () -> Unit
 ) {
     NavigationBar {
-        // LEFT: Study
+        // LEFT: History
         NavigationBarItem(
             selected = currentRoute == AppRoutes.STUDY,
             onClick = onStudyClick,
             icon = {
                 Icon(
                     imageVector = Icons.Default.School,
-                    contentDescription = "Study"
+                    contentDescription = "History"
                 )
             },
-            label = { Text("Study") },
+            label = { Text("History") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color.White,
