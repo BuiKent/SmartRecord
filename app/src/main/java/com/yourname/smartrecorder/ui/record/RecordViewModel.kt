@@ -14,7 +14,9 @@ import com.yourname.smartrecorder.core.logging.AppLogger.TAG_REALTIME
 import com.yourname.smartrecorder.core.service.AutoSaveManager
 import com.yourname.smartrecorder.core.service.ForegroundServiceManager
 import com.yourname.smartrecorder.core.service.RecordingForegroundService
+import com.yourname.smartrecorder.data.repository.RecordingSessionRepository
 import com.yourname.smartrecorder.data.stt.WhisperModelManager
+import com.yourname.smartrecorder.domain.state.RecordingState
 import com.yourname.smartrecorder.domain.usecase.AddBookmarkUseCase
 import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
 import com.yourname.smartrecorder.domain.usecase.PauseRecordingUseCase
@@ -33,6 +35,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -52,47 +57,47 @@ class RecordViewModel @Inject constructor(
     private val autoSaveManager: AutoSaveManager,
     private val modelManager: WhisperModelManager,
     private val realtimeTranscript: RealtimeTranscriptUseCase,
+    private val recordingSessionRepository: RecordingSessionRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(RecordUiState())
-    val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
+    // Expose recording state from repository
+    val recordingState: StateFlow<RecordingState> = 
+        recordingSessionRepository.state
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = RecordingState.Idle
+            )
     
-    private val serviceActionReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                RecordingForegroundService.BROADCAST_PAUSE -> {
-                    AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Received PAUSE broadcast from service")
-                    onPauseClick()
-                }
-                RecordingForegroundService.BROADCAST_RESUME -> {
-                    AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Received RESUME broadcast from service")
-                    // onPauseClick() handles both pause and resume based on isPaused state
-                    if (isPaused) {
-                        onPauseClick() // This will resume if isPaused is true
-                    }
-                }
-                RecordingForegroundService.BROADCAST_STOP -> {
-                    AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Received STOP broadcast from service")
-                    onStopClick()
-                }
-            }
-        }
-    }
+    // Derive UI state from repository state
+    private val _otherUiState = MutableStateFlow(RecordUiState())
+    val uiState: StateFlow<RecordUiState> = combine(
+        recordingState,
+        _otherUiState
+    ) { recordingState, otherState ->
+        RecordUiState(
+            isRecording = recordingState is RecordingState.Active && !recordingState.isPaused,
+            isPaused = recordingState is RecordingState.Active && recordingState.isPaused,
+            durationMs = when (recordingState) {
+                is RecordingState.Active -> recordingState.getElapsedMs()
+                else -> 0L
+            },
+            liveText = otherState.liveText,
+            partialText = otherState.partialText,
+            error = otherState.error,
+            amplitude = otherState.amplitude,
+            isModelReady = otherState.isModelReady,
+            isLiveTranscribeMode = otherState.isLiveTranscribeMode
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = RecordUiState()
+    )
     
     init {
         checkModelReady()
-        registerServiceActionReceiver()
-    }
-    
-    private fun registerServiceActionReceiver() {
-        val filter = IntentFilter().apply {
-            addAction(RecordingForegroundService.BROADCAST_PAUSE)
-            addAction(RecordingForegroundService.BROADCAST_RESUME)
-            addAction(RecordingForegroundService.BROADCAST_STOP)
-        }
-        context.registerReceiver(serviceActionReceiver, filter)
-        AppLogger.d(TAG_RECORDING, "Registered service action receiver")
     }
     
     private val _navigateToTranscript = MutableStateFlow<String?>(null)
@@ -100,15 +105,9 @@ class RecordViewModel @Inject constructor(
 
     private var currentRecording: com.yourname.smartrecorder.domain.model.Recording? = null
     private var timerJob: Job? = null
-    private var startTimeMs: Long = 0L
-    private var totalPausedDurationMs: Long = 0L  // Total time spent paused
-    private var pauseStartTimeMs: Long = 0L  // When pause started
     
     @Volatile
     private var isStarting: Boolean = false
-    
-    @Volatile
-    private var isPaused: Boolean = false
     
     fun onNavigationHandled() {
         _navigateToTranscript.value = null
@@ -125,7 +124,7 @@ class RecordViewModel @Inject constructor(
                 
                 if (isDownloaded) {
                     AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model is ready")
-                    _uiState.update { 
+                    _otherUiState.update { 
                         it.copy(isModelReady = true) 
                     }
                 } else {
@@ -141,7 +140,7 @@ class RecordViewModel @Inject constructor(
                         }
                         if (checked) {
                             AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model is now ready (found after ${it + 1} checks)")
-                            _uiState.update { 
+                            _otherUiState.update { 
                                 it.copy(isModelReady = true) 
                             }
                             found = true
@@ -166,7 +165,7 @@ class RecordViewModel @Inject constructor(
                             
                             if (verified) {
                                 AppLogger.d(TAG_TRANSCRIPT, "[RecordViewModel] Model downloaded and verified successfully")
-                                _uiState.update { 
+                                _otherUiState.update { 
                                     it.copy(isModelReady = true) 
                                 }
                             } else {
@@ -188,10 +187,11 @@ class RecordViewModel @Inject constructor(
     }
 
     fun onStartClick() {
-        // Recording doesn't require model - model is only for transcription
-        if (isStarting || _uiState.value.isRecording) {
-            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Start rejected - already starting or recording")
-            return // Prevent concurrent starts
+        // Check if already recording
+        val currentState = recordingState.value
+        if (currentState is RecordingState.Active || isStarting) {
+            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Start rejected - already recording or starting")
+            return
         }
         
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStartClick", null)
@@ -223,7 +223,7 @@ class RecordViewModel @Inject constructor(
                             currentRecording = startRecording(outputDir)
                         } catch (retryException: Exception) {
                             AppLogger.e(TAG_RECORDING, "Failed to start recording after force reset", retryException)
-                            _uiState.update { it.copy(error = retryException.message, isRecording = false) }
+                            _otherUiState.update { it.copy(error = retryException.message) }
                             currentRecording = null
                             isStarting = false
                             return@launch
@@ -233,26 +233,25 @@ class RecordViewModel @Inject constructor(
                     }
                 }
                 
-                startTimeMs = System.currentTimeMillis()
-                totalPausedDurationMs = 0L  // Reset pause duration
-                pauseStartTimeMs = 0L
-                
                 AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Recording started", 
-                    "recordingId=${currentRecording?.id}, startTime=$startTimeMs")
+                    "recordingId=${currentRecording?.id}")
                 
                 // Start foreground service to keep recording active in background
+                // Service will update repository state, UI will react automatically
                 val fileName = File(currentRecording!!.filePath).name
                 foregroundServiceManager.startRecordingService(currentRecording!!.id, fileName)
                 
-                // Start auto-save
-                autoSaveManager.startAutoSave(currentRecording!!, startTimeMs)
+                // Start auto-save - use startTimeMs from repository state
+                val recordingState = recordingSessionRepository.getCurrentState()
+                if (recordingState is RecordingState.Active) {
+                    autoSaveManager.startAutoSave(currentRecording!!, recordingState.startTimeMs)
+                }
                 
-                _uiState.update { it.copy(isRecording = true, isPaused = false, durationMs = 0L, error = null) }
-                isPaused = false
+                _otherUiState.update { it.copy(error = null) }
                 startTimer()
             } catch (e: Exception) {
                 AppLogger.e(TAG_RECORDING, "Failed to start recording", e)
-                _uiState.update { it.copy(error = e.message, isRecording = false) }
+                _otherUiState.update { it.copy(error = e.message) }
                 currentRecording = null
             } finally {
                 isStarting = false
@@ -261,69 +260,58 @@ class RecordViewModel @Inject constructor(
     }
 
     fun onPauseClick() {
+        val currentState = recordingState.value
+        if (currentState !is RecordingState.Active) {
+            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Pause/Resume rejected - not recording")
+            return
+        }
+        
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onPauseClick", null)
         viewModelScope.launch {
             try {
-                // Validate state: must have active recording
-                if (currentRecording == null && !_uiState.value.isRecording && !_uiState.value.isPaused) {
-                    AppLogger.w(TAG_RECORDING, "Pause/Resume called but no recording in progress - ignoring")
-                    return@launch
-                }
-                
-                if (isPaused) {
+                if (currentState.isPaused) {
                     // Resume recording
                     resumeRecording()
-                    // Add pause duration to total paused time
-                    totalPausedDurationMs += (System.currentTimeMillis() - pauseStartTimeMs)
-                    pauseStartTimeMs = 0L
-                    isPaused = false
+                    // Service will update repository, UI will react automatically
                     startTimer()  // Restart timer (will cancel old one first)
-                    _uiState.update { it.copy(isRecording = true, isPaused = false) }
-                    AppLogger.d(TAG_RECORDING, "Recording resumed -> recordingId: %s, totalPaused: %d ms", 
-                        currentRecording?.id, totalPausedDurationMs)
+                    AppLogger.d(TAG_RECORDING, "Recording resumed -> recordingId: %s", currentState.recordingId)
                 } else {
                     // Pause recording
                     pauseRecording()
-                    isPaused = true
-                    pauseStartTimeMs = System.currentTimeMillis()  // Track when pause started
-                    // Keep timer running to show duration when paused
-                    _uiState.update { it.copy(isRecording = false, isPaused = true) }
-                    AppLogger.d(TAG_RECORDING, "Recording paused -> recordingId: %s", currentRecording?.id)
+                    // Service will update repository, UI will react automatically
+                    AppLogger.d(TAG_RECORDING, "Recording paused -> recordingId: %s", currentState.recordingId)
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_RECORDING, "Failed to pause/resume recording", e)
-                _uiState.update { it.copy(error = e.message) }
+                _otherUiState.update { it.copy(error = e.message) }
             }
         }
     }
 
     fun onStopClick() {
+        val currentState = recordingState.value
+        if (currentState !is RecordingState.Active) {
+            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Stop rejected - not recording")
+            return
+        }
+        
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStopClick", null)
         viewModelScope.launch {
             try {
-                // Validate state: must have active recording (recording or paused)
-                if (currentRecording == null && !_uiState.value.isRecording && !_uiState.value.isPaused) {
-                    AppLogger.w(TAG_RECORDING, "Stop called but no recording in progress - ignoring")
-                    return@launch
-                }
-                
                 timerJob?.cancel()
+                
+                // Get recording from repository state
                 val recording = currentRecording ?: run {
-                    AppLogger.w(TAG_RECORDING, "Stop called but no recording in progress - currentRecording is null")
+                    AppLogger.w(TAG_RECORDING, "Stop called but currentRecording is null")
                     return@launch
                 }
                 
-                // Calculate actual recording duration (excluding paused time)
-                val currentTime = System.currentTimeMillis()
-                if (isPaused) {
-                    // Add current pause duration to total
-                    totalPausedDurationMs += (currentTime - pauseStartTimeMs)
-                }
-                val durationMs = currentTime - startTimeMs - totalPausedDurationMs
-                AppLogger.d(TAG_RECORDING, "Stopping recording -> recordingId: %s, duration: %d ms (total: %d ms, paused: %d ms)", 
-                    recording.id, durationMs, currentTime - startTimeMs, totalPausedDurationMs)
+                // Calculate actual recording duration using repository state
+                val durationMs = currentState.getElapsedMs()
+                AppLogger.d(TAG_RECORDING, "Stopping recording -> recordingId: %s, duration: %d ms", 
+                    recording.id, durationMs)
                 
-                // Stop foreground service
+                // Stop foreground service - service will update repository to Idle
                 foregroundServiceManager.stopRecordingService()
                 
                 // Stop auto-save and force final save
@@ -335,60 +323,46 @@ class RecordViewModel @Inject constructor(
                 AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Recording saved", 
                     "recordingId=${saved.id}, title=${saved.title}, duration=${saved.durationMs}ms")
                 
-                _uiState.update { 
-                    it.copy(
-                        isRecording = false,
-                        isPaused = false,
-                        durationMs = 0L
-                    )
-                }
                 currentRecording = null
-                isPaused = false
-                totalPausedDurationMs = 0L
-                pauseStartTimeMs = 0L
                 _navigateToTranscript.value = saved.id
                 
                 AppLogger.d(TAG_RECORDING, "Navigation triggered -> transcriptId: %s", saved.id)
             } catch (e: Exception) {
                 AppLogger.e(TAG_RECORDING, "Failed to stop recording", e)
-                _uiState.update { it.copy(error = e.message) }
+                _otherUiState.update { it.copy(error = e.message) }
             }
         }
     }
 
-    private var pausedDurationMs: Long = 0L  // Track duration when paused
-    
     private fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             try {
                 while (true) {
                     delay(50) // Update more frequently for waveform
-                    val currentState = _uiState.value
+                    val currentState = recordingState.value
                     
-                    // Stop timer only if no active recording (not recording AND not paused)
-                    if (!currentState.isRecording && !currentState.isPaused) {
+                    // Stop timer only if no active recording
+                    if (currentState !is RecordingState.Active) {
                         break
                     }
                     
-                    val elapsed = System.currentTimeMillis() - startTimeMs - totalPausedDurationMs
+                    val elapsed = currentState.getElapsedMs()
                     if (currentState.isPaused) {
-                        // Add current pause time to calculation
-                        val currentPauseDuration = System.currentTimeMillis() - pauseStartTimeMs
-                        val effectiveElapsed = elapsed - currentPauseDuration
-                        _uiState.update { it.copy(durationMs = effectiveElapsed.coerceAtLeast(0), amplitude = 0) }
-                    } else if (currentState.isRecording) {
-                        // Get amplitude for waveform visualization only when actively recording
+                        // Paused: no amplitude
+                        _otherUiState.update { it.copy(amplitude = 0) }
+                    } else {
+                        // Recording: get amplitude for waveform visualization
                         val amplitude = try {
                             audioRecorder.getAmplitude()
                         } catch (e: Exception) {
                             0
                         }
-                        _uiState.update { it.copy(durationMs = elapsed, amplitude = amplitude) }
+                        _otherUiState.update { it.copy(amplitude = amplitude) }
                         
                         // Update foreground service notification every second
                         if (elapsed % 1000 < 50) {
-                            foregroundServiceManager.updateRecordingNotification(elapsed, isPaused)
+                            foregroundServiceManager.updateRecordingNotification(elapsed, false)
                         }
                     }
                 }
@@ -406,10 +380,14 @@ class RecordViewModel @Inject constructor(
     }
     
     fun onBookmarkClick(note: String = "") {
-        val recording = currentRecording ?: return
-        if (!_uiState.value.isRecording) return
+        val currentState = recordingState.value
+        if (currentState !is RecordingState.Active || currentState.isPaused) {
+            return
+        }
         
-        val timestampMs = System.currentTimeMillis() - startTimeMs
+        val recording = currentRecording ?: return
+        
+        val timestampMs = currentState.getElapsedMs()
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onBookmarkClick", 
             "recordingId=${recording.id}, timestamp=${timestampMs}ms")
         
@@ -421,19 +399,19 @@ class RecordViewModel @Inject constructor(
                     recording.id, timestampMs)
             } catch (e: Exception) {
                 AppLogger.e(TAG_RECORDING, "Failed to add bookmark", e)
-                _uiState.update { it.copy(error = "Failed to add bookmark: ${e.message}") }
+                _otherUiState.update { it.copy(error = "Failed to add bookmark: ${e.message}") }
             }
         }
     }
     
     fun clearError() {
         AppLogger.d(TAG_RECORDING, "[RecordViewModel] Error cleared by user")
-        _uiState.update { it.copy(error = null) }
+        _otherUiState.update { it.copy(error = null) }
     }
     
     fun onLiveTranscribeClick() {
         AppLogger.logViewModel(TAG_REALTIME, "RecordViewModel", "onLiveTranscribeClick", null)
-        if (_uiState.value.isLiveTranscribeMode) {
+        if (_otherUiState.value.isLiveTranscribeMode) {
             // Stop live transcribe
             stopLiveTranscribe()
         } else {
@@ -444,7 +422,7 @@ class RecordViewModel @Inject constructor(
     
     private fun startLiveTranscribe() {
         AppLogger.d(TAG_REALTIME, "Starting live transcribe mode")
-        _uiState.update { 
+        _otherUiState.update { 
             it.copy(
                 isLiveTranscribeMode = true,
                 liveText = "",
@@ -456,7 +434,7 @@ class RecordViewModel @Inject constructor(
         // Start ASR
         realtimeTranscript.start { text ->
             AppLogger.d(TAG_REALTIME, "Received transcript update: %s", text)
-            _uiState.update { currentState ->
+            _otherUiState.update { currentState ->
                 when {
                     text.startsWith("PARTIAL:") -> {
                         val partialText = text.removePrefix("PARTIAL:")
@@ -484,7 +462,7 @@ class RecordViewModel @Inject constructor(
     private fun stopLiveTranscribe() {
         AppLogger.d(TAG_REALTIME, "Stopping live transcribe mode")
         realtimeTranscript.stop()
-        _uiState.update { 
+        _otherUiState.update { 
             it.copy(
                 isLiveTranscribeMode = false,
                 partialText = ""
@@ -496,19 +474,12 @@ class RecordViewModel @Inject constructor(
         super.onCleared()
         timerJob?.cancel()
         
-        // Unregister receiver
-        try {
-            context.unregisterReceiver(serviceActionReceiver)
-            AppLogger.d(TAG_RECORDING, "Unregistered service action receiver")
-        } catch (e: Exception) {
-            AppLogger.w(TAG_RECORDING, "Error unregistering receiver", e)
-        }
-        
         // Cleanup if recording was active
-        if ((_uiState.value.isRecording || _uiState.value.isPaused) && currentRecording != null) {
+        val currentState = recordingState.value
+        if (currentState is RecordingState.Active && currentRecording != null) {
             AppLogger.logRareCondition(TAG_RECORDING, 
                 "ViewModel cleared while recording active", 
-                "recordingId=${currentRecording?.id}, isRecording=${_uiState.value.isRecording}, isPaused=${_uiState.value.isPaused}")
+                "recordingId=${currentRecording?.id}, isPaused=${currentState.isPaused}")
             
             // Try to save recording first (if possible)
             viewModelScope.launch {
@@ -547,7 +518,7 @@ class RecordViewModel @Inject constructor(
         }
         
         // Stop live transcribe if active
-        if (_uiState.value.isLiveTranscribeMode) {
+        if (_otherUiState.value.isLiveTranscribeMode) {
             stopLiveTranscribe()
         }
     }

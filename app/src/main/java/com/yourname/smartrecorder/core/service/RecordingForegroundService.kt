@@ -18,8 +18,10 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_LIFECYCLE
 import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
+import com.yourname.smartrecorder.data.repository.RecordingSessionRepository
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -34,6 +36,9 @@ class RecordingForegroundService : Service() {
     
     @Inject
     lateinit var notificationDeepLinkHandler: NotificationDeepLinkHandler
+    
+    @Inject
+    lateinit var recordingSessionRepository: RecordingSessionRepository
     
     private val binder = LocalBinder()
     private var notificationManager: NotificationManager? = null
@@ -138,10 +143,15 @@ class RecordingForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         AppLogger.logService(TAG_SERVICE, "RecordingForegroundService", "onDestroy")
+        
+        // ⚠️ CRITICAL: Update repository state if recording was active
         if (isRecording) {
             AppLogger.logRareCondition(TAG_SERVICE, "Service destroyed while recording", 
                 "recordingDuration=${System.currentTimeMillis() - recordingStartTime}ms")
+            // Set idle to prevent stale state
+            recordingSessionRepository.setIdle()
         }
+        
         // Unregister BroadcastReceiver
         try {
             unregisterReceiver(notificationUpdateReceiver)
@@ -157,13 +167,21 @@ class RecordingForegroundService : Service() {
             return
         }
         
-        isRecording = true
         recordingStartTime = System.currentTimeMillis()
         lastBackgroundTime = 0L
         
         AppLogger.logCritical(TAG_SERVICE, "Recording started in foreground service", 
             "recordingId=$recordingId, fileName=$fileName")
         
+        // ⚠️ CRITICAL: Update repository state FIRST
+        val filePath = File(getFilesDir(), "recordings/$fileName").absolutePath
+        recordingSessionRepository.setActive(
+            recordingId = recordingId,
+            filePath = filePath,
+            startTimeMs = recordingStartTime
+        )
+        
+        isRecording = true
         startForeground(NOTIFICATION_ID, createNotification(0, true))
         recordingStateManager.setRecordingActive(recordingId, fileName, recordingStartTime)
     }
@@ -176,6 +194,9 @@ class RecordingForegroundService : Service() {
         
         isPaused = true
         AppLogger.logCritical(TAG_SERVICE, "Recording paused in foreground service")
+        
+        // ⚠️ CRITICAL: Update repository state
+        recordingSessionRepository.pause()
         
         // Send broadcast to ViewModel
         sendBroadcast(BROADCAST_PAUSE)
@@ -191,6 +212,9 @@ class RecordingForegroundService : Service() {
         isPaused = false
         AppLogger.logCritical(TAG_SERVICE, "Recording resumed in foreground service")
         
+        // ⚠️ CRITICAL: Update repository state
+        recordingSessionRepository.resume()
+        
         // Send broadcast to ViewModel
         sendBroadcast(BROADCAST_RESUME)
         updateNotification(System.currentTimeMillis() - recordingStartTime, false)
@@ -205,6 +229,9 @@ class RecordingForegroundService : Service() {
         val duration = System.currentTimeMillis() - recordingStartTime
         AppLogger.logCritical(TAG_SERVICE, "Recording stopped in foreground service", 
             "duration=${duration}ms")
+        
+        // ⚠️ CRITICAL: Update repository state FIRST
+        recordingSessionRepository.setIdle()
         
         isRecording = false
         isPaused = false

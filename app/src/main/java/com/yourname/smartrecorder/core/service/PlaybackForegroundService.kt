@@ -21,6 +21,7 @@ import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
 import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
+import com.yourname.smartrecorder.data.repository.PlaybackSessionRepository
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -34,6 +35,9 @@ class PlaybackForegroundService : Service() {
     
     @Inject
     lateinit var notificationDeepLinkHandler: NotificationDeepLinkHandler
+    
+    @Inject
+    lateinit var playbackSessionRepository: PlaybackSessionRepository
     
     private val binder = LocalBinder()
     private var notificationManager: NotificationManager? = null
@@ -62,6 +66,17 @@ class PlaybackForegroundService : Service() {
                 val position = intent.getLongExtra("position", 0L)
                 val duration = intent.getLongExtra("duration", 0L)
                 val isPaused = intent.getBooleanExtra("isPaused", false)
+                
+                // ⚠️ CRITICAL: Update repository state
+                if (currentRecordingId != null) {
+                    playbackSessionRepository.updatePosition(position)
+                    if (isPaused && isPlaying) {
+                        playbackSessionRepository.pause()
+                    } else if (!isPaused && !isPlaying) {
+                        playbackSessionRepository.resume()
+                    }
+                }
+                
                 updateNotification(position, duration, isPaused)
             }
         }
@@ -154,10 +169,14 @@ class PlaybackForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         AppLogger.logService(TAG_SERVICE, "PlaybackForegroundService", "onDestroy")
+        
+        // ⚠️ CRITICAL: Update repository state if playing
         if (isPlaying) {
             AppLogger.logRareCondition(TAG_SERVICE, "Service destroyed while playing", 
                 "title=$currentTitle, position=$currentPosition")
+            playbackSessionRepository.setIdle()
         }
+        
         // Unregister BroadcastReceiver
         try {
             unregisterReceiver(notificationUpdateReceiver)
@@ -178,6 +197,16 @@ class PlaybackForegroundService : Service() {
         AppLogger.logCritical(TAG_SERVICE, "Playback started in foreground service", 
             "recordingId=$currentRecordingId, title=$title, duration=${duration}ms")
         
+        // ⚠️ CRITICAL: Update repository state
+        if (currentRecordingId != null) {
+            playbackSessionRepository.setPlaying(
+                recordingId = currentRecordingId!!,
+                positionMs = 0L,
+                durationMs = duration,
+                isLooping = false  // Will be updated if looping is enabled
+            )
+        }
+        
         // Update MediaSession metadata
         updateMediaSessionMetadata(title, duration)
         updateMediaSessionPlaybackState(true, 0L)
@@ -193,6 +222,9 @@ class PlaybackForegroundService : Service() {
         
         AppLogger.logCritical(TAG_SERVICE, "Playback stopped in foreground service", 
             "recordingId=$currentRecordingId, title=$currentTitle, finalPosition=$currentPosition")
+        
+        // ⚠️ CRITICAL: Update repository state FIRST
+        playbackSessionRepository.setIdle()
         
         isPlaying = false
         currentTitle = ""

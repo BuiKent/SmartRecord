@@ -1724,10 +1724,12 @@ Box(modifier = Modifier.fillMaxSize()) {
   - [x] Set priority HIGH
   - [x] Thêm BroadcastReceiver trong RecordViewModel để nhận actions từ service
   - [ ] Test pause/resume/stop từ notification và lock screen
-- [ ] **PlaybackForegroundService.kt**:
-  - [ ] Sử dụng MediaStyle notification (androidx.media.app.NotificationCompat.MediaStyle)
-  - [ ] Thêm MediaSession cho media controls
-  - [ ] Cải thiện media controls (Play/Pause, Stop)
+- [x] **PlaybackForegroundService.kt**: ✅ COMPLETED
+  - [x] Sử dụng MediaStyle notification (androidx.media.app.NotificationCompat.MediaStyle)
+  - [x] Thêm MediaSession cho media controls
+  - [x] Cải thiện media controls (Play/Pause, Stop)
+  - [x] Compact view: Title + Play/Pause + Stop buttons
+  - [x] Expanded view: Progress bar (tự động từ MediaSession) + time labels
   - [ ] Test media controls từ notification và lock screen
 
 ### Phase 2: App Content Notifications ✅ COMPLETED
@@ -1790,7 +1792,7 @@ Box(modifier = Modifier.fillMaxSize()) {
 
 **Files cần cải thiện:**
 - `app/src/main/java/com/yourname/smartrecorder/core/service/RecordingForegroundService.kt`
-- `app/src/main/java/com/yourname/smartrecorder/core/service/PlaybackForegroundService.kt`
+- `app/src/main/java/com/yourname/smartrecorder/core/service/PlaybackForegroundService.kt` ✅ COMPLETED (MediaSession + MediaStyle)
 
 **Dependencies cần thêm:**
 - `androidx.work:work-runtime-ktx:2.9.0`
