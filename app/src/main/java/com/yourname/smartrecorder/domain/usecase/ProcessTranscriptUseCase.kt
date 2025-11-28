@@ -76,9 +76,10 @@ class ProcessTranscriptUseCase @Inject constructor(
     
     /**
      * Detect speakers in transcript segments.
-     * Strategy:
-     * 1. Try marker-based detection first (if "Speaker one/two/three..." markers exist)
-     * 2. Fallback to heuristic-based detection (question marks, time gaps) if no markers found
+     * Strategy (priority order):
+     * 1. Try marker-based detection first (if "Speaker one/two/three..." markers exist) - highest priority
+     * 2. Try number-based pattern detection (if "Number one/two/three..." patterns exist) - medium priority
+     * 3. Fallback to heuristic-based detection (question marks, time gaps) - lowest priority
      */
     private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSegment> {
         if (segments.isEmpty()) return segments
@@ -86,11 +87,11 @@ class ProcessTranscriptUseCase @Inject constructor(
         // Step 1: Log raw Whisper segments
         SpeakerSegmentationHelper.logWhisperRaw(segments)
         
-        // Step 2: Try marker-based detection first
+        // Step 2: Try marker-based detection first (highest priority)
         val markers = SpeakerSegmentationHelper.detectSpeakerMarkers(segments)
         SpeakerSegmentationHelper.logSpeakerMarkers(markers)
         
-        return if (markers.isNotEmpty()) {
+        if (markers.isNotEmpty()) {
             // Use marker-based detection (more accurate if markers exist)
             AppLogger.d(TAG_TRANSCRIPT, "Using marker-based speaker detection (found %d markers)", markers.size)
             
@@ -100,12 +101,26 @@ class ProcessTranscriptUseCase @Inject constructor(
             val segmentsWithSpeakers = SpeakerSegmentationHelper.assignSpeakersToSegments(segments, blocks)
             SpeakerSegmentationHelper.logFinalSegments(segmentsWithSpeakers)
             
-            segmentsWithSpeakers
-        } else {
-            // Fallback to heuristic-based detection (question marks, time gaps)
-            AppLogger.d(TAG_TRANSCRIPT, "No markers found, using heuristic-based speaker detection (question/time-gap)")
-            detectSpeakersWithHeuristics(segments)
+            return segmentsWithSpeakers
         }
+        
+        // Step 3: Try number-based pattern detection (medium priority)
+        AppLogger.d(TAG_TRANSCRIPT, "No speaker markers found, trying number-based pattern detection")
+        val numberSections = NumberBasedSegmentationHelper.detectSections(segments)
+        
+        if (numberSections.isNotEmpty() && numberSections.size >= 2) {
+            // Use number-based detection (found valid sections)
+            AppLogger.d(TAG_TRANSCRIPT, "Using number-based speaker detection (found %d sections)", numberSections.size)
+            
+            val segmentsWithSpeakers = NumberBasedSegmentationHelper.assignSpeakersFromSections(numberSections, segments)
+            SpeakerSegmentationHelper.logFinalSegments(segmentsWithSpeakers)
+            
+            return segmentsWithSpeakers
+        }
+        
+        // Step 4: Fallback to heuristic-based detection (question marks, time gaps)
+        AppLogger.d(TAG_TRANSCRIPT, "No number patterns found, using heuristic-based speaker detection (question/time-gap)")
+        return detectSpeakersWithHeuristics(segments)
     }
     
     /**
