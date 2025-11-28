@@ -47,11 +47,9 @@ class GenerateTranscriptUseCase @Inject constructor(
             val uri = Uri.fromFile(audioFile)
             
             // Transcribe using Whisper
-            val progressLogger = AppLogger.ProgressLogger(TAG_TRANSCRIPT, "[GenerateTranscriptUseCase] Transcription")
             val whisperSegments = transcriber.transcribeFileToSegments(uri) { progress ->
                 onProgress(progress)
-                // Only log at milestones (every 20%) to reduce log spam
-                progressLogger.logProgress(progress)
+                // Progress logging is handled by ImportAudioViewModel to avoid duplicate logs
             }
             
             // Convert WhisperEngine.WhisperSegment to TranscriptSegment (RAW - no speaker processing)
@@ -68,6 +66,9 @@ class GenerateTranscriptUseCase @Inject constructor(
             }
         
             AppLogger.d(TAG_TRANSCRIPT, "Generated %d RAW transcript segments (no speaker processing)", rawSegments.size)
+            
+            // Log raw text immediately after transcription (first 3 segments as sample)
+            logRawText(rawSegments)
             
             // Save RAW segments to repository immediately (fast - no processing)
             AppLogger.d(TAG_TRANSCRIPT, "Saving RAW transcript segments to database (fast path)")
@@ -93,6 +94,29 @@ class GenerateTranscriptUseCase @Inject constructor(
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Transcription failed", e)
             throw e
+        }
+    }
+    
+    /**
+     * Log raw text from Whisper (sample of first 3 segments).
+     * This is called immediately after transcription completes, before saving to DB.
+     */
+    private fun logRawText(segments: List<TranscriptSegment>) {
+        if (segments.isEmpty()) return
+        
+        AppLogger.d(TAG_TRANSCRIPT, "=== [RAW_TEXT_FROM_WHISPER] ===")
+        val sampleSize = minOf(3, segments.size)
+        segments.take(sampleSize).forEachIndexed { index, segment ->
+            val textPreview = if (segment.text.length > 100) {
+                segment.text.take(100) + "..."
+            } else {
+                segment.text
+            }
+            AppLogger.d(TAG_TRANSCRIPT, "RAW[%d] time=%.2fs-%.2fs text=\"%s\"", 
+                index, segment.startTimeMs / 1000.0, segment.endTimeMs / 1000.0, textPreview)
+        }
+        if (segments.size > sampleSize) {
+            AppLogger.d(TAG_TRANSCRIPT, "... and %d more raw segments", segments.size - sampleSize)
         }
     }
 }
