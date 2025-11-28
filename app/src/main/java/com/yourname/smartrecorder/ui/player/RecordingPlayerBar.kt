@@ -1,6 +1,7 @@
 package com.yourname.smartrecorder.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,12 +75,14 @@ fun RecordingPlayerBar(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onPlayPauseClick,
+            // Dùng Box thay vì IconButton để kiểm soát chính xác kích thước
+            Box(
                 modifier = Modifier
-                    .size(buttonSize)
+                    .size(buttonSize) // Kích thước chính xác, không có padding mặc định
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
+                    .clickable(onClick = onPlayPauseClick),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
