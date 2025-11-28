@@ -117,16 +117,20 @@ class PlaybackForegroundService : Service() {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
                     AppLogger.d(TAG_SERVICE, "MediaSession onPlay called")
-                    val intent = Intent(ACTION_PAUSE).apply { putExtra("action", "resume") }
-                    sendBroadcast(intent)
+                    // ⚠️ CRITICAL: Gọi service method trực tiếp thay vì broadcast
+                    resumePlayback()
                 }
                 override fun onPause() {
                     AppLogger.d(TAG_SERVICE, "MediaSession onPause called")
-                    sendBroadcast(Intent(ACTION_PAUSE))
+                    // ⚠️ CRITICAL: Gọi service method trực tiếp thay vì broadcast
+                    pausePlayback()
                 }
                 override fun onStop() {
                     AppLogger.d(TAG_SERVICE, "MediaSession onStop called")
-                    sendBroadcast(Intent(ACTION_STOP))
+                    // ⚠️ CRITICAL: Gọi service method trực tiếp thay vì broadcast
+                    stopPlayback()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
                 }
             })
         }
@@ -360,7 +364,7 @@ class PlaybackForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Audio Playback",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT // DEFAULT để hiện icon trên status bar
             ).apply {
                 description = "Ongoing audio playback notification"
                 setSound(null, null) // ⚠️ CRITICAL: Không có sound
@@ -421,12 +425,12 @@ class PlaybackForegroundService : Service() {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(currentTitle.ifEmpty { "Audio Playback" })
             .setContentText("$positionText / $durationText") // Time labels trong expanded view
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(if (isPlaying) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause) // Icon khác nhau cho play/pause
             .setContentIntent(pendingIntent)
             .addAction(playPauseAction)
             .addAction(stopAction)
             .setOngoing(isPlaying)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // DEFAULT để hiện icon trên status bar
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Lock screen visibility
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
             .setOnlyAlertOnce(true) // ⚠️ CRITICAL: Chỉ alert lần đầu, update im lặng

@@ -322,7 +322,7 @@ class RecordingForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Recording",
-                NotificationManager.IMPORTANCE_LOW // LOW để không alert khi update
+                NotificationManager.IMPORTANCE_DEFAULT // DEFAULT để hiện icon trên status bar
             ).apply {
                 description = "Ongoing recording notification with controls"
                 setSound(null, null) // ⚠️ CRITICAL: Không có sound
@@ -382,12 +382,12 @@ class RecordingForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("$statusText - $durationText")
             .setContentText("Tap to return to app")
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now) // Mic icon
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now) // Mic icon cho recording
             .setContentIntent(pendingIntent)
             .addAction(pauseResumeAction)
             .addAction(stopAction)
             .setOngoing(!isPausedState) // Cho phép dismiss khi paused
-            .setPriority(NotificationCompat.PRIORITY_LOW) // LOW để không heads-up
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // DEFAULT để hiện icon trên status bar
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Lock screen
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setShowWhen(true)
