@@ -18,9 +18,14 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_LIFECYCLE
 import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
+import com.yourname.smartrecorder.core.audio.AudioRecorder
 import com.yourname.smartrecorder.data.repository.RecordingSessionRepository
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
@@ -40,7 +45,11 @@ class RecordingForegroundService : Service() {
     @Inject
     lateinit var recordingSessionRepository: RecordingSessionRepository
     
+    @Inject
+    lateinit var audioRecorder: AudioRecorder
+    
     private val binder = LocalBinder()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var notificationManager: NotificationManager? = null
     private var isRecording = false
     private var isPaused = false
@@ -195,7 +204,17 @@ class RecordingForegroundService : Service() {
         isPaused = true
         AppLogger.logCritical(TAG_SERVICE, "Recording paused in foreground service")
         
-        // ⚠️ CRITICAL: Update repository state
+        // ⚠️ CRITICAL: Pause AudioRecorder FIRST
+        serviceScope.launch {
+            try {
+                audioRecorder.pause()
+                AppLogger.d(TAG_SERVICE, "AudioRecorder paused successfully")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_SERVICE, "Failed to pause AudioRecorder", e)
+            }
+        }
+        
+        // ⚠️ CRITICAL: Update repository state (repository will set pauseStartTimeMs)
         recordingSessionRepository.pause()
         
         // Send broadcast to ViewModel
@@ -212,7 +231,17 @@ class RecordingForegroundService : Service() {
         isPaused = false
         AppLogger.logCritical(TAG_SERVICE, "Recording resumed in foreground service")
         
-        // ⚠️ CRITICAL: Update repository state
+        // ⚠️ CRITICAL: Resume AudioRecorder FIRST
+        serviceScope.launch {
+            try {
+                audioRecorder.resume()
+                AppLogger.d(TAG_SERVICE, "AudioRecorder resumed successfully")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_SERVICE, "Failed to resume AudioRecorder", e)
+            }
+        }
+        
+        // ⚠️ CRITICAL: Update repository state (repository will calculate totalPausedDurationMs)
         recordingSessionRepository.resume()
         
         // Send broadcast to ViewModel

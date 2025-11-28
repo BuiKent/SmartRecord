@@ -317,7 +317,7 @@ class TranscriptViewModel @Inject constructor(
                 // Ensure notes job is cancelled if segments collection fails
                 // (This is handled by viewModelScope automatically)
             } catch (e: Exception) {
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         error = e.message,
                         isLoading = false
@@ -328,7 +328,7 @@ class TranscriptViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
-        val recording = _uiState.value.recording ?: run {
+        val recording = _otherUiState.value.recording ?: run {
             AppLogger.logRareCondition(TAG_TRANSCRIPT, "Seek called but no recording loaded")
             return
         }
@@ -337,7 +337,7 @@ class TranscriptViewModel @Inject constructor(
         if (!file.exists()) {
             AppLogger.logRareCondition(TAG_TRANSCRIPT, "Seek rejected - file not found", 
                 "path=${file.absolutePath}")
-            _uiState.update { it.copy(error = "Audio file not found") }
+            _otherUiState.update { it.copy(error = "Audio file not found") }
             return
         }
         
@@ -347,11 +347,12 @@ class TranscriptViewModel @Inject constructor(
         
         try {
             audioPlayer.seekTo(positionMs.toInt())
-            _uiState.update { it.copy(currentPositionMs = positionMs) }
+            // Position will be updated by service via repository
             updateCurrentSegment(positionMs)
             
             // Update foreground service notification if playing
-            if (_uiState.value.isPlaying) {
+            val currentPlaybackState = playbackState.value
+            if (currentPlaybackState is PlaybackState.Playing) {
                 foregroundServiceManager.updatePlaybackNotification(
                     recording.id,  // ← Thêm recordingId
                     positionMs,
@@ -363,7 +364,7 @@ class TranscriptViewModel @Inject constructor(
             AppLogger.logBackground(TAG_TRANSCRIPT, "Seek completed -> position: %d ms", positionMs)
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Failed to seek", e)
-            _uiState.update { it.copy(error = "Failed to seek: ${e.message}") }
+            _otherUiState.update { it.copy(error = "Failed to seek: ${e.message}") }
         }
     }
 
@@ -391,11 +392,11 @@ class TranscriptViewModel @Inject constructor(
         isToggling = true
         viewModelScope.launch {
             try {
-                val playbackState = playbackState.value
-                when (playbackState) {
+                val currentPlaybackState = playbackState.value
+                when (currentPlaybackState) {
                     is PlaybackState.Playing -> {
                         // Pause playback
-                        val position = playbackState.positionMs
+                        val position = currentPlaybackState.positionMs
                         AppLogger.logMain(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", position)
                         audioPlayer.pause()
                         positionUpdateJob?.cancel()
@@ -411,7 +412,7 @@ class TranscriptViewModel @Inject constructor(
                     }
                     is PlaybackState.Paused -> {
                         // Resume playback
-                        val position = playbackState.positionMs
+                        val position = currentPlaybackState.positionMs
                         AppLogger.logMain(TAG_TRANSCRIPT, "Resuming playback -> position: %d ms", position)
                         audioPlayer.resume()
                         startPositionUpdates()
@@ -485,7 +486,7 @@ class TranscriptViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Failed to toggle play/pause", e)
-                _uiState.update { it.copy(error = e.message, isPlaying = false) }
+                _otherUiState.update { it.copy(error = e.message, isPlaying = false) }
                 // Stop service on error
                 foregroundServiceManager.stopPlaybackService()
             } finally {
@@ -499,32 +500,33 @@ class TranscriptViewModel @Inject constructor(
         positionUpdateJob = viewModelScope.launch {
             while (true) {
                 delay(100)
-                if (_uiState.value.isPlaying) {
-                    val position = audioPlayer.getCurrentPosition()
-                    val recording = _uiState.value.recording
-                    
-                    _otherUiState.update { it.copy(currentPositionMs = position.toLong()) }
-                    updateCurrentSegment(position.toLong())
-                    
-                    // Update foreground service notification every second
-                    if (recording != null && position % 1000 < 100) {
-                        foregroundServiceManager.updatePlaybackNotification(
-                            recording.id,  // ← Thêm recordingId
-                            position.toLong(),
-                            recording.durationMs,
-                            isPaused = false
-                        )
-                    }
-                    
-                    // Check if finished (only if not looping)
-                    if (!_uiState.value.isLooping && recording != null && position >= recording.durationMs) {
-                        AppLogger.logMain(TAG_TRANSCRIPT, "Playback finished -> final position: %d ms", position)
-                        audioPlayer.pause()
-                        _otherUiState.update { it.copy(isPlaying = false, currentPositionMs = 0L) }
-                        foregroundServiceManager.stopPlaybackService()
-                        break
-                    }
-                } else {
+                val currentPlaybackState = playbackState.value
+                if (currentPlaybackState !is PlaybackState.Playing) {
+                    break
+                }
+                
+                val position = audioPlayer.getCurrentPosition()
+                val recording = _otherUiState.value.recording
+                
+                // Update current segment
+                updateCurrentSegment(position.toLong())
+                
+                // Update foreground service notification every second (service will update repository)
+                if (recording != null && position % 1000 < 100) {
+                    foregroundServiceManager.updatePlaybackNotification(
+                        recording.id,
+                        position.toLong(),
+                        recording.durationMs,
+                        isPaused = false
+                    )
+                }
+                
+                // Check if finished (only if not looping)
+                if (!currentPlaybackState.isLooping && recording != null && position >= recording.durationMs) {
+                    AppLogger.logMain(TAG_TRANSCRIPT, "Playback finished -> final position: %d ms", position)
+                    audioPlayer.pause()
+                    // Stop foreground service - service will update repository to Idle
+                    foregroundServiceManager.stopPlaybackService()
                     break
                 }
             }
@@ -532,16 +534,16 @@ class TranscriptViewModel @Inject constructor(
     }
     
     private fun updateCurrentSegment(positionMs: Long) {
-        val segment = _uiState.value.segments.find { 
+        val segment = _otherUiState.value.segments.find { 
             positionMs >= it.startTimeMs && positionMs <= it.endTimeMs 
         }
-        _uiState.update { it.copy(currentSegmentId = segment?.id) }
+        _otherUiState.update { it.copy(currentSegmentId = segment?.id) }
     }
     
     fun generateTranscript() {
-        val recording = _uiState.value.recording ?: run {
+        val recording = _otherUiState.value.recording ?: run {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot generate transcript - no recording")
-            _uiState.update { it.copy(error = "No recording available") }
+            _otherUiState.update { it.copy(error = "No recording available") }
             return
         }
         
@@ -549,11 +551,11 @@ class TranscriptViewModel @Inject constructor(
         val audioFile = File(recording.filePath)
         if (!audioFile.exists()) {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot generate transcript - audio file not found: %s", recording.filePath)
-            _uiState.update { it.copy(error = "Audio file not found. Cannot generate transcript.") }
+            _otherUiState.update { it.copy(error = "Audio file not found. Cannot generate transcript.") }
             return
         }
         
-        if (_uiState.value.isGeneratingTranscript) {
+        if (_otherUiState.value.isGeneratingTranscript) {
             AppLogger.w(TAG_TRANSCRIPT, "Transcript generation already in progress")
             return
         }
@@ -563,7 +565,7 @@ class TranscriptViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         isGeneratingTranscript = true,
                         transcriptProgress = 0,
@@ -584,7 +586,7 @@ class TranscriptViewModel @Inject constructor(
                 // Reload transcript to get the new segments
                 loadRecording(recording.id)
                 
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         isGeneratingTranscript = false,
                         transcriptProgress = 100
@@ -592,7 +594,7 @@ class TranscriptViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Failed to generate transcript", e)
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         isGeneratingTranscript = false,
                         error = e.message ?: "Failed to generate transcript"
@@ -603,8 +605,8 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun addBookmark(note: String = "") {
-        val recording = _uiState.value.recording ?: return
-        val timestampMs = _uiState.value.currentPositionMs
+        val recording = _otherUiState.value.recording ?: return
+        val timestampMs = uiState.value.currentPositionMs
         
         AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "addBookmark", 
             "recordingId=${recording.id}, timestamp=${timestampMs}ms")
@@ -616,13 +618,13 @@ class TranscriptViewModel @Inject constructor(
                     recording.id, timestampMs)
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Failed to add bookmark", e)
-                _uiState.update { it.copy(error = "Failed to add bookmark: ${e.message}") }
+                _otherUiState.update { it.copy(error = "Failed to add bookmark: ${e.message}") }
             }
         }
     }
     
     fun searchInTranscript(query: String) {
-        val recording = _uiState.value.recording ?: return
+        val recording = _otherUiState.value.recording ?: return
         
         AppLogger.logViewModel(TAG_TRANSCRIPT, "TranscriptViewModel", "searchInTranscript", 
             "recordingId=${recording.id}, query=$query")
@@ -630,7 +632,7 @@ class TranscriptViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val results = searchTranscripts(query, recording.id)
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         searchQuery = query,
                         searchResults = results
@@ -639,14 +641,14 @@ class TranscriptViewModel @Inject constructor(
                 AppLogger.d(TAG_TRANSCRIPT, "Search completed -> query: %s, results: %d", query, results.size)
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Search failed", e)
-                _uiState.update { it.copy(error = "Search failed: ${e.message}") }
+                _otherUiState.update { it.copy(error = "Search failed: ${e.message}") }
             }
         }
     }
     
     fun clearSearch() {
         AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] User cleared search")
-        _uiState.update { 
+        _otherUiState.update { 
             it.copy(
                 searchQuery = "",
                 searchResults = emptyList()
@@ -655,15 +657,15 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun exportTranscript(format: ExportFormat): String? {
-        val recording = _uiState.value.recording ?: run {
+        val recording = _otherUiState.value.recording ?: run {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot export - no recording")
-            _uiState.update { it.copy(error = "No recording available") }
+            _otherUiState.update { it.copy(error = "No recording available") }
             return null
         }
-        val segments = _uiState.value.segments
+        val segments = _otherUiState.value.segments
         if (segments.isEmpty()) {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot export - no transcript segments")
-            _uiState.update { it.copy(error = "No transcript available. Please generate transcript first.") }
+            _otherUiState.update { it.copy(error = "No transcript available. Please generate transcript first.") }
             return null
         }
         
@@ -681,27 +683,27 @@ class TranscriptViewModel @Inject constructor(
             exportedText
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Export failed", e)
-            _uiState.update { it.copy(error = "Export failed: ${e.message}") }
+            _otherUiState.update { it.copy(error = "Export failed: ${e.message}") }
             null
         }
     }
     
     fun generateFlashcards() {
-        val recording = _uiState.value.recording ?: run {
+        val recording = _otherUiState.value.recording ?: run {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot generate flashcards - no recording")
-            _uiState.update { it.copy(error = "No recording available") }
+            _otherUiState.update { it.copy(error = "No recording available") }
             return
         }
         
-        if (_uiState.value.isGeneratingFlashcards) {
+        if (_otherUiState.value.isGeneratingFlashcards) {
             AppLogger.w(TAG_TRANSCRIPT, "Flashcard generation already in progress")
             return
         }
         
-        val segments = _uiState.value.segments
+        val segments = _otherUiState.value.segments
         if (segments.isEmpty()) {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot generate flashcards - no transcript segments")
-            _uiState.update { it.copy(error = "No transcript available. Please generate transcript first.") }
+            _otherUiState.update { it.copy(error = "No transcript available. Please generate transcript first.") }
             return
         }
         
@@ -710,7 +712,7 @@ class TranscriptViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         isGeneratingFlashcards = true,
                         error = null
@@ -721,7 +723,7 @@ class TranscriptViewModel @Inject constructor(
                 
                 AppLogger.d(TAG_TRANSCRIPT, "Flashcards generated successfully -> count: %d", flashcards.size)
                 
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         isGeneratingFlashcards = false,
                         flashcardsGenerated = true
@@ -729,7 +731,7 @@ class TranscriptViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Failed to generate flashcards", e)
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         isGeneratingFlashcards = false,
                         error = e.message ?: "Failed to generate flashcards"
@@ -740,11 +742,11 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun toggleLoop() {
-        val newLoopingState = !_uiState.value.isLooping
+        val newLoopingState = !uiState.value.isLooping
         AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] User toggled loop: %b -> %b", 
-            _uiState.value.isLooping, newLoopingState)
+            uiState.value.isLooping, newLoopingState)
         audioPlayer.setLooping(newLoopingState)
-        _uiState.update { it.copy(isLooping = newLoopingState) }
+            playbackSessionRepository.setLooping(newLoopingState)
     }
     
     private val _navigateBack = MutableStateFlow(false)
@@ -755,9 +757,9 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun deleteRecording() {
-        val recording = _uiState.value.recording ?: run {
+        val recording = _otherUiState.value.recording ?: run {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot delete - no recording available")
-            _uiState.update { it.copy(error = "No recording available") }
+            _otherUiState.update { it.copy(error = "No recording available") }
             return
         }
         
@@ -767,7 +769,8 @@ class TranscriptViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Stop playback if playing
-                if (_uiState.value.isPlaying) {
+                val currentPlaybackState = playbackState.value
+                if (currentPlaybackState is PlaybackState.Playing) {
                     AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Stopping playback before deletion")
                     audioPlayer.stop()
                     foregroundServiceManager.stopPlaybackService()
@@ -781,18 +784,18 @@ class TranscriptViewModel @Inject constructor(
                 AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Recording deleted successfully, navigating back")
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Failed to delete recording", e)
-                _uiState.update { it.copy(error = "Failed to delete recording: ${e.message}") }
+                _otherUiState.update { it.copy(error = "Failed to delete recording: ${e.message}") }
             }
         }
     }
     
     fun clearError() {
         AppLogger.d(TAG_TRANSCRIPT, "[TranscriptViewModel] Error cleared by user")
-        _uiState.update { it.copy(error = null) }
+        _otherUiState.update { it.copy(error = null) }
     }
     
     fun clearToastMessage() {
-        _uiState.update { it.copy(toastMessage = null) }
+        _otherUiState.update { it.copy(toastMessage = null) }
     }
     
     /**
@@ -802,7 +805,7 @@ class TranscriptViewModel @Inject constructor(
     private suspend fun processTranscriptInBackground(recordingId: String) {
         try {
             AppLogger.d(TAG_TRANSCRIPT, "Starting background transcript processing -> recordingId: %s", recordingId)
-            _uiState.update { it.copy(isProcessingTranscript = true) }
+            _otherUiState.update { it.copy(isProcessingTranscript = true) }
             
             // Process transcript (speaker detection, etc.)
             val processedSegments = processTranscript(recordingId)
@@ -810,12 +813,12 @@ class TranscriptViewModel @Inject constructor(
             AppLogger.d(TAG_TRANSCRIPT, "Background processing completed -> segments: %d", processedSegments.size)
             
             // Update UI state - segments will be updated via Flow automatically
-            _uiState.update { it.copy(isProcessingTranscript = false) }
+            _otherUiState.update { it.copy(isProcessingTranscript = false) }
             
             AppLogger.logMain(TAG_TRANSCRIPT, "Transcript processing completed -> recordingId: %s", recordingId)
         } catch (e: Exception) {
             AppLogger.e(TAG_TRANSCRIPT, "Background transcript processing failed", e)
-            _uiState.update { it.copy(isProcessingTranscript = false) }
+            _otherUiState.update { it.copy(isProcessingTranscript = false) }
             // Don't show error to user - raw segments are still usable
         }
     }
@@ -828,10 +831,16 @@ class TranscriptViewModel @Inject constructor(
         positionUpdateJob?.cancel()
         
         // Stop playback and foreground service if active
-        if (_uiState.value.isPlaying) {
+        val currentPlaybackState = playbackState.value
+        if (currentPlaybackState is PlaybackState.Playing || currentPlaybackState is PlaybackState.Paused) {
+            val position = when (currentPlaybackState) {
+                is PlaybackState.Playing -> currentPlaybackState.positionMs
+                is PlaybackState.Paused -> currentPlaybackState.positionMs
+                else -> 0L
+            }
             AppLogger.logRareCondition(TAG_TRANSCRIPT, 
                 "ViewModel cleared while playback active", 
-                "position=${_uiState.value.currentPositionMs}ms")
+                "position=${position}ms")
             viewModelScope.launch {
                 try {
                     // Stop service first
@@ -858,7 +867,8 @@ class TranscriptViewModel @Inject constructor(
             viewModelScope.launch {
                 try {
                     // Check if MediaPlayer exists but ViewModel state says not playing
-                    if (audioPlayer.isPlaying() && !_uiState.value.isPlaying) {
+                    val currentPlaybackState = playbackState.value
+                    if (audioPlayer.isPlaying() && currentPlaybackState is PlaybackState.Idle) {
                         AppLogger.logRareCondition(TAG_TRANSCRIPT, 
                             "AudioPlayer stuck state detected - forcing reset", 
                             "isPlaying=${audioPlayer.isPlaying()}")
@@ -873,10 +883,10 @@ class TranscriptViewModel @Inject constructor(
     
     // Inline editing methods
     fun startEditing(segmentId: Long) {
-        val segment = _uiState.value.segments.find { it.id == segmentId }
+        val segment = _otherUiState.value.segments.find { it.id == segmentId }
         if (segment != null) {
             AppLogger.d(TAG_TRANSCRIPT, "Starting edit mode for segment -> segmentId: %d", segmentId)
-            _uiState.update { 
+            _otherUiState.update { 
                 it.copy(
                     editingSegmentId = segmentId,
                     editingText = segment.text
@@ -888,12 +898,12 @@ class TranscriptViewModel @Inject constructor(
     }
     
     fun updateEditingText(text: String) {
-        _uiState.update { it.copy(editingText = text) }
+        _otherUiState.update { it.copy(editingText = text) }
     }
     
     fun saveEditing() {
-        val editingSegmentId = _uiState.value.editingSegmentId
-        val editingText = _uiState.value.editingText.trim()
+        val editingSegmentId = _otherUiState.value.editingSegmentId
+        val editingText = _otherUiState.value.editingText.trim()
         
         if (editingSegmentId == null || editingText.isEmpty()) {
             AppLogger.w(TAG_TRANSCRIPT, "Cannot save: editingSegmentId is null or text is empty")
@@ -901,7 +911,7 @@ class TranscriptViewModel @Inject constructor(
             return
         }
         
-        val segment = _uiState.value.segments.find { it.id == editingSegmentId }
+        val segment = _otherUiState.value.segments.find { it.id == editingSegmentId }
         if (segment == null) {
             AppLogger.w(TAG_TRANSCRIPT, "Segment not found for saving -> segmentId: %d", editingSegmentId)
             cancelEditing()
@@ -932,7 +942,7 @@ class TranscriptViewModel @Inject constructor(
                 }
                 
                 AppLogger.d(TAG_TRANSCRIPT, "Segment saved successfully -> segmentId: %d", editingSegmentId)
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         editingSegmentId = null,
                         editingText = ""
@@ -940,7 +950,7 @@ class TranscriptViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_TRANSCRIPT, "Error saving segment", e)
-                _uiState.update { 
+                _otherUiState.update { 
                     it.copy(
                         error = "Failed to save: ${e.message}",
                         editingSegmentId = null,
@@ -953,7 +963,7 @@ class TranscriptViewModel @Inject constructor(
     
     fun cancelEditing() {
         AppLogger.d(TAG_TRANSCRIPT, "Canceling edit mode")
-        _uiState.update { 
+        _otherUiState.update { 
             it.copy(
                 editingSegmentId = null,
                 editingText = ""

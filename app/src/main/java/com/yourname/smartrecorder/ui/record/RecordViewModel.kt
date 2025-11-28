@@ -271,13 +271,15 @@ class RecordViewModel @Inject constructor(
             try {
                 if (currentState.isPaused) {
                     // Resume recording
-                    resumeRecording()
+                    // ⚠️ CRITICAL: Service will pause/resume AudioRecorder AND update repository
+                    foregroundServiceManager.resumeRecordingService()
                     // Service will update repository, UI will react automatically
                     startTimer()  // Restart timer (will cancel old one first)
                     AppLogger.d(TAG_RECORDING, "Recording resumed -> recordingId: %s", currentState.recordingId)
                 } else {
                     // Pause recording
-                    pauseRecording()
+                    // ⚠️ CRITICAL: Service will pause AudioRecorder AND update repository
+                    foregroundServiceManager.pauseRecordingService()
                     // Service will update repository, UI will react automatically
                     AppLogger.d(TAG_RECORDING, "Recording paused -> recordingId: %s", currentState.recordingId)
                 }

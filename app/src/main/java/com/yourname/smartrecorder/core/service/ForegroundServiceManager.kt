@@ -51,6 +51,22 @@ class ForegroundServiceManager @Inject constructor(
         AppLogger.logCritical(TAG_SERVICE, "Recording foreground service stopped")
     }
     
+    fun pauseRecordingService() {
+        val intent = RecordingForegroundService.createIntent(context).apply {
+            action = RecordingForegroundService.ACTION_PAUSE
+        }
+        ContextCompat.startForegroundService(context, intent)
+        AppLogger.logCritical(TAG_SERVICE, "Pause recording service requested")
+    }
+    
+    fun resumeRecordingService() {
+        val intent = RecordingForegroundService.createIntent(context).apply {
+            action = RecordingForegroundService.ACTION_RESUME
+        }
+        ContextCompat.startForegroundService(context, intent)
+        AppLogger.logCritical(TAG_SERVICE, "Resume recording service requested")
+    }
+    
     fun updateRecordingNotification(durationMs: Long, isPaused: Boolean = false) {
         // ⚠️ CRITICAL FIX: Dùng BroadcastReceiver thay vì startService() để tránh gọi onStartCommand liên tục
         // Service đã chạy rồi (foreground), chỉ cần update notification qua broadcast
