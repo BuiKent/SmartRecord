@@ -119,6 +119,14 @@ class TranscriptViewModel @Inject constructor(
         playbackState,
         _otherUiState
     ) { playbackState, otherState ->
+        val currentRecordingId = otherState.recording?.id
+        // ⚠️ CRITICAL: Chỉ hiển thị playback state khi đúng recording đang play
+        val isPlaybackActive = when (playbackState) {
+            is PlaybackState.Playing -> playbackState.recordingId == currentRecordingId
+            is PlaybackState.Paused -> playbackState.recordingId == currentRecordingId
+            is PlaybackState.Idle -> false
+        }
+        
         TranscriptUiState(
             recording = otherState.recording,
             segments = otherState.segments,
@@ -131,15 +139,19 @@ class TranscriptViewModel @Inject constructor(
             isGeneratingTranscript = otherState.isGeneratingTranscript,
             transcriptProgress = otherState.transcriptProgress,
             isProcessingTranscript = otherState.isProcessingTranscript,
-            isPlaying = playbackState is PlaybackState.Playing,
+            // ⚠️ CRITICAL: Chỉ hiển thị playback state khi đúng recording đang play
+            isPlaying = when (playbackState) {
+                is PlaybackState.Playing -> playbackState.recordingId == currentRecordingId
+                else -> false
+            },
             isLooping = when (playbackState) {
-                is PlaybackState.Playing -> playbackState.isLooping
-                is PlaybackState.Paused -> playbackState.isLooping
+                is PlaybackState.Playing -> playbackState.recordingId == currentRecordingId && playbackState.isLooping
+                is PlaybackState.Paused -> playbackState.recordingId == currentRecordingId && playbackState.isLooping
                 else -> false
             },
             currentPositionMs = when (playbackState) {
-                is PlaybackState.Playing -> playbackState.positionMs
-                is PlaybackState.Paused -> playbackState.positionMs
+                is PlaybackState.Playing -> if (playbackState.recordingId == currentRecordingId) playbackState.positionMs else 0L
+                is PlaybackState.Paused -> if (playbackState.recordingId == currentRecordingId) playbackState.positionMs else 0L
                 else -> 0L
             },
             currentSegmentId = otherState.currentSegmentId,
@@ -182,13 +194,38 @@ class TranscriptViewModel @Inject constructor(
                 
                 // Check if audio file exists
                 val audioFile = File(recording.filePath)
-                if (!audioFile.exists()) {
+                val fileExists = audioFile.exists()
+                val fileSize = if (fileExists) audioFile.length() else 0L
+                val fileCanRead = if (fileExists) audioFile.canRead() else false
+                
+                AppLogger.d(TAG_TRANSCRIPT, "Recording loaded -> id: %s, title: %s, duration: %d ms", 
+                    recording.id, recording.title, recording.durationMs)
+                AppLogger.d(TAG_TRANSCRIPT, "Audio file check -> path: %s, exists: %b, size: %d bytes, canRead: %b", 
+                    recording.filePath, fileExists, fileSize, fileCanRead)
+                
+                if (!fileExists) {
                     AppLogger.w(TAG_TRANSCRIPT, "Audio file not found -> path: %s", recording.filePath)
                     // Still load transcript if available, but show warning
+                    _otherUiState.update { 
+                        it.copy(
+                            error = "Audio file not found: ${recording.filePath}. The file may have been moved or deleted."
+                        )
+                    }
+                } else if (!fileCanRead) {
+                    AppLogger.w(TAG_TRANSCRIPT, "Audio file cannot be read -> path: %s", recording.filePath)
+                    _otherUiState.update { 
+                        it.copy(
+                            error = "Cannot read audio file: ${recording.filePath}. Please check file permissions."
+                        )
+                    }
+                } else if (fileSize == 0L) {
+                    AppLogger.w(TAG_TRANSCRIPT, "Audio file is empty -> path: %s", recording.filePath)
+                    _otherUiState.update { 
+                        it.copy(
+                            error = "Audio file is empty (0 bytes): ${recording.filePath}"
+                        )
+                    }
                 }
-                
-                AppLogger.d(TAG_TRANSCRIPT, "Recording loaded -> id: %s, title: %s, duration: %d ms, file: %s", 
-                    recording.id, recording.title, recording.durationMs, recording.filePath)
 
                 // Load transcript segments
                 var segmentsLoaded = false
@@ -378,14 +415,35 @@ class TranscriptViewModel @Inject constructor(
         }
         
         val recording = _otherUiState.value.recording ?: run {
-            AppLogger.w(TAG_TRANSCRIPT, "Toggle play/pause rejected - no recording")
+            AppLogger.w(TAG_TRANSCRIPT, "Toggle play/pause rejected - no recording loaded yet")
+            _otherUiState.update { it.copy(error = "Recording not loaded yet. Please wait...") }
             return
         }
         val file = File(recording.filePath)
+        val fileExists = file.exists()
+        val fileSize = if (fileExists) file.length() else 0L
+        val fileCanRead = if (fileExists) file.canRead() else false
         
-        if (!file.exists()) {
+        AppLogger.d(TAG_TRANSCRIPT, "togglePlayPause called -> recordingId: %s, filePath: %s", 
+            recording.id, recording.filePath)
+        AppLogger.d(TAG_TRANSCRIPT, "File check -> exists: %b, size: %d bytes, canRead: %b", 
+            fileExists, fileSize, fileCanRead)
+        
+        if (!fileExists) {
             AppLogger.e(TAG_TRANSCRIPT, "Audio file not found -> path: %s", null, recording.filePath)
-            _otherUiState.update { it.copy(error = "Audio file not found") }
+            _otherUiState.update { it.copy(error = "Audio file not found: ${recording.filePath}. The file may have been moved or deleted.") }
+            return
+        }
+        
+        if (!fileCanRead) {
+            AppLogger.e(TAG_TRANSCRIPT, "Audio file cannot be read -> path: %s", null, recording.filePath)
+            _otherUiState.update { it.copy(error = "Cannot read audio file: ${recording.filePath}. Please check file permissions.") }
+            return
+        }
+        
+        if (fileSize == 0L) {
+            AppLogger.e(TAG_TRANSCRIPT, "Audio file is empty -> path: %s", null, recording.filePath)
+            _otherUiState.update { it.copy(error = "Audio file is empty (0 bytes): ${recording.filePath}") }
             return
         }
         
@@ -393,95 +451,58 @@ class TranscriptViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val currentPlaybackState = playbackState.value
+                
+                // ⚠️ CRITICAL: Control playback based on current state
                 when (currentPlaybackState) {
                     is PlaybackState.Playing -> {
-                        // Pause playback
-                        val position = currentPlaybackState.positionMs
-                        AppLogger.logMain(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", position)
-                        audioPlayer.pause()
-                        positionUpdateJob?.cancel()
-                        // Service will update repository, UI will react automatically
-                        
-                        // Update foreground service notification
-                        foregroundServiceManager.updatePlaybackNotification(
-                            recording.id,
-                            position,
-                            recording.durationMs,
-                            isPaused = true
-                        )
+                        // Nếu đúng recording đang play → pause
+                        if (currentPlaybackState.recordingId == recording.id) {
+                            // Pause playback
+                            val position = currentPlaybackState.positionMs
+                            AppLogger.logMain(TAG_TRANSCRIPT, "Pausing playback -> position: %d ms", position)
+                            // ⚠️ CRITICAL: Service will pause AudioPlayer AND update repository
+                            foregroundServiceManager.pausePlaybackService()
+                            positionUpdateJob?.cancel()
+                            // Service will update repository, UI will react automatically
+                        } else {
+                            // ⚠️ CRITICAL: Recording khác đang play → stop và play recording mới
+                            AppLogger.d(TAG_TRANSCRIPT, "Different recording is playing -> stopping and playing new recording", 
+                                "currentRecordingId=${currentPlaybackState.recordingId}, requestedRecordingId=${recording.id}")
+                            // Stop current playback
+                            audioPlayer.stop()
+                            foregroundServiceManager.stopPlaybackService()
+                            // Wait a bit for service to update repository to Idle
+                            delay(100)
+                            // Start new playback (reuse Idle case logic)
+                            startNewPlayback(recording, file)
+                        }
                     }
                     is PlaybackState.Paused -> {
-                        // Resume playback
-                        val position = currentPlaybackState.positionMs
-                        AppLogger.logMain(TAG_TRANSCRIPT, "Resuming playback -> position: %d ms", position)
-                        audioPlayer.resume()
-                        startPositionUpdates()
-                        // Service will update repository, UI will react automatically
+                        // Nếu đúng recording đang pause → resume
+                        if (currentPlaybackState.recordingId == recording.id) {
+                            // Resume playback
+                            val position = currentPlaybackState.positionMs
+                            AppLogger.logMain(TAG_TRANSCRIPT, "Resuming playback -> position: %d ms", position)
+                            // ⚠️ CRITICAL: Service will resume AudioPlayer AND update repository
+                            foregroundServiceManager.resumePlaybackService()
+                            startPositionUpdates()
+                            // Service will update repository, UI will react automatically
+                        } else {
+                            // ⚠️ CRITICAL: Recording khác đang pause → stop và play recording mới
+                            AppLogger.d(TAG_TRANSCRIPT, "Different recording is paused -> stopping and playing new recording", 
+                                "currentRecordingId=${currentPlaybackState.recordingId}, requestedRecordingId=${recording.id}")
+                            // Stop current playback
+                            audioPlayer.stop()
+                            foregroundServiceManager.stopPlaybackService()
+                            // Wait a bit for service to update repository to Idle
+                            delay(100)
+                            // Start new playback (reuse Idle case logic)
+                            startNewPlayback(recording, file)
+                        }
                     }
                     is PlaybackState.Idle -> {
                         // Start new playback
-                        AppLogger.logMain(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s, size: %d bytes", 
-                            file.absolutePath, file.length())
-                        
-                        // Check volume before playing
-                        if (VolumeChecker.isVolumeLow(context)) {
-                            val volumePercent = VolumeChecker.getVolumePercent(context)
-                            AppLogger.w(TAG_TRANSCRIPT, "Volume is low: %d%%, showing warning toast", volumePercent)
-                            _otherUiState.update { 
-                                it.copy(toastMessage = "Volume too low (${volumePercent}%). Please increase volume for better audio quality.")
-                            }
-                        } else {
-                            _otherUiState.update { it.copy(toastMessage = null) }
-                        }
-                        
-                        // Recovery logic: Check if AudioPlayer is in stuck state
-                        // This can happen if ViewModel was cleared while playback was active
-                        val currentPlaybackState = playbackState.value
-                        if (audioPlayer.isPlaying() && currentPlaybackState is PlaybackState.Idle) {
-                            AppLogger.logRareCondition(TAG_TRANSCRIPT, 
-                                "Playback stuck state detected - forcing reset", 
-                                "audioPlayer.isPlaying=${audioPlayer.isPlaying()}, playbackState=${currentPlaybackState.javaClass.simpleName}")
-                            // Force reset AudioPlayer to recover from stuck state
-                            try {
-                                audioPlayer.forceReset()
-                                AppLogger.d(TAG_TRANSCRIPT, "AudioPlayer force reset completed, starting new playback")
-                            } catch (resetException: Exception) {
-                                AppLogger.e(TAG_TRANSCRIPT, "Failed to force reset AudioPlayer before playback", resetException)
-                                _otherUiState.update { it.copy(error = resetException.message) }
-                                foregroundServiceManager.stopPlaybackService()
-                                isToggling = false
-                                return@launch
-                            }
-                        }
-                        
-                        // Start foreground service before playing - service will update repository
-                        foregroundServiceManager.startPlaybackService(
-                            recording.id,
-                            recording.title.ifEmpty { "Recording" },
-                            recording.durationMs
-                        )
-                        
-                        val isLooping = _otherUiState.value.isLooping
-                        audioPlayer.play(file) {
-                            // On completion
-                            AppLogger.logMain(TAG_TRANSCRIPT, "Playback completed, looping: %b", isLooping)
-                            if (!isLooping) {
-                                positionUpdateJob?.cancel()
-                                // Stop foreground service - service will update repository to Idle
-                                foregroundServiceManager.stopPlaybackService()
-                            } else {
-                                // Loop: reset position but keep playing
-                                audioPlayer.seekTo(0)
-                            }
-                        }
-                        // Set looping state
-                        audioPlayer.setLooping(isLooping)
-                        playbackSessionRepository.setLooping(isLooping)
-                        AppLogger.logMain(TAG_TRANSCRIPT, "Started new playback -> duration: %d ms, looping: %b", 
-                            recording.durationMs, isLooping)
-                        
-                        startPositionUpdates()
-                        // Service will update repository to Playing, UI will react automatically
+                        startNewPlayback(recording, file)
                     }
                 }
             } catch (e: Exception) {
@@ -493,6 +514,85 @@ class TranscriptViewModel @Inject constructor(
                 isToggling = false
             }
         }
+    }
+    
+    private suspend fun startNewPlayback(recording: com.yourname.smartrecorder.domain.model.Recording, file: File) {
+        AppLogger.logMain(TAG_TRANSCRIPT, "Starting/resuming playback -> file: %s, size: %d bytes", 
+            file.absolutePath, file.length())
+        
+        // ⚠️ CRITICAL: Stop any existing playback first (in case AudioPlayer is in stuck state)
+        // This ensures clean state before starting new playback
+        if (audioPlayer.isPlaying()) {
+            AppLogger.logRareCondition(TAG_TRANSCRIPT, 
+                "AudioPlayer is playing but state is Idle - stopping first", 
+                "audioPlayer.isPlaying=${audioPlayer.isPlaying()}")
+            try {
+                audioPlayer.stop()
+                AppLogger.d(TAG_TRANSCRIPT, "Stopped existing AudioPlayer playback before starting new one")
+            } catch (e: Exception) {
+                AppLogger.w(TAG_TRANSCRIPT, "Failed to stop AudioPlayer before playback", e)
+                // Continue anyway - will try to reset if needed
+            }
+        }
+        
+        // Check volume before playing
+        if (VolumeChecker.isVolumeLow(context)) {
+            val volumePercent = VolumeChecker.getVolumePercent(context)
+            AppLogger.w(TAG_TRANSCRIPT, "Volume is low: %d%%, showing warning toast", volumePercent)
+            _otherUiState.update { 
+                it.copy(toastMessage = "Volume too low (${volumePercent}%). Please increase volume for better audio quality.")
+            }
+        } else {
+            _otherUiState.update { it.copy(toastMessage = null) }
+        }
+        
+        // Recovery logic: Check if AudioPlayer is in stuck state
+        // This can happen if ViewModel was cleared while playback was active
+        val currentPlaybackState = playbackState.value
+        if (audioPlayer.isPlaying() && currentPlaybackState is PlaybackState.Idle) {
+            AppLogger.logRareCondition(TAG_TRANSCRIPT, 
+                "Playback stuck state detected - forcing reset", 
+                "audioPlayer.isPlaying=${audioPlayer.isPlaying()}, playbackState=${currentPlaybackState.javaClass.simpleName}")
+            // Force reset AudioPlayer to recover from stuck state
+            try {
+                audioPlayer.forceReset()
+                AppLogger.d(TAG_TRANSCRIPT, "AudioPlayer force reset completed, starting new playback")
+            } catch (resetException: Exception) {
+                AppLogger.e(TAG_TRANSCRIPT, "Failed to force reset AudioPlayer before playback", resetException)
+                _otherUiState.update { it.copy(error = resetException.message) }
+                foregroundServiceManager.stopPlaybackService()
+                return
+            }
+        }
+        
+        // Start foreground service before playing - service will update repository
+        foregroundServiceManager.startPlaybackService(
+            recording.id,
+            recording.title.ifEmpty { "Recording" },
+            recording.durationMs
+        )
+        
+        val isLooping = _otherUiState.value.isLooping
+        audioPlayer.play(file) {
+            // On completion
+            AppLogger.logMain(TAG_TRANSCRIPT, "Playback completed, looping: %b", isLooping)
+            if (!isLooping) {
+                positionUpdateJob?.cancel()
+                // Stop foreground service - service will update repository to Idle
+                foregroundServiceManager.stopPlaybackService()
+            } else {
+                // Loop: reset position but keep playing
+                audioPlayer.seekTo(0)
+            }
+        }
+        // Set looping state
+        audioPlayer.setLooping(isLooping)
+        playbackSessionRepository.setLooping(isLooping)
+        AppLogger.logMain(TAG_TRANSCRIPT, "Started new playback -> duration: %d ms, looping: %b", 
+            recording.durationMs, isLooping)
+        
+        startPositionUpdates()
+        // Service will update repository to Playing, UI will react automatically
     }
     
     private fun startPositionUpdates() {

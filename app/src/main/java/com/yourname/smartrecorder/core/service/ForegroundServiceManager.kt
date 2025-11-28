@@ -109,6 +109,22 @@ class ForegroundServiceManager @Inject constructor(
         AppLogger.logCritical(TAG_SERVICE, "Playback foreground service stopped")
     }
     
+    fun pausePlaybackService() {
+        val intent = PlaybackForegroundService.createIntent(context).apply {
+            action = PlaybackForegroundService.ACTION_PAUSE
+        }
+        ContextCompat.startForegroundService(context, intent)
+        AppLogger.logCritical(TAG_SERVICE, "Pause playback service requested")
+    }
+    
+    fun resumePlaybackService() {
+        val intent = PlaybackForegroundService.createIntent(context).apply {
+            action = PlaybackForegroundService.ACTION_RESUME
+        }
+        ContextCompat.startForegroundService(context, intent)
+        AppLogger.logCritical(TAG_SERVICE, "Resume playback service requested")
+    }
+    
     fun updatePlaybackNotification(recordingId: String, position: Long, duration: Long, isPaused: Boolean = false) {
         // ⚠️ CRITICAL FIX: Dùng BroadcastReceiver thay vì startService() để tránh gọi onStartCommand liên tục
         // Service đã chạy rồi (foreground), chỉ cần update notification qua broadcast

@@ -21,9 +21,14 @@ import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
 import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
+import com.yourname.smartrecorder.core.audio.AudioPlayer
 import com.yourname.smartrecorder.data.repository.PlaybackSessionRepository
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -39,7 +44,11 @@ class PlaybackForegroundService : Service() {
     @Inject
     lateinit var playbackSessionRepository: PlaybackSessionRepository
     
+    @Inject
+    lateinit var audioPlayer: AudioPlayer
+    
     private val binder = LocalBinder()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var notificationManager: NotificationManager? = null
     private var mediaSession: MediaSessionCompat? = null
     private var isPlaying = false
@@ -51,7 +60,8 @@ class PlaybackForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "playback_channel"
         private const val NOTIFICATION_ID = 2
-        private const val ACTION_PAUSE = "com.yourname.smartrecorder.PAUSE_PLAYBACK"
+        const val ACTION_PAUSE = "com.yourname.smartrecorder.PAUSE_PLAYBACK"
+        const val ACTION_RESUME = "com.yourname.smartrecorder.RESUME_PLAYBACK"
         private const val ACTION_STOP = "com.yourname.smartrecorder.STOP_PLAYBACK"
         const val BROADCAST_UPDATE_NOTIFICATION = "com.yourname.smartrecorder.BROADCAST_UPDATE_PLAYBACK_NOTIFICATION"
         
@@ -129,7 +139,12 @@ class PlaybackForegroundService : Service() {
         when (intent?.action) {
             ACTION_PAUSE -> {
                 AppLogger.logCritical(TAG_SERVICE, "Pause playback requested from notification")
-                // Pause will be handled by ViewModel
+                pausePlayback()
+                return START_NOT_STICKY
+            }
+            ACTION_RESUME -> {
+                AppLogger.logCritical(TAG_SERVICE, "Resume playback requested from notification")
+                resumePlayback()
                 return START_NOT_STICKY
             }
             ACTION_STOP -> {
@@ -238,6 +253,64 @@ class PlaybackForegroundService : Service() {
                 .setState(PlaybackStateCompat.STATE_STOPPED, 0L, 1.0f)
                 .build()
         )
+    }
+    
+    fun pausePlayback() {
+        val currentState = playbackSessionRepository.state.value
+        if (currentState !is com.yourname.smartrecorder.domain.state.PlaybackState.Playing) {
+            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to pause when not playing")
+            return
+        }
+        
+        isPlaying = false
+        AppLogger.logCritical(TAG_SERVICE, "Playback paused in foreground service", 
+            "recordingId=${currentState.recordingId}, position=${currentState.positionMs}")
+        
+        // ⚠️ CRITICAL: Pause AudioPlayer FIRST
+        serviceScope.launch {
+            try {
+                audioPlayer.pause()
+                AppLogger.d(TAG_SERVICE, "AudioPlayer paused successfully")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_SERVICE, "Failed to pause AudioPlayer", e)
+            }
+        }
+        
+        // ⚠️ CRITICAL: Update repository state
+        playbackSessionRepository.pause()
+        
+        // Update MediaSession
+        updateMediaSessionPlaybackState(false, currentState.positionMs)
+        updateNotification(currentState.positionMs, currentState.durationMs, true)
+    }
+    
+    fun resumePlayback() {
+        val currentState = playbackSessionRepository.state.value
+        if (currentState !is com.yourname.smartrecorder.domain.state.PlaybackState.Paused) {
+            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to resume when not paused")
+            return
+        }
+        
+        isPlaying = true
+        AppLogger.logCritical(TAG_SERVICE, "Playback resumed in foreground service", 
+            "recordingId=${currentState.recordingId}, position=${currentState.positionMs}")
+        
+        // ⚠️ CRITICAL: Resume AudioPlayer FIRST
+        serviceScope.launch {
+            try {
+                audioPlayer.resume()
+                AppLogger.d(TAG_SERVICE, "AudioPlayer resumed successfully")
+            } catch (e: Exception) {
+                AppLogger.e(TAG_SERVICE, "Failed to resume AudioPlayer", e)
+            }
+        }
+        
+        // ⚠️ CRITICAL: Update repository state
+        playbackSessionRepository.resume()
+        
+        // Update MediaSession
+        updateMediaSessionPlaybackState(true, currentState.positionMs)
+        updateNotification(currentState.positionMs, currentState.durationMs, false)
     }
     
     fun updateNotification(position: Long, duration: Long, isPaused: Boolean = false) {

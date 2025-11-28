@@ -238,7 +238,8 @@ class LibraryViewModel @Inject constructor(
                         if (currentPlaybackState.recordingId == recording.id) {
                             // Pause current playback
                             AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Pausing playback -> recordingId: %s", recording.id)
-                            audioPlayer.pause()
+                            // ⚠️ CRITICAL: Service will pause AudioPlayer AND update repository
+                            foregroundServiceManager.pausePlaybackService()
                             positionUpdateJob?.cancel()
                             // Service will update repository, UI will react automatically
                         } else {
@@ -252,7 +253,8 @@ class LibraryViewModel @Inject constructor(
                         if (currentPlaybackState.recordingId == recording.id) {
                             // Resume
                             AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Resuming playback -> recordingId: %s", recording.id)
-                            audioPlayer.resume()
+                            // ⚠️ CRITICAL: Service will resume AudioPlayer AND update repository
+                            foregroundServiceManager.resumePlaybackService()
                             startPositionUpdates()
                             // Service will update repository, UI will react automatically
                         } else {
