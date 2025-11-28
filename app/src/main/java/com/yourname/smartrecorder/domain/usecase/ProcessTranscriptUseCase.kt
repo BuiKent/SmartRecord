@@ -31,10 +31,28 @@ class ProcessTranscriptUseCase @Inject constructor(
         
         try {
             // Load raw segments from database (sync - not Flow)
-            val rawSegments = transcriptRepository.getTranscriptSegmentsSync(recordingId)
+            val rawSegmentsFromDb = transcriptRepository.getTranscriptSegmentsSync(recordingId)
+            
+            if (rawSegmentsFromDb.isEmpty()) {
+                AppLogger.w(TAG_TRANSCRIPT, "No segments found for processing -> recordingId: %s", recordingId)
+                return@withContext emptyList()
+            }
+            
+            // Filter out BLANK_AUDIO segments (in case they exist in DB from before filter was added)
+            val rawSegments = rawSegmentsFromDb.filter { segment ->
+                val textUpper = segment.text.trim().uppercase()
+                textUpper != "BLANK_AUDIO" && textUpper.isNotBlank()
+            }
+            
+            // Log comparison: raw from DB vs filtered
+            if (rawSegmentsFromDb.size != rawSegments.size) {
+                val filteredCount = rawSegmentsFromDb.size - rawSegments.size
+                AppLogger.d(TAG_TRANSCRIPT, "Filtered %d BLANK_AUDIO/blank segments from DB (total: %d -> filtered: %d)", 
+                    filteredCount, rawSegmentsFromDb.size, rawSegments.size)
+            }
             
             if (rawSegments.isEmpty()) {
-                AppLogger.w(TAG_TRANSCRIPT, "No segments found for processing -> recordingId: %s", recordingId)
+                AppLogger.w(TAG_TRANSCRIPT, "No valid segments after filtering -> recordingId: %s", recordingId)
                 return@withContext emptyList()
             }
             
@@ -48,13 +66,39 @@ class ProcessTranscriptUseCase @Inject constructor(
             AppLogger.d(TAG_TRANSCRIPT, "Processing %d raw segments -> recordingId: %s", 
                 rawSegments.size, recordingId)
             
+            // Log raw segments count before processing
+            AppLogger.d(TAG_TRANSCRIPT, "=== [RAW_SEGMENTS_BEFORE_PROCESSING] ===")
+            AppLogger.d(TAG_TRANSCRIPT, "Total raw segments: %d", rawSegments.size)
+            rawSegments.take(5).forEachIndexed { index, segment ->
+                AppLogger.d(TAG_TRANSCRIPT, "RAW[%d] time=%.2fs-%.2fs text=\"%s\"", 
+                    index, segment.startTimeMs / 1000.0, segment.endTimeMs / 1000.0, 
+                    segment.text.take(50))
+            }
+            if (rawSegments.size > 5) {
+                AppLogger.d(TAG_TRANSCRIPT, "... and %d more raw segments", rawSegments.size - 5)
+            }
+            
             // Apply speaker detection
             val processedSegments = detectSpeakers(rawSegments)
             
+            // Log comparison: raw vs processed
+            AppLogger.d(TAG_TRANSCRIPT, "=== [SEGMENT_COUNT_COMPARISON] ===")
+            AppLogger.d(TAG_TRANSCRIPT, "Raw segments: %d, Processed segments: %d", 
+                rawSegments.size, processedSegments.size)
+            if (rawSegments.size != processedSegments.size) {
+                AppLogger.w(TAG_TRANSCRIPT, "WARNING: Segment count mismatch! Raw: %d, Processed: %d", 
+                    rawSegments.size, processedSegments.size)
+            }
+            
             AppLogger.d(TAG_TRANSCRIPT, "Processed %d segments with speaker detection", processedSegments.size)
             
-            // Log processed text (first 3 segments as sample)
+            // Log processed text (first 5 segments as sample)
             logProcessedText(processedSegments)
+            
+            // Final comparison log
+            AppLogger.d(TAG_TRANSCRIPT, "=== [FINAL_SEGMENT_COMPARISON] ===")
+            AppLogger.d(TAG_TRANSCRIPT, "Raw from DB: %d, After filter: %d, After processing: %d", 
+                rawSegmentsFromDb.size, rawSegments.size, processedSegments.size)
             
             // Update segments in database with speaker assignments
             AppLogger.d(TAG_TRANSCRIPT, "Updating processed segments in database")
@@ -340,13 +384,18 @@ class ProcessTranscriptUseCase @Inject constructor(
      * Log processed text after speaker detection (sample of first 3 segments).
      */
     private fun logProcessedText(segments: List<TranscriptSegment>) {
-        if (segments.isEmpty()) return
+        if (segments.isEmpty()) {
+            AppLogger.d(TAG_TRANSCRIPT, "=== [PROCESSED_TEXT_AFTER_SPEAKER_DETECTION] ===")
+            AppLogger.d(TAG_TRANSCRIPT, "No processed segments")
+            return
+        }
         
         AppLogger.d(TAG_TRANSCRIPT, "=== [PROCESSED_TEXT_AFTER_SPEAKER_DETECTION] ===")
-        val sampleSize = minOf(3, segments.size)
+        AppLogger.d(TAG_TRANSCRIPT, "Total processed segments: %d", segments.size)
+        val sampleSize = minOf(5, segments.size)
         segments.take(sampleSize).forEachIndexed { index, segment ->
-            val textPreview = if (segment.text.length > 100) {
-                segment.text.take(100) + "..."
+            val textPreview = if (segment.text.length > 80) {
+                segment.text.take(80) + "..."
             } else {
                 segment.text
             }
@@ -356,6 +405,14 @@ class ProcessTranscriptUseCase @Inject constructor(
         }
         if (segments.size > sampleSize) {
             AppLogger.d(TAG_TRANSCRIPT, "... and %d more processed segments", segments.size - sampleSize)
+        }
+        
+        // Check for BLANK_AUDIO in processed segments
+        val blankAudioCount = segments.count { 
+            it.text.trim().uppercase() == "BLANK_AUDIO" 
+        }
+        if (blankAudioCount > 0) {
+            AppLogger.w(TAG_TRANSCRIPT, "WARNING: Found %d BLANK_AUDIO segments in processed results (should be filtered)", blankAudioCount)
         }
     }
 }

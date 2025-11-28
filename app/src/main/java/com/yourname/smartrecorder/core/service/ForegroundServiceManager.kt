@@ -52,11 +52,14 @@ class ForegroundServiceManager @Inject constructor(
     }
     
     fun updateRecordingNotification(durationMs: Long, isPaused: Boolean = false) {
+        // ⚠️ CRITICAL FIX: Dùng startService() thay vì startForegroundService() để tránh recreate notification
+        // Service đã chạy rồi (foreground), chỉ cần update notification
         val intent = RecordingForegroundService.createIntent(context).apply {
             putExtra("durationMs", durationMs)
             putExtra("isPaused", isPaused)
         }
-        ContextCompat.startForegroundService(context, intent)
+        // Dùng startService() thay vì startForegroundService() để tránh gọi onStartCommand liên tục
+        context.startService(intent)
     }
     
     fun startPlaybackService(recordingId: String, title: String, duration: Long) {
@@ -91,15 +94,16 @@ class ForegroundServiceManager @Inject constructor(
     }
     
     fun updatePlaybackNotification(recordingId: String, position: Long, duration: Long, isPaused: Boolean = false) {
+        // ⚠️ CRITICAL FIX: Dùng startService() thay vì startForegroundService() để tránh recreate notification
+        // Service đã chạy rồi (foreground), chỉ cần update notification
         val intent = PlaybackForegroundService.createIntent(context).apply {
-            putExtra("recordingId", recordingId)  // ← Thêm recordingId
+            putExtra("recordingId", recordingId)
             putExtra("position", position)
             putExtra("duration", duration)
             putExtra("isPaused", isPaused)
         }
-        // ⚠️ TODO: Refactor để dùng startService() hoặc IPC khác cho update
-        // Tạm thời vẫn dùng startForegroundService nhưng cần refactor sau
-        ContextCompat.startForegroundService(context, intent)
+        // Dùng startService() thay vì startForegroundService() để tránh gọi onStartCommand liên tục
+        context.startService(intent)
     }
 }
 
