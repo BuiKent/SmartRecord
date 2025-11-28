@@ -490,15 +490,30 @@ object NumberBasedSegmentationHelper {
     )
     
     /**
-     * Greeting words that typically indicate speaker change or new section
+     * Greeting words that appear at the START of a sentence (opening of new speaker)
      */
-    private val greetingWords = setOf(
+    private val greetingWordsAtStart = setOf(
         "hi", "hello", "hey", "greetings",
         "good morning", "good afternoon", "good evening", "good night",
         "morning", "afternoon", "evening",
-        "howdy", "what's up", "whats up", "sup",
+        "howdy", "hi there", "hello there", "hey there",
+        "greetings", "salutations", "good day", "good day to you",
+        "hey everyone", "hi everyone", "hello everyone",
+        "hey guys", "hi guys", "hello guys",
+        "hey all", "hi all", "hello all"
+    )
+    
+    /**
+     * Greeting phrases that appear at the END of a sentence (closing of current speaker)
+     */
+    private val greetingPhrasesAtEnd = setOf(
         "nice to meet you", "pleased to meet you",
-        "hi there", "hello there", "hey there"
+        "what's up", "whats up", "sup",
+        "nice meeting you", "pleasure to meet you",
+        "great to meet you", "good to meet you",
+        "nice talking to you", "pleasure talking to you",
+        "talk to you later", "speak to you later",
+        "catch you later", "see you later"
     )
     
     /**
@@ -595,13 +610,13 @@ object NumberBasedSegmentationHelper {
             }
         }
         
-        // Check greeting words (if at start of segment, indicates new speaker/section)
+        // Check greeting words at start (if at start of segment, indicates new speaker/section)
         if (candidate.indexStart <= 2) {  // Greeting near start of segment
             val firstWords = words.subList(maxOf(0, candidate.indexStart - 2), 
                 minOf(words.size, candidate.indexEnd + 3))
                 .joinToString(" ") { it.text.lowercase() }
             
-            greetingWords.forEach { greeting ->
+            greetingWordsAtStart.forEach { greeting ->
                 if (firstWords.startsWith(greeting) || firstWords.contains(" $greeting ")) {
                     boostScore += 1
                     return@forEach
@@ -615,14 +630,28 @@ object NumberBasedSegmentationHelper {
     /**
      * Check if segment starts with greeting (for speaker change detection)
      */
-    fun isGreetingSegment(words: List<Word>, segmentStartIndex: Int): Boolean {
+    fun isGreetingAtStart(words: List<Word>, segmentStartIndex: Int): Boolean {
         if (segmentStartIndex < 0 || segmentStartIndex >= words.size) return false
         
-        val firstWords = words.subList(segmentStartIndex, minOf(words.size, segmentStartIndex + 3))
+        val firstWords = words.subList(segmentStartIndex, minOf(words.size, segmentStartIndex + 4))
             .joinToString(" ") { it.text.lowercase() }
         
-        return greetingWords.any { greeting ->
+        return greetingWordsAtStart.any { greeting ->
             firstWords.startsWith(greeting) || firstWords.contains(" $greeting ")
+        }
+    }
+    
+    /**
+     * Check if segment ends with greeting phrase (for speaker change detection)
+     */
+    fun isGreetingAtEnd(words: List<Word>, segmentEndIndex: Int): Boolean {
+        if (segmentEndIndex < 0 || segmentEndIndex >= words.size) return false
+        
+        val lastWords = words.subList(maxOf(0, segmentEndIndex - 3), segmentEndIndex + 1)
+            .joinToString(" ") { it.text.lowercase() }
+        
+        return greetingPhrasesAtEnd.any { greeting ->
+            lastWords.contains(greeting) || lastWords.endsWith(" $greeting") || lastWords.endsWith(greeting)
         }
     }
     

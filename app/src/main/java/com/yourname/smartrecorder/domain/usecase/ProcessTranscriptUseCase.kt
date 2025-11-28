@@ -149,28 +149,63 @@ class ProcessTranscriptUseCase @Inject constructor(
     }
     
     /**
-     * Greeting words that typically indicate speaker change
+     * Greeting words that appear at the START of a sentence (opening of new speaker)
+     * These indicate: previous unassigned segments → Speaker A, segments from greeting → Speaker B
      */
-    private val greetingWords = setOf(
+    private val greetingWordsAtStart = setOf(
         "hi", "hello", "hey", "greetings",
         "good morning", "good afternoon", "good evening", "good night",
         "morning", "afternoon", "evening",
-        "howdy", "what's up", "whats up", "sup",
-        "nice to meet you", "pleased to meet you",
-        "hi there", "hello there", "hey there"
+        "howdy", "hi there", "hello there", "hey there",
+        "greetings", "salutations", "good day", "good day to you",
+        "hey everyone", "hi everyone", "hello everyone",
+        "hey guys", "hi guys", "hello guys",
+        "hey all", "hi all", "hello all"
     )
     
     /**
-     * Check if segment starts with a greeting
+     * Greeting phrases that appear at the END of a sentence (closing of current speaker)
+     * These indicate: current segment → Speaker A, next segment → Speaker B
      */
-    private fun isGreetingSegment(segment: TranscriptSegment): Boolean {
+    private val greetingPhrasesAtEnd = setOf(
+        "nice to meet you", "pleased to meet you",
+        "what's up", "whats up", "sup",
+        "nice meeting you", "pleasure to meet you",
+        "great to meet you", "good to meet you",
+        "nice talking to you", "pleasure talking to you",
+        "talk to you later", "speak to you later",
+        "catch you later", "see you later"
+    )
+    
+    /**
+     * Check if segment starts with a greeting (opening greeting)
+     */
+    private fun isGreetingAtStart(segment: TranscriptSegment): Boolean {
         val textLower = segment.text.trim().lowercase()
         
         // Check if segment starts with greeting (first few words)
-        val firstWords = textLower.split(Regex("\\s+")).take(3).joinToString(" ")
+        val firstWords = textLower.split(Regex("\\s+")).take(4).joinToString(" ")
         
-        return greetingWords.any { greeting ->
+        return greetingWordsAtStart.any { greeting ->
             firstWords.startsWith(greeting) || textLower.startsWith("$greeting ")
+        }
+    }
+    
+    /**
+     * Check if segment ends with a greeting phrase (closing greeting)
+     */
+    private fun isGreetingAtEnd(segment: TranscriptSegment): Boolean {
+        val textLower = segment.text.trim().lowercase()
+        
+        // Check if segment ends with greeting phrase (last few words)
+        val words = textLower.split(Regex("\\s+"))
+        if (words.isEmpty()) return false
+        
+        // Check last 4 words for greeting phrases
+        val lastWords = words.takeLast(4).joinToString(" ")
+        
+        return greetingPhrasesAtEnd.any { greeting ->
+            lastWords.contains(greeting) || textLower.endsWith(" $greeting") || textLower.endsWith(greeting)
         }
     }
     
@@ -204,8 +239,10 @@ class ProcessTranscriptUseCase @Inject constructor(
                 prevTextTrimmed.endsWith("?\"") ||
                 prevTextTrimmed.endsWith("?'")
             
-            // Check if segment is a greeting
-            val isGreeting = isGreetingSegment(segment)
+            // Check if segment has greeting at start or end
+            val isGreetingAtStart = isGreetingAtStart(segment)
+            val isGreetingAtEnd = isGreetingAtEnd(segment)
+            val prevIsGreetingAtEnd = prevSegment?.let { isGreetingAtEnd(it) } ?: false
             
             // Calculate time gap (silence) in seconds
             val silenceGap = if (index > 0) {
@@ -215,7 +252,7 @@ class ProcessTranscriptUseCase @Inject constructor(
             }
             val isLongPause = silenceGap > 1.5
             
-            // Logic: Priority 1 = question mark, Priority 2 = greeting, Priority 3 = time gap
+            // Logic: Priority 1 = question mark, Priority 2 = greeting at start, Priority 3 = greeting at end (previous), Priority 4 = time gap
             var shouldChangeSpeaker = false
             var changeReason = ""
             
@@ -224,14 +261,19 @@ class ProcessTranscriptUseCase @Inject constructor(
                 shouldChangeSpeaker = true
                 changeReason = "question"
                 AppLogger.d(TAG_TRANSCRIPT, "Segment #%d is question -> changing speaker", index)
-            } else if (isGreeting) {
-                // Priority 2: Greeting → change speaker
+            } else if (isGreetingAtStart) {
+                // Priority 2: Greeting at start → change speaker (previous unassigned → Speaker A, from here → Speaker B)
                 shouldChangeSpeaker = true
-                changeReason = "greeting"
-                AppLogger.d(TAG_TRANSCRIPT, "Segment #%d is greeting (\"%s\") -> changing speaker", index, 
+                changeReason = "greeting at start"
+                AppLogger.d(TAG_TRANSCRIPT, "Segment #%d starts with greeting (\"%s\") -> changing speaker", index, 
                     textTrimmed.take(50))
+            } else if (prevIsGreetingAtEnd) {
+                // Priority 3: Previous segment ended with greeting → current segment is new speaker
+                shouldChangeSpeaker = true
+                changeReason = "after greeting at end"
+                AppLogger.d(TAG_TRANSCRIPT, "Segment #%d is after greeting at end -> changing speaker", index)
             } else if (isLongPause && !prevIsQuestion) {
-                // Priority 3: Time gap > 1.5s (only if not after question)
+                // Priority 4: Time gap > 1.5s (only if not after question)
                 shouldChangeSpeaker = true
                 changeReason = "time gap"
                 AppLogger.d(TAG_TRANSCRIPT, "Segment #%d has long pause (%.2fs) -> changing speaker", index, silenceGap)
@@ -251,17 +293,40 @@ class ProcessTranscriptUseCase @Inject constructor(
             lastEndTime = segment.endTimeMs
         }
         
+        // Apply greeting-based assignment: 
+        // - If greeting at start found, assign all previous unassigned segments to Speaker A
+        // - Only apply to segments that don't already have speaker from other logic
+        val result = segments.mapIndexed { index, segment ->
+            // Check if this segment starts with greeting
+            if (isGreetingAtStart(segment) && index > 0) {
+                // Find all previous segments that don't have speaker yet
+                // and assign them to opposite speaker (Speaker A)
+                val oppositeSpeaker = if (speakerAssignments[index] == 1) 2 else 1
+                
+                // Assign previous unassigned segments (only if they don't have speaker from other logic)
+                // Note: In heuristic detection, we assign all segments, so this is mainly for future use
+                // when combining with other detection methods
+            }
+            
+            segment.copy(speaker = speakerAssignments[index])
+        }
+        
         // Check if we have multiple speakers
         val uniqueSpeakers = speakerAssignments.distinct()
         val hasMultipleSpeakers = uniqueSpeakers.size > 1
         
         AppLogger.d(TAG_TRANSCRIPT, "Heuristic detection result: %d unique speakers detected", uniqueSpeakers.size)
         
+        // Log greeting detection statistics
+        val greetingAtStartCount = segments.count { isGreetingAtStart(it) }
+        val greetingAtEndCount = segments.count { isGreetingAtEnd(it) }
+        if (greetingAtStartCount > 0 || greetingAtEndCount > 0) {
+            AppLogger.d(TAG_TRANSCRIPT, "Greeting detection: %d at start, %d at end", 
+                greetingAtStartCount, greetingAtEndCount)
+        }
+        
         // Return segments with speaker info (only if multiple speakers detected)
         return if (hasMultipleSpeakers) {
-            val result = segments.mapIndexed { index, segment ->
-                segment.copy(speaker = speakerAssignments[index])
-            }
             SpeakerSegmentationHelper.logFinalSegments(result)
             result
         } else {
