@@ -14,32 +14,9 @@ import java.io.File
 import javax.inject.Inject
 
 /**
- * Detect speakers in transcript segments based on "Speaker one/two/three..." markers.
- * This replaces heuristic-based detection with marker-based detection for accuracy.
- */
-private fun detectSpeakers(segments: List<TranscriptSegment>): List<TranscriptSegment> {
-    if (segments.isEmpty()) return segments
-    
-    // Step 1: Log raw Whisper segments
-    SpeakerSegmentationHelper.logWhisperRaw(segments)
-    
-    // Step 2: Detect "Speaker X" markers in transcript
-    val markers = SpeakerSegmentationHelper.detectSpeakerMarkers(segments)
-    SpeakerSegmentationHelper.logSpeakerMarkers(markers)
-    
-    // Step 3: Build speaker blocks from markers
-    val blocks = SpeakerSegmentationHelper.buildSpeakerBlocks(segments, markers)
-    SpeakerSegmentationHelper.logSpeakerBlocks(blocks)
-    
-    // Step 4: Assign speakers to original segments based on blocks
-    val segmentsWithSpeakers = SpeakerSegmentationHelper.assignSpeakersToSegments(segments, blocks)
-    SpeakerSegmentationHelper.logFinalSegments(segmentsWithSpeakers)
-    
-    return segmentsWithSpeakers
-}
-
-/**
  * Use case for generating transcript from audio file using Whisper.
+ * This saves RAW segments only (no speaker processing).
+ * Speaker processing happens later in ProcessTranscriptUseCase (background).
  */
 class GenerateTranscriptUseCase @Inject constructor(
     private val transcriptRepository: TranscriptRepository,
@@ -47,7 +24,8 @@ class GenerateTranscriptUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(
         recording: Recording,
-        onProgress: (Int) -> Unit = {}
+        onProgress: (Int) -> Unit = {},
+        onRawSegmentsSaved: (String) -> Unit = {}  // Callback when raw segments are saved (for immediate navigation)
     ): List<TranscriptSegment> = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
         AppLogger.logUseCase(TAG_USECASE, "GenerateTranscriptUseCase", "Starting", 
@@ -94,6 +72,10 @@ class GenerateTranscriptUseCase @Inject constructor(
             // Save RAW segments to repository immediately (fast - no processing)
             AppLogger.d(TAG_TRANSCRIPT, "Saving RAW transcript segments to database (fast path)")
             transcriptRepository.saveTranscriptSegments(recording.id, rawSegments)
+            
+            // Notify that raw segments are saved (for immediate navigation)
+            AppLogger.d(TAG_TRANSCRIPT, "Raw segments saved -> triggering navigation callback")
+            onRawSegmentsSaved(recording.id)
             
             // Return raw segments (speaker processing will happen in background later)
             val segments = rawSegments

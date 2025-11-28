@@ -290,9 +290,13 @@ fun TranscriptScreen(
                         )
                         
                         // Floating action buttons at bottom right
+                        // Disable People icon if processing OR if no segments have been processed yet (all speaker == null)
+                        val hasProcessedSegments = uiState.segments.isNotEmpty() && 
+                            uiState.segments.any { it.speaker != null }
+                        val isPeopleIconDisabled = uiState.isProcessingTranscript || !hasProcessedSegments
                         FloatingActionButtons(
                             showSpeakerMode = showSpeakerMode,
-                            isProcessing = uiState.isProcessingTranscript,
+                            isProcessing = isPeopleIconDisabled,
                             onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
                             onCopyClick = {
                                 val exportedText = if (showSpeakerMode) {
@@ -979,6 +983,7 @@ private fun FloatingActionButtons(
         }
         
         // Subtitle/Timeline button (when not in speaker mode) or People button (when in speaker mode)
+        // Disabled when processing or when no segments have been processed yet
         FloatingActionButton(
             onClick = { if (!isProcessing) onToggleSpeakerMode() },
             modifier = Modifier

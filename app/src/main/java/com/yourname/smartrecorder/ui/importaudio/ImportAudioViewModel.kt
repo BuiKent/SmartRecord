@@ -72,23 +72,44 @@ class ImportAudioViewModel @Inject constructor(
                 
                 AppLogger.d(TAG_IMPORT, "Starting automatic transcription -> recordingId: %s", recording.id)
                 val transcriptionProgressLogger = AppLogger.ProgressLogger(TAG_IMPORT, "[ImportAudioViewModel] Transcription")
-                generateTranscript(recording) { transcriptionProgress ->
-                    // Map transcription progress (0-100) to overall progress (30-100)
-                    val overallProgress = 30 + (transcriptionProgress * 70 / 100)
-                    _uiState.update { it.copy(progress = overallProgress) }
-                    // Only log at milestones to reduce log spam
-                    transcriptionProgressLogger.logProgress(transcriptionProgress)
-                }
+                
+                // Navigate immediately after raw segments are saved (don't wait for 100%)
+                var hasNavigated = false
+                generateTranscript(recording, 
+                    onProgress = { transcriptionProgress ->
+                        // Map transcription progress (0-100) to overall progress (30-100)
+                        val overallProgress = 30 + (transcriptionProgress * 70 / 100)
+                        _uiState.update { it.copy(progress = overallProgress) }
+                        // Only log at milestones to reduce log spam
+                        transcriptionProgressLogger.logProgress(transcriptionProgress)
+                    },
+                    onRawSegmentsSaved = { recordingId ->
+                        // Navigate immediately when raw segments are saved (fast path)
+                        if (!hasNavigated) {
+                            hasNavigated = true
+                            AppLogger.d(TAG_IMPORT, "Raw segments saved -> navigating immediately -> recordingId: %s", recordingId)
+                            _uiState.update { 
+                                it.copy(
+                                    importedRecordingId = recordingId,
+                                    isTranscribing = false  // Hide progress bar, navigation will happen
+                                )
+                            }
+                        }
+                    }
+                )
                 
                 AppLogger.logViewModel(TAG_IMPORT, "ImportAudioViewModel", "Transcription completed", 
                     "recordingId=${recording.id}")
                 
-                _uiState.update { 
-                    it.copy(
-                        isTranscribing = false,
-                        progress = 100,
-                        importedRecordingId = recording.id
-                    )
+                // Update final state (if navigation hasn't happened yet, it will now)
+                if (!hasNavigated) {
+                    _uiState.update { 
+                        it.copy(
+                            isTranscribing = false,
+                            progress = 100,
+                            importedRecordingId = recording.id
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_IMPORT, "Import/transcription failed -> uri: %s, fileName: %s", e, uri.toString(), fileName)

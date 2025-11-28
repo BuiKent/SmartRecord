@@ -500,10 +500,13 @@ class TranscriptViewModel @Inject constructor(
                     )
                 }
                 
-                val segments = generateTranscript(recording) { progress ->
-                    AppLogger.d(TAG_TRANSCRIPT, "Transcript generation progress: %d%%", progress)
-                    _uiState.update { it.copy(transcriptProgress = progress) }
-                }
+                val segments = generateTranscript(
+                    recording = recording,
+                    onProgress = { progress ->
+                        AppLogger.d(TAG_TRANSCRIPT, "Transcript generation progress: %d%%", progress)
+                        _uiState.update { it.copy(transcriptProgress = progress) }
+                    }
+                )
                 
                 AppLogger.d(TAG_TRANSCRIPT, "Transcript generated successfully -> segments: %d", segments.size)
                 
