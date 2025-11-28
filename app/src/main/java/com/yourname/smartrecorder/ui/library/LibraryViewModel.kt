@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import java.io.File
 import javax.inject.Inject
 
@@ -32,6 +34,7 @@ data class LibraryUiState(
     val error: String? = null,
     val currentlyPlayingId: String? = null,
     val isPlaying: Boolean = false,
+    val currentPositionMs: Long = 0L, // Vị trí hiện tại của audio playback
     val toastMessage: String? = null,
     // Inline editing state
     val editingRecordingId: String? = null,
@@ -50,6 +53,8 @@ class LibraryViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
+    
+    private var positionUpdateJob: Job? = null
 
     init {
         AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "Initialized", null)
@@ -191,6 +196,7 @@ class LibraryViewModel @Inject constructor(
                     // Already playing this recording, pause it
                     AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Pausing playback -> recordingId: %s", recording.id)
                     audioPlayer.pause()
+                    positionUpdateJob?.cancel()
                     _uiState.update { it.copy(isPlaying = false) }
                 } else {
                     // Play or resume
@@ -217,11 +223,14 @@ class LibraryViewModel @Inject constructor(
                             _uiState.update { 
                                 it.copy(
                                     isPlaying = false, 
-                                    currentlyPlayingId = null
+                                    currentlyPlayingId = null,
+                                    currentPositionMs = 0L
                                 ) 
                             }
+                            positionUpdateJob?.cancel()
                         }
                     }
+                    startPositionUpdates()
                     _uiState.update { 
                         it.copy(
                             isPlaying = true,
@@ -242,14 +251,82 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 audioPlayer.stop()
+                positionUpdateJob?.cancel()
                 _uiState.update { 
                     it.copy(
                         isPlaying = false,
-                        currentlyPlayingId = null
+                        currentlyPlayingId = null,
+                        currentPositionMs = 0L
                     ) 
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG_VIEWMODEL, "Failed to stop playback", e)
+            }
+        }
+    }
+    
+    fun seekTo(positionMs: Long) {
+        val currentlyPlayingId = _uiState.value.currentlyPlayingId
+        if (currentlyPlayingId == null) {
+            AppLogger.logRareCondition(TAG_VIEWMODEL, "Seek called but no recording is playing")
+            return
+        }
+        
+        val recording = _uiState.value.recordings.find { it.id == currentlyPlayingId }
+        if (recording == null) {
+            AppLogger.logRareCondition(TAG_VIEWMODEL, "Seek rejected - recording not found", 
+                "recordingId=$currentlyPlayingId")
+            return
+        }
+        
+        val file = File(recording.filePath)
+        if (!file.exists()) {
+            AppLogger.logRareCondition(TAG_VIEWMODEL, "Seek rejected - file not found", 
+                "path=${file.absolutePath}")
+            return
+        }
+        
+        val percentage = (positionMs.toFloat() / recording.durationMs.coerceAtLeast(1)) * 100
+        AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] User seeking to position: %d ms (%.2f%%)", 
+            positionMs, percentage)
+        
+        try {
+            audioPlayer.seekTo(positionMs.toInt())
+            _uiState.update { it.copy(currentPositionMs = positionMs) }
+            AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Seek completed -> position: %d ms", positionMs)
+        } catch (e: Exception) {
+            AppLogger.e(TAG_VIEWMODEL, "Failed to seek", e)
+            _uiState.update { it.copy(error = "Failed to seek: ${e.message}") }
+        }
+    }
+    
+    private fun startPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = viewModelScope.launch {
+            while (true) {
+                delay(100)
+                if (_uiState.value.isPlaying) {
+                    val position = audioPlayer.getCurrentPosition()
+                    val recording = _uiState.value.recordings.find { 
+                        it.id == _uiState.value.currentlyPlayingId 
+                    }
+                    
+                    _uiState.update { it.copy(currentPositionMs = position.toLong()) }
+                    
+                    // Check if finished
+                    if (recording != null && position >= recording.durationMs) {
+                        audioPlayer.pause()
+                        _uiState.update { 
+                            it.copy(
+                                isPlaying = false, 
+                                currentPositionMs = 0L
+                            ) 
+                        }
+                        break
+                    }
+                } else {
+                    break
+                }
             }
         }
     }

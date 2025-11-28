@@ -22,10 +22,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.utils.TimeFormatter
 import com.yourname.smartrecorder.domain.model.Recording
+import com.yourname.smartrecorder.ui.player.RecordingPlayerBar
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,9 +39,11 @@ fun RecordingCard(
     recording: Recording,
     onClick: () -> Unit,
     isPlaying: Boolean = false,
+    positionMs: Long = 0L,
     onPlayClick: () -> Unit = {},
     onPauseClick: () -> Unit = {},
     onStopClick: () -> Unit = {},
+    onSeekTo: (Long) -> Unit = {},
     isEditing: Boolean = false,
     editingTitle: String = "",
     onEditClick: () -> Unit = {},
@@ -60,7 +67,8 @@ fun RecordingCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -186,43 +194,66 @@ fun RecordingCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Play/Pause/Stop controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Play/Pause button - màu cam để thống nhất
-                IconButton(
-                    onClick = { 
-                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked %s -> recordingId: %s", 
-                            if (isPlaying) "pause" else "play", recording.id)
-                        if (isPlaying) onPauseClick() else onPlayClick() 
+            // Hiển thị RecordingPlayerBar khi đang play, nếu không thì hiển thị Play button và Transcript button
+            if (isPlaying) {
+                // RecordingPlayerBar với kích thước compact (nhỏ hơn) cho History card
+                RecordingPlayerBar(
+                    title = recording.title.ifBlank { "Untitled Recording" },
+                    isPlaying = isPlaying,
+                    positionMs = positionMs,
+                    durationMs = recording.durationMs,
+                    onPlayPauseClick = {
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked pause in player bar -> recordingId: %s", recording.id)
+                        onPauseClick()
                     },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = MaterialTheme.colorScheme.primary, // Màu cam #FF6B35
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                // Transcript button
-                OutlinedButton(
-                    onClick = { 
-                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked transcript button -> recordingId: %s", recording.id)
-                        onClick() 
+                    onSeekTo = { newPosition ->
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User seeked to %d ms -> recordingId: %s", newPosition, recording.id)
+                        onSeekTo(newPosition)
                     },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    isCompact = true, // Compact mode cho History card
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                // Play/Pause/Stop controls
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Transcript",
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1
-                    )
+                    // Play button - bo tròn, màu cam để thống nhất
+                    IconButton(
+                        onClick = { 
+                            AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked play -> recordingId: %s", recording.id)
+                            onPlayClick() 
+                        },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            tint = Color.White, // Icon trắng trên nền cam
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    
+                    // Transcript button
+                    OutlinedButton(
+                        onClick = { 
+                            AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked transcript button -> recordingId: %s", recording.id)
+                            onClick() 
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Transcript",
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }

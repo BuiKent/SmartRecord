@@ -132,9 +132,11 @@ fun LibraryScreen(
                         recording = recording,
                         onClick = { onRecordingClick(recording.id) },
                         isPlaying = uiState.currentlyPlayingId == recording.id && uiState.isPlaying,
+                        positionMs = if (uiState.currentlyPlayingId == recording.id) uiState.currentPositionMs else 0L,
                         onPlayClick = { viewModel.playRecording(recording) },
                         onPauseClick = { viewModel.playRecording(recording) }, // Toggle pause
                         onStopClick = { viewModel.stopPlayback() },
+                        onSeekTo = { newPosition -> viewModel.seekTo(newPosition) },
                         isEditing = recording.id == uiState.editingRecordingId,
                         editingTitle = if (recording.id == uiState.editingRecordingId) uiState.editingTitle else recording.title.ifBlank { "Untitled Recording" },
                         onEditClick = { viewModel.startEditing(recording.id) },

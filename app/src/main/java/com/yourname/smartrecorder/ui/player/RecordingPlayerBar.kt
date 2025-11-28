@@ -23,6 +23,9 @@ import kotlin.math.roundToLong
 /**
  * RecordingPlayerBar - Card player mỏng, nhẹ, màu cam nhạt
  * Design: 2 lớp nhẹ, không quá dày, đúng concept media player
+ * 
+ * @param isCompact Nếu true: kích thước nhỏ hơn (dùng cho History card, notification, lockscreen)
+ *                  Nếu false: kích thước chuẩn (dùng cho TranscriptScreen)
  */
 @Composable
 fun RecordingPlayerBar(
@@ -32,6 +35,7 @@ fun RecordingPlayerBar(
     durationMs: Long,
     onPlayPauseClick: () -> Unit,
     onSeekTo: (Long) -> Unit,
+    isCompact: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // Giá trị progress (0f–1f)
@@ -40,8 +44,17 @@ fun RecordingPlayerBar(
     } else {
         0f
     }
+    
+    // Kích thước dựa trên isCompact
+    val buttonSize = if (isCompact) 20.dp else 40.dp // Button nhỏ hơn trong compact mode để phù hợp với icon nhỏ
+    val iconSize = if (isCompact) 16.dp else 24.dp // Icon size tỷ lệ với button: 20dp button → 16dp icon, 40dp button → 24dp icon
+    val spacing = if (isCompact) 8.dp else 16.dp
+    val trackHeight = if (isCompact) 3.dp else 4.dp
+    val thumbSize = if (isCompact) 10.dp else 12.dp
+    val horizontalPadding = if (isCompact) 8.dp else 16.dp
+    val verticalPadding = if (isCompact) 5.dp else 10.dp
 
-    // Box với gradient nhẹ - pill shape card (đơn giản như code cũ)
+    // Box với gradient nhẹ - pill shape card
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -55,7 +68,7 @@ fun RecordingPlayerBar(
                     )
                 )
             )
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -64,18 +77,19 @@ fun RecordingPlayerBar(
             IconButton(
                 onClick = onPlayPauseClick,
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(buttonSize)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = Color.White
+                    tint = Color.White,
+                    modifier = Modifier.size(iconSize) // Set icon size tỷ lệ với button size
                 )
             }
 
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(spacing))
 
             // Phần progress: slider ở giữa, time label nhỏ bên trong
             Box(
@@ -98,14 +112,14 @@ fun RecordingPlayerBar(
                                 inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                             ),
                             modifier = Modifier
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
+                                .height(trackHeight)
+                                .clip(RoundedCornerShape(trackHeight / 2))
                         )
                     },
                     thumb = {
                         Box(
                             modifier = Modifier
-                                .size(12.dp)
+                                .size(thumbSize)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
                         )
@@ -117,20 +131,26 @@ fun RecordingPlayerBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .padding(top = 24.dp), // Đẩy xuống dưới slider
+                        .padding(top = if (isCompact) 18.dp else 24.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = TimeFormatter.formatTime(positionMs),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                            fontSize = if (isCompact) 
+                                MaterialTheme.typography.labelSmall.fontSize * 0.75f
+                            else 
+                                MaterialTheme.typography.labelSmall.fontSize * 0.85f
                         ),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
                         text = TimeFormatter.formatTime(durationMs),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                            fontSize = if (isCompact) 
+                                MaterialTheme.typography.labelSmall.fontSize * 0.75f
+                            else 
+                                MaterialTheme.typography.labelSmall.fontSize * 0.85f
                         ),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )

@@ -27,8 +27,8 @@ fun AppBottomBar(
     NavigationBar {
         // LEFT: History
         NavigationBarItem(
-            selected = currentRoute == AppRoutes.STUDY,
-            onClick = onStudyClick,
+            selected = currentRoute == AppRoutes.LIBRARY,
+            onClick = onLibraryClick,
             icon = {
                 Icon(
                     imageVector = Icons.Default.School,
@@ -65,10 +65,10 @@ fun AppBottomBar(
             )
         )
 
-        // RIGHT: Library
+        // RIGHT: Study
         NavigationBarItem(
-            selected = currentRoute == AppRoutes.LIBRARY,
-            onClick = onLibraryClick,
+            selected = currentRoute == AppRoutes.STUDY,
+            onClick = onStudyClick,
             icon = {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
