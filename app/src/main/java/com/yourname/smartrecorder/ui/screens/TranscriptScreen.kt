@@ -607,15 +607,18 @@ private fun TranscriptTabContent(
         val listState = rememberLazyListState()
         
         // Auto-scroll to current segment when it changes during playback
+        // Show 1 timeline before current + current timeline (scroll to index - 1)
         LaunchedEffect(uiState.currentSegmentId, uiState.isPlaying) {
             if (uiState.isPlaying && uiState.currentSegmentId != null) {
                 val currentIndex = groupedSegments.indexOfFirst { 
                     it.ids.contains(uiState.currentSegmentId) 
                 }
                 if (currentIndex >= 0) {
-                    listState.animateScrollToItem(currentIndex)
-                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] Auto-scrolled to segment index: %d (segmentId: %d)", 
-                        currentIndex, uiState.currentSegmentId)
+                    // Scroll to show 1 timeline before current + current timeline
+                    val scrollIndex = maxOf(0, currentIndex - 1)
+                    listState.animateScrollToItem(scrollIndex)
+                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] Auto-scrolled to segment index: %d (current: %d, segmentId: %d)", 
+                        scrollIndex, currentIndex, uiState.currentSegmentId)
                 }
             }
         }

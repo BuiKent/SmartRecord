@@ -61,8 +61,23 @@ object NumberBasedSegmentationHelper {
         val punctuationScore: Int = 0,     // Heading-style punctuation
         val negativeContextScore: Int = 0,  // Penalty for negative context
         val sequenceScore: Int = 0,         // Part of valid sequence
-        val contentLengthScore: Int = 0     // Long content after candidate
+        val contentLengthScore: Int = 0,    // Long content after candidate
+        val positiveContextScore: Int = 0,  // Boost from positive context patterns
+        val capitalizationScore: Int = 0,   // Capitalization indicator
+        val segmentLengthScore: Int = 0,    // Short segment indicator
+        val repetitionScore: Int = 0        // Pattern repetition indicator
     )
+    
+    /**
+     * Confidence levels for heading candidates
+     */
+    enum class ConfidenceLevel {
+        VERY_HIGH,  // score >= 6, or "Speaker X" pattern, or part of strong sequence
+        HIGH,       // score 4-5, or part of valid sequence
+        MEDIUM,     // score 2-3, single candidate with good features
+        LOW,        // score 1-2, weak indicators
+        VERY_LOW    // score < 1, or strong negative context
+    }
     
     /**
      * Final section after segmentation
@@ -374,6 +389,21 @@ object NumberBasedSegmentationHelper {
     )
     
     /**
+     * Positive context patterns that boost confidence
+     */
+    private val positiveContextPatterns = listOf(
+        Regex("""\bnow[,]?\s+(number|part|section|point|let['']?s)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\bnow[,]?\s+let['']?s?\s+move\b""", RegexOption.IGNORE_CASE),
+        Regex("""\bthe\s+first\s+(point|part|section|item|topic)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\bfirst[,]?\s+let\s+me\b""", RegexOption.IGNORE_CASE),
+        Regex("""\bnext[,]?\s+(point|part|section|number)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\bmoving\s+to\s+(number|part|section)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\blet['']?s?\s+move\s+to\b""", RegexOption.IGNORE_CASE),
+        Regex("""\blet['']?s?\s+go\s+to\b""", RegexOption.IGNORE_CASE),
+        Regex("""\blet['']?s?\s+talk\s+about\b""", RegexOption.IGNORE_CASE)
+    )
+    
+    /**
      * Calculate negative context score (penalty)
      */
     fun calculateNegativeContextScore(
@@ -445,6 +475,116 @@ object NumberBasedSegmentationHelper {
     }
     
     /**
+     * Calculate positive context score (boost from transitional phrases)
+     */
+    fun calculatePositiveContextScore(
+        candidate: HeadingCandidate,
+        words: List<Word>
+    ): Int {
+        val contextStart = maxOf(0, candidate.indexStart - 5)  // Check 5 words before
+        val contextEnd = minOf(words.size - 1, candidate.indexEnd + 2)  // Check 2 words after
+        
+        val contextText = words.subList(contextStart, contextEnd + 1)
+            .joinToString(" ") { it.text.lowercase() }
+        
+        var boostScore = 0
+        
+        positiveContextPatterns.forEach { pattern ->
+            if (pattern.containsMatchIn(contextText)) {
+                boostScore += 1
+                return@forEach
+            }
+        }
+        
+        return boostScore.coerceAtMost(2)  // Max +2 boost
+    }
+    
+    /**
+     * Calculate capitalization score (heading indicator)
+     */
+    fun calculateCapitalizationScore(
+        candidate: HeadingCandidate,
+        words: List<Word>
+    ): Int {
+        val firstWord = words.getOrNull(candidate.indexStart) ?: return 0
+        val firstChar = firstWord.text.firstOrNull() ?: return 0
+        
+        return if (firstChar.isUpperCase() && firstWord.text.length > 1) {
+            1  // Capitalized = more likely heading
+        } else {
+            0
+        }
+    }
+    
+    /**
+     * Calculate segment length score (short segment = heading indicator)
+     */
+    fun calculateSegmentLengthScore(
+        candidate: HeadingCandidate,
+        words: List<Word>,
+        segments: List<TranscriptSegment>
+    ): Int {
+        val segment = findSegmentForWord(candidate.indexStart, words, segments) ?: return 0
+        val segmentDuration = segment.endTimeMs - segment.startTimeMs
+        val segmentWordCount = segment.text.split(Regex("\\s+")).size
+        
+        // Short segments (< 3 seconds, < 10 words) are more likely to be headings
+        return when {
+            segmentDuration < 3000 && segmentWordCount < 10 -> 2
+            segmentDuration < 5000 && segmentWordCount < 15 -> 1
+            else -> 0
+        }
+    }
+    
+    /**
+     * Calculate repetition score (pattern repeats = list structure indicator)
+     */
+    fun calculateRepetitionScore(
+        candidate: HeadingCandidate,
+        allCandidates: List<HeadingCandidate>
+    ): Int {
+        val samePattern = allCandidates.filter { 
+            it.patternType == candidate.patternType && 
+            it.number != candidate.number 
+        }
+        
+        // If same pattern type appears multiple times, it's likely a list
+        return when {
+            samePattern.size >= 2 -> 2  // Strong indicator
+            samePattern.size == 1 -> 1   // Weak indicator
+            else -> 0
+        }
+    }
+    
+    /**
+     * Calculate confidence level from score and context
+     */
+    fun calculateConfidenceLevel(
+        candidate: HeadingCandidate,
+        allCandidates: List<HeadingCandidate>
+    ): ConfidenceLevel {
+        // Auto high confidence for "Speaker X"
+        if (candidate.patternType == PatternType.SPEAKER) {
+            return ConfidenceLevel.VERY_HIGH
+        }
+        
+        // Check if part of strong sequence
+        val isInSequence = calculateSequenceScore(allCandidates)[candidate] != null
+        if (isInSequence && candidate.score >= 3) {
+            return ConfidenceLevel.VERY_HIGH
+        }
+        
+        // Score-based confidence
+        return when {
+            candidate.score >= 6 -> ConfidenceLevel.VERY_HIGH
+            candidate.score >= 4 -> ConfidenceLevel.HIGH
+            candidate.score >= 2 -> ConfidenceLevel.MEDIUM
+            candidate.score >= 1 -> ConfidenceLevel.LOW
+            else -> ConfidenceLevel.VERY_LOW
+        }
+    }
+    
+    /**
      * Score all candidates
      */
     fun scoreCandidates(
@@ -468,16 +608,24 @@ object NumberBasedSegmentationHelper {
                     words,
                     candidates.find { it.startMs > candidate.startMs },
                     config
-                )
+                ),
+                positiveContextScore = calculatePositiveContextScore(candidate, words),
+                capitalizationScore = calculateCapitalizationScore(candidate, words),
+                segmentLengthScore = calculateSegmentLengthScore(candidate, words, segments),
+                repetitionScore = calculateRepetitionScore(candidate, candidates)
             )
             
-            // Calculate total score
+            // Calculate total score (including new features)
             val totalScore = features.positionScore +
                     features.pauseAfterScore +
                     features.punctuationScore +
                     features.negativeContextScore +  // Negative, so subtracts
                     features.sequenceScore +
-                    features.contentLengthScore
+                    features.contentLengthScore +
+                    features.positiveContextScore +  // Boost
+                    features.capitalizationScore +
+                    features.segmentLengthScore +
+                    features.repetitionScore
             
             candidate.copy(
                 score = totalScore,
@@ -487,12 +635,15 @@ object NumberBasedSegmentationHelper {
         
         AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Scored %d candidates", scored.size)
         scored.forEach { candidate ->
+            val confidence = calculateConfidenceLevel(candidate, candidates)
             AppLogger.d(TAG_TRANSCRIPT, 
-                "[NumberBasedSegmentation] Candidate: %s (number=%d, score=%d, pos=%d, pause=%d, punct=%d, neg=%d, seq=%d, len=%d)",
-                candidate.matchText, candidate.number, candidate.score,
+                "[NumberBasedSegmentation] Candidate: %s (number=%d, score=%d, confidence=%s, pos=%d, pause=%d, punct=%d, neg=%d, seq=%d, len=%d, posCtx=%d, cap=%d, segLen=%d, rep=%d)",
+                candidate.matchText, candidate.number, candidate.score, confidence.name,
                 candidate.features.positionScore, candidate.features.pauseAfterScore,
                 candidate.features.punctuationScore, candidate.features.negativeContextScore,
-                candidate.features.sequenceScore, candidate.features.contentLengthScore)
+                candidate.features.sequenceScore, candidate.features.contentLengthScore,
+                candidate.features.positiveContextScore, candidate.features.capitalizationScore,
+                candidate.features.segmentLengthScore, candidate.features.repetitionScore)
         }
         
         return scored
