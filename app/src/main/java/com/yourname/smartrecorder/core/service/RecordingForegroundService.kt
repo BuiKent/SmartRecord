@@ -17,6 +17,8 @@ import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_LIFECYCLE
+import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
+import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -29,6 +31,9 @@ class RecordingForegroundService : Service() {
     
     @Inject
     lateinit var recordingStateManager: RecordingStateManager
+    
+    @Inject
+    lateinit var notificationDeepLinkHandler: NotificationDeepLinkHandler
     
     private val binder = LocalBinder()
     private var notificationManager: NotificationManager? = null
@@ -254,13 +259,9 @@ class RecordingForegroundService : Service() {
     }
     
     private fun createNotification(durationMs: Long, isPausedState: Boolean): Notification {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        // Sử dụng NotificationDeepLinkHandler để tạo PendingIntent với route đúng
+        // Recording luôn về RECORD screen
+        val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
         
         // Pause/Resume action
         val pauseResumeAction = if (isPausedState) {

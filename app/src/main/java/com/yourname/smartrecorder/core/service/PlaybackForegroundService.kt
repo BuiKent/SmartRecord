@@ -10,9 +10,16 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat.MediaStyle
+// TODO: Add MediaSession support - need to check correct dependency
+// import androidx.media.session.MediaSessionCompat
+// import androidx.media.MediaMetadataCompat
+// import androidx.media.session.PlaybackStateCompat
 import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
+import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
+import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -23,10 +30,16 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class PlaybackForegroundService : Service() {
     
+    @Inject
+    lateinit var notificationDeepLinkHandler: NotificationDeepLinkHandler
+    
     private val binder = LocalBinder()
     private var notificationManager: NotificationManager? = null
+    // TODO: Add MediaSession support
+    // private var mediaSession: MediaSessionCompat? = null
     private var isPlaying = false
     private var currentTitle: String = ""
+    private var currentRecordingId: String? = null  // ← Thêm để lưu recordingId
     private var currentPosition: Long = 0L
     private var totalDuration: Long = 0L
     
@@ -50,6 +63,25 @@ class PlaybackForegroundService : Service() {
         AppLogger.logService(TAG_SERVICE, "PlaybackForegroundService", "onCreate")
         createNotificationChannel()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        
+        // TODO: Create MediaSession for lock screen controls
+        // mediaSession = MediaSessionCompat(this, "PlaybackService").apply {
+        //     isActive = true
+        //     setCallback(object : MediaSessionCompat.Callback() {
+        //         override fun onPlay() {
+        //             AppLogger.d(TAG_SERVICE, "MediaSession onPlay called")
+        //             sendBroadcast(Intent(ACTION_PAUSE).apply { putExtra("action", "resume") })
+        //         }
+        //         override fun onPause() {
+        //             AppLogger.d(TAG_SERVICE, "MediaSession onPause called")
+        //             sendBroadcast(Intent(ACTION_PAUSE))
+        //         }
+        //         override fun onStop() {
+        //             AppLogger.d(TAG_SERVICE, "MediaSession onStop called")
+        //             sendBroadcast(Intent(ACTION_STOP))
+        //         }
+        //     })
+        // }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -70,10 +102,16 @@ class PlaybackForegroundService : Service() {
             }
             else -> {
                 // Handle start playback or update notification
+                val recordingId = intent?.getStringExtra("recordingId")
                 val title = intent?.getStringExtra("title")
                 val duration = intent?.getLongExtra("duration", 0L) ?: 0L
                 val position = intent?.getLongExtra("position", 0L) ?: 0L
                 val isPaused = intent?.getBooleanExtra("isPaused", false) ?: false
+                
+                // Lưu recordingId nếu có
+                if (recordingId != null) {
+                    currentRecordingId = recordingId
+                }
                 
                 if (title != null && duration > 0 && !isPlaying) {
                     startPlayback(title, duration)
@@ -101,6 +139,9 @@ class PlaybackForegroundService : Service() {
             AppLogger.logRareCondition(TAG_SERVICE, "Service destroyed while playing", 
                 "title=$currentTitle, position=$currentPosition")
         }
+        // TODO: Release MediaSession
+        // mediaSession?.release()
+        // mediaSession = null
     }
     
     fun startPlayback(title: String, duration: Long) {
@@ -110,7 +151,11 @@ class PlaybackForegroundService : Service() {
         currentPosition = 0L
         
         AppLogger.logCritical(TAG_SERVICE, "Playback started in foreground service", 
-            "title=$title, duration=${duration}ms")
+            "recordingId=$currentRecordingId, title=$title, duration=${duration}ms")
+        
+        // TODO: Update MediaSession metadata
+        // updateMediaSessionMetadata(title, duration)
+        // updateMediaSessionPlaybackState(true, 0L)
         
         startForeground(NOTIFICATION_ID, createNotification(0, duration, true))
     }
@@ -122,22 +167,64 @@ class PlaybackForegroundService : Service() {
         }
         
         AppLogger.logCritical(TAG_SERVICE, "Playback stopped in foreground service", 
-            "title=$currentTitle, finalPosition=$currentPosition")
+            "recordingId=$currentRecordingId, title=$currentTitle, finalPosition=$currentPosition")
         
         isPlaying = false
         currentTitle = ""
+        currentRecordingId = null
         currentPosition = 0L
         totalDuration = 0L
+        
+        // TODO: Clear MediaSession
+        // mediaSession?.setPlaybackState(
+        //     PlaybackStateCompat.Builder()
+        //         .setState(PlaybackStateCompat.STATE_STOPPED, 0L, 1.0f)
+        //         .build()
+        // )
     }
     
     fun updateNotification(position: Long, duration: Long, isPaused: Boolean = false) {
         if (isPlaying) {
             currentPosition = position
             totalDuration = duration
+            
+            // TODO: Update MediaSession playback state
+            // updateMediaSessionPlaybackState(!isPaused, position)
+            
             val notification = createNotification(position, duration, !isPaused)
             notificationManager?.notify(NOTIFICATION_ID, notification)
         }
     }
+    
+    // TODO: Add MediaSession support
+    // private fun updateMediaSessionMetadata(title: String, duration: Long) {
+    //     mediaSession?.setMetadata(
+    //         MediaMetadataCompat.Builder()
+    //             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+    //             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "Smart Recorder")
+    //             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+    //             .build()
+    //     )
+    // }
+    // 
+    // private fun updateMediaSessionPlaybackState(isPlaying: Boolean, position: Long) {
+    //     val state = if (isPlaying) {
+    //         PlaybackStateCompat.STATE_PLAYING
+    //     } else {
+    //         PlaybackStateCompat.STATE_PAUSED
+    //     }
+    //     
+    //     mediaSession?.setPlaybackState(
+    //         PlaybackStateCompat.Builder()
+    //             .setState(state, position, 1.0f)
+    //             .setActions(
+    //                 PlaybackStateCompat.ACTION_PLAY or
+    //                 PlaybackStateCompat.ACTION_PAUSE or
+    //                 PlaybackStateCompat.ACTION_STOP
+    //             )
+    //             .build()
+    //     )
+    // }
     
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -155,13 +242,15 @@ class PlaybackForegroundService : Service() {
     }
     
     private fun createNotification(position: Long, duration: Long, isPlaying: Boolean): Notification {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Sử dụng NotificationDeepLinkHandler để tạo PendingIntent với route đúng
+        val route = if (currentRecordingId != null) {
+            AppRoutes.transcriptDetail(currentRecordingId!!)
+        } else {
+            AppLogger.logRareCondition(TAG_SERVICE, "Playback service started without recordingId")
+            AppRoutes.RECORD  // Fallback
         }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        
+        val pendingIntent = notificationDeepLinkHandler.createPendingIntent(route)
         
         val pauseIntent = Intent(this, PlaybackForegroundService::class.java).apply {
             action = ACTION_PAUSE
@@ -183,7 +272,7 @@ class PlaybackForegroundService : Service() {
         val durationText = formatDuration(duration)
         val statusText = if (isPlaying) "Playing" else "Paused"
         
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(currentTitle.ifEmpty { "Audio Playback" })
             .setContentText("$statusText - $positionText / $durationText")
             .setSmallIcon(android.R.drawable.ic_media_play)
@@ -200,8 +289,19 @@ class PlaybackForegroundService : Service() {
             )
             .setOngoing(isPlaying)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Lock screen visibility
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
-            .build()
+        
+        // TODO: Add MediaStyle for lock screen controls when MediaSession is available
+        // mediaSession?.let { session ->
+        //     builder.setStyle(
+        //         MediaStyle()
+        //             .setShowActionsInCompactView(0, 1)  // Show Play/Pause and Stop
+        //             .setMediaSession(session.sessionToken)
+        //     )
+        // }
+        
+        return builder.build()
     }
     
     private fun formatDuration(ms: Long): String {

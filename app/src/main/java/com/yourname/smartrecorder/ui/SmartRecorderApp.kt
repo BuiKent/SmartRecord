@@ -32,6 +32,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import com.yourname.smartrecorder.core.permissions.PermissionHandler
 import com.yourname.smartrecorder.ui.importaudio.ImportAudioViewModel
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
@@ -49,7 +51,9 @@ import com.yourname.smartrecorder.ui.widgets.AppBottomBar
 import kotlinx.coroutines.flow.first
 
 @Composable
-fun SmartRecorderApp() {
+fun SmartRecorderApp(
+    notificationRouteState: StateFlow<String?>? = null  // ← Thêm parameter từ MainActivity
+) {
     var showOnboarding by remember { mutableStateOf<Boolean?>(null) }
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
     
@@ -77,47 +81,65 @@ fun SmartRecorderApp() {
             )
         }
         else -> {
-            MainAppContent()
+            MainAppContent(notificationRouteState = notificationRouteState)
         }
     }
 }
 
 @Composable
-private fun MainAppContent() {
+private fun MainAppContent(
+    notificationRouteState: StateFlow<String?>? = null
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("/") 
         ?: AppRoutes.RECORD
     val context = LocalContext.current
 
-    // Handle deep link from notification
-    LaunchedEffect(Unit) {
-        val activity = context as? android.app.Activity
-        val route = activity?.intent?.getStringExtra("notification_route")
-        if (route != null) {
-            // Clear the extra to avoid re-navigation
-            activity.intent.removeExtra("notification_route")
-            // Navigate to the route
-            when (route) {
-                AppRoutes.RECORD -> navController.navigate(AppRoutes.RECORD) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+    // Lắng nghe notification route từ StateFlow (handle cả onCreate và onNewIntent)
+    val notificationRoute by (notificationRouteState ?: MutableStateFlow<String?>(null)).collectAsState()
+    
+    // Handle deep link from notification - CRITICAL FIX: dùng LaunchedEffect(notificationRoute)
+    LaunchedEffect(notificationRoute) {
+        notificationRoute?.let { route ->
+            AppLogger.d(TAG_VIEWMODEL, "Navigating from notification", "route=$route")
+            
+            when {
+                route.startsWith("transcript_detail/") -> {
+                    val recordingId = route.substringAfter("transcript_detail/")
+                    navController.navigate(AppRoutes.transcriptDetail(recordingId)) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
-                AppRoutes.LIBRARY -> navController.navigate(AppRoutes.LIBRARY) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+                route == AppRoutes.RECORD -> {
+                    navController.navigate(AppRoutes.RECORD) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
-                AppRoutes.STUDY -> navController.navigate(AppRoutes.STUDY) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+                route == AppRoutes.LIBRARY -> {
+                    navController.navigate(AppRoutes.LIBRARY) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
-                AppRoutes.REALTIME_TRANSCRIPT -> navController.navigate(AppRoutes.REALTIME_TRANSCRIPT) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+                route == AppRoutes.STUDY -> {
+                    navController.navigate(AppRoutes.STUDY) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+                route == AppRoutes.REALTIME_TRANSCRIPT -> {
+                    navController.navigate(AppRoutes.REALTIME_TRANSCRIPT) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             }
         }

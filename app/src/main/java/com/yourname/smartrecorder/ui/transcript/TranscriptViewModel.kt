@@ -297,6 +297,7 @@ class TranscriptViewModel @Inject constructor(
             // Update foreground service notification if playing
             if (_uiState.value.isPlaying) {
                 foregroundServiceManager.updatePlaybackNotification(
+                    recording.id,  // ← Thêm recordingId
                     positionMs,
                     recording.durationMs,
                     isPaused = false
@@ -342,6 +343,7 @@ class TranscriptViewModel @Inject constructor(
                     
                     // Update foreground service notification
                     foregroundServiceManager.updatePlaybackNotification(
+                        recording.id,  // ← Thêm recordingId
                         _uiState.value.currentPositionMs,
                         recording.durationMs,
                         isPaused = true
@@ -387,6 +389,7 @@ class TranscriptViewModel @Inject constructor(
                     } else {
                         // Start foreground service before playing
                         foregroundServiceManager.startPlaybackService(
+                            recording.id,  // ← Thêm recordingId
                             recording.title.ifEmpty { "Recording" },
                             recording.durationMs
                         )
@@ -439,6 +442,7 @@ class TranscriptViewModel @Inject constructor(
                     // Update foreground service notification every second
                     if (recording != null && position % 1000 < 100) {
                         foregroundServiceManager.updatePlaybackNotification(
+                            recording.id,  // ← Thêm recordingId
                             position.toLong(),
                             recording.durationMs,
                             isPaused = false

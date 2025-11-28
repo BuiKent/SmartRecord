@@ -59,12 +59,12 @@ class ForegroundServiceManager @Inject constructor(
         ContextCompat.startForegroundService(context, intent)
     }
     
-    fun startPlaybackService(title: String, duration: Long) {
+    fun startPlaybackService(recordingId: String, title: String, duration: Long) {
         // Check notification permission before starting service
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             AppLogger.logRareCondition(TAG_SERVICE, 
                 "Cannot start playback service - notifications disabled", 
-                "title=$title")
+                "recordingId=$recordingId, title=$title")
             // Show warning toast
             Toast.makeText(
                 context,
@@ -75,12 +75,13 @@ class ForegroundServiceManager @Inject constructor(
         }
         
         val intent = PlaybackForegroundService.createIntent(context).apply {
+            putExtra("recordingId", recordingId)  // ← Thêm recordingId
             putExtra("title", title)
             putExtra("duration", duration)
         }
         ContextCompat.startForegroundService(context, intent)
         AppLogger.logCritical(TAG_SERVICE, "Playback foreground service started", 
-            "title=$title, duration=${duration}ms, notificationsEnabled=${NotificationManagerCompat.from(context).areNotificationsEnabled()}")
+            "recordingId=$recordingId, title=$title, duration=${duration}ms, notificationsEnabled=${NotificationManagerCompat.from(context).areNotificationsEnabled()}")
     }
     
     fun stopPlaybackService() {
@@ -89,12 +90,15 @@ class ForegroundServiceManager @Inject constructor(
         AppLogger.logCritical(TAG_SERVICE, "Playback foreground service stopped")
     }
     
-    fun updatePlaybackNotification(position: Long, duration: Long, isPaused: Boolean = false) {
+    fun updatePlaybackNotification(recordingId: String, position: Long, duration: Long, isPaused: Boolean = false) {
         val intent = PlaybackForegroundService.createIntent(context).apply {
+            putExtra("recordingId", recordingId)  // ← Thêm recordingId
             putExtra("position", position)
             putExtra("duration", duration)
             putExtra("isPaused", isPaused)
         }
+        // ⚠️ TODO: Refactor để dùng startService() hoặc IPC khác cho update
+        // Tạm thời vẫn dùng startForegroundService nhưng cần refactor sau
         ContextCompat.startForegroundService(context, intent)
     }
 }

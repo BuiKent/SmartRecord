@@ -155,6 +155,9 @@ dependencies {
     implementation("androidx.hilt:hilt-work:1.1.0")
     ksp("androidx.hilt:hilt-compiler:1.1.0")
     
+    // MediaSession for lock screen controls
+    implementation("androidx.media:media:1.7.0")
+    
     // Testing
     testImplementation(libs.junit)
     testImplementation("org.mockito:mockito-core:5.11.0")

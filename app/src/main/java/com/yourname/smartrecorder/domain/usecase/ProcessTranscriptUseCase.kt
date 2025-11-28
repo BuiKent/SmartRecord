@@ -149,10 +149,37 @@ class ProcessTranscriptUseCase @Inject constructor(
     }
     
     /**
-     * Detect speakers using heuristics: question marks and time gaps.
+     * Greeting words that typically indicate speaker change
+     */
+    private val greetingWords = setOf(
+        "hi", "hello", "hey", "greetings",
+        "good morning", "good afternoon", "good evening", "good night",
+        "morning", "afternoon", "evening",
+        "howdy", "what's up", "whats up", "sup",
+        "nice to meet you", "pleased to meet you",
+        "hi there", "hello there", "hey there"
+    )
+    
+    /**
+     * Check if segment starts with a greeting
+     */
+    private fun isGreetingSegment(segment: TranscriptSegment): Boolean {
+        val textLower = segment.text.trim().lowercase()
+        
+        // Check if segment starts with greeting (first few words)
+        val firstWords = textLower.split(Regex("\\s+")).take(3).joinToString(" ")
+        
+        return greetingWords.any { greeting ->
+            firstWords.startsWith(greeting) || textLower.startsWith("$greeting ")
+        }
+    }
+    
+    /**
+     * Detect speakers using heuristics: question marks, time gaps, and greetings.
      * Logic:
      * - Priority 1: Question mark (?) → change speaker
-     * - Priority 2: Time gap > 1.5s → change speaker
+     * - Priority 2: Greeting words (hi, hello, good morning...) → change speaker
+     * - Priority 3: Time gap > 1.5s → change speaker
      * - After question, next non-question → back to speaker 1
      */
     private fun detectSpeakersWithHeuristics(segments: List<TranscriptSegment>): List<TranscriptSegment> {
@@ -177,6 +204,9 @@ class ProcessTranscriptUseCase @Inject constructor(
                 prevTextTrimmed.endsWith("?\"") ||
                 prevTextTrimmed.endsWith("?'")
             
+            // Check if segment is a greeting
+            val isGreeting = isGreetingSegment(segment)
+            
             // Calculate time gap (silence) in seconds
             val silenceGap = if (index > 0) {
                 (segment.startTimeMs - lastEndTime) / 1000.0
@@ -185,20 +215,30 @@ class ProcessTranscriptUseCase @Inject constructor(
             }
             val isLongPause = silenceGap > 1.5
             
-            // Logic: Priority 1 = question mark, Priority 2 = time gap
+            // Logic: Priority 1 = question mark, Priority 2 = greeting, Priority 3 = time gap
             var shouldChangeSpeaker = false
+            var changeReason = ""
             
             if (isQuestion) {
                 // Priority 1: Question → change speaker
                 shouldChangeSpeaker = true
+                changeReason = "question"
                 AppLogger.d(TAG_TRANSCRIPT, "Segment #%d is question -> changing speaker", index)
-            } else if (isLongPause && !prevIsQuestion) {
-                // Priority 2: Time gap > 1.5s (only if not after question)
+            } else if (isGreeting) {
+                // Priority 2: Greeting → change speaker
                 shouldChangeSpeaker = true
+                changeReason = "greeting"
+                AppLogger.d(TAG_TRANSCRIPT, "Segment #%d is greeting (\"%s\") -> changing speaker", index, 
+                    textTrimmed.take(50))
+            } else if (isLongPause && !prevIsQuestion) {
+                // Priority 3: Time gap > 1.5s (only if not after question)
+                shouldChangeSpeaker = true
+                changeReason = "time gap"
                 AppLogger.d(TAG_TRANSCRIPT, "Segment #%d has long pause (%.2fs) -> changing speaker", index, silenceGap)
             } else if (prevIsQuestion && !isQuestion) {
                 // After question, next sentence is not question → back to speaker 1
                 shouldChangeSpeaker = true
+                changeReason = "answer after question"
                 AppLogger.d(TAG_TRANSCRIPT, "Segment #%d is answer after question -> changing speaker", index)
             }
             
