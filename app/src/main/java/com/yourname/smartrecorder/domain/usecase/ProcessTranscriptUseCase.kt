@@ -105,17 +105,42 @@ class ProcessTranscriptUseCase @Inject constructor(
         }
         
         // Step 3: Try number-based pattern detection (medium priority)
-        AppLogger.d(TAG_TRANSCRIPT, "No speaker markers found, trying number-based pattern detection")
+        AppLogger.d(TAG_TRANSCRIPT, "=== [NUMBER_BASED_DETECTION_START] ===")
+        AppLogger.d(TAG_TRANSCRIPT, "No speaker markers found, trying number-based pattern detection on %d segments", segments.size)
+        
         val numberSections = NumberBasedSegmentationHelper.detectSections(segments)
         
         if (numberSections.isNotEmpty() && numberSections.size >= 2) {
             // Use number-based detection (found valid sections)
+            AppLogger.d(TAG_TRANSCRIPT, "=== [NUMBER_BASED_DETECTION_SUCCESS] ===")
             AppLogger.d(TAG_TRANSCRIPT, "Using number-based speaker detection (found %d sections)", numberSections.size)
             
+            numberSections.forEachIndexed { index, section ->
+                AppLogger.d(TAG_TRANSCRIPT, 
+                    "Section[%d]: number=%d, pattern=%s, start=%.2fs, end=%.2fs, heading=\"%s\"",
+                    index, section.number, section.patternType.name, 
+                    section.startMs / 1000.0, section.endMs / 1000.0, section.headingText)
+            }
+            
             val segmentsWithSpeakers = NumberBasedSegmentationHelper.assignSpeakersFromSections(numberSections, segments)
+            
+            // Log assignment statistics
+            val speakerCounts = segmentsWithSpeakers.groupingBy { it.speaker ?: 0 }.eachCount()
+            AppLogger.d(TAG_TRANSCRIPT, "Speaker assignment: %s", speakerCounts.entries.joinToString(", ") { 
+                "Speaker ${it.key}=${it.value} segments" 
+            })
+            
             SpeakerSegmentationHelper.logFinalSegments(segmentsWithSpeakers)
+            AppLogger.d(TAG_TRANSCRIPT, "=== [NUMBER_BASED_DETECTION_COMPLETE] ===")
             
             return segmentsWithSpeakers
+        } else {
+            AppLogger.d(TAG_TRANSCRIPT, "=== [NUMBER_BASED_DETECTION_SKIPPED] ===")
+            if (numberSections.isEmpty()) {
+                AppLogger.d(TAG_TRANSCRIPT, "No number-based sections detected")
+            } else {
+                AppLogger.d(TAG_TRANSCRIPT, "Only %d section(s) detected (need at least 2 for speaker segmentation)", numberSections.size)
+            }
         }
         
         // Step 4: Fallback to heuristic-based detection (question marks, time gaps)

@@ -11,6 +11,98 @@ Tài liệu này mô tả chi tiết thiết kế UI cho audio player trong app 
 
 ---
 
+## 🎯 Design Consistency - Thống Nhất UI
+
+### Nguyên Tắc Chung
+
+Mặc dù UI trong app (Option 1) và UI ngoài app (Option 3 - Notification/Lock Screen) có **layout khác nhau** do constraints khác nhau, nhưng chúng phải **thống nhất** về:
+
+#### ✅ Những Gì PHẢI Giống Nhau (Unified)
+
+1. **Màu Sắc Brand:**
+   - Primary Orange: `#FF6B35` (dùng cho tất cả accent colors)
+   - Background cam nhạt: `#FFE5D9` (nếu có background)
+   - Icon màu: Trắng trên nền cam, hoặc cam trên nền trắng
+
+2. **Icon Style:**
+   - Play: `Icons.Default.PlayArrow` (Material Icons)
+   - Pause: `Icons.Default.Pause` (Material Icons)
+   - Rewind: `Icons.Default.Replay10` hoặc custom `ic_rewind_10`
+   - Forward: `Icons.Default.Forward10` hoặc custom `ic_forward_10`
+   - **Tất cả icons phải cùng style, cùng weight**
+
+3. **Time Format:**
+   - Format: `MM:SS` (ví dụ: `00:26`, `03:31`)
+   - Không dùng `H:MM:SS` trừ khi > 1 giờ
+   - Font: System default hoặc Material typography
+   - Color: Xám đậm (#475569) hoặc onSurfaceVariant
+
+4. **Progress Bar Style:**
+   - Active color: `#FF6B35` (primary orange)
+   - Inactive color: `#FF6B35` với alpha 0.2
+   - Height: `4dp` (mảnh, hiện đại)
+   - Thumb: Circle, màu cam, size `10dp`
+
+5. **Button Actions:**
+   - **Bắt buộc:** Play/Pause (luôn có)
+   - **Tùy chọn:** Rewind 10s, Forward 10s (có thể thêm vào Option 1)
+   - Layout: Horizontal, spacing đều
+
+6. **States:**
+   - Playing: Icon Pause, progress đang chạy
+   - Paused: Icon Play, progress dừng
+   - Loading: CircularProgressIndicator hoặc disabled state
+
+#### ⚠️ Những Gì CÓ THỂ Khác Nhau (Platform Constraints)
+
+1. **Layout Structure:**
+   - **Option 1 (In-app):** Card với gradient, có thể có title, spacing rộng
+   - **Option 3 (Notification):** Compact, system constraints, không có gradient
+
+2. **Button Size:**
+   - **Option 1:** `40dp × 40dp` (tròn, lớn, dễ tap)
+   - **Option 3:** System default (~24dp icon trong notification)
+
+3. **Spacing:**
+   - **Option 1:** `16dp` padding, `8dp` margins
+   - **Option 3:** System default (tighter spacing)
+
+4. **Background:**
+   - **Option 1:** Card với gradient cam nhạt
+   - **Option 3:** System notification background (trắng/xám)
+
+5. **Additional Controls:**
+   - **Option 1:** Có thể thêm loop button, speed control (nếu cần)
+   - **Option 3:** Chỉ có Rewind, Play/Pause, Forward (standard)
+
+### 📐 Unified Layout Pattern
+
+Dù layout khác nhau, nhưng **pattern** phải giống:
+
+```
+[Icon/Button]  [Progress Bar]  [Time Labels]
+     ↓              ↓              ↓
+   Play/Pause    ────●─────    00:26 / 03:31
+```
+
+**Trong app (Option 1):**
+```
+┌────────────────────────────────────┐
+│  [▶]  ────────────●─────────────  │
+│        00:26              03:31    │
+└────────────────────────────────────┘
+```
+
+**Ngoài app (Option 3):**
+```
+00:26 ────────────●────────── 03:31
+[⏮]  [▶]  [⏭]
+```
+
+→ **Cùng pattern:** Button bên trái, Progress ở giữa, Time labels dưới progress
+
+---
+
 ## 🅰️ OPTION 1 – Card Player dưới AppBar (RECOMMENDED)
 
 ### 📐 Wireframe & Layout
@@ -67,7 +159,9 @@ Tài liệu này mô tả chi tiết thiết kế UI cho audio player trong app 
   - Corner radius: `20.dp` (nhỏ hơn outer một chút)
   - Padding: `16.dp` horizontal, `12.dp` vertical
 
-#### 3. Play/Pause Button
+#### 3. Control Buttons
+
+##### 3.1. Play/Pause Button (Bắt buộc)
 - **Kích thước:**
   - Size: `40.dp × 40.dp` (tròn)
   - Icon size: `24.dp`
@@ -79,6 +173,38 @@ Tài liệu này mô tả chi tiết thiết kế UI cho audio player trong app 
   - Icon: `Icons.Default.PlayArrow` / `Icons.Default.Pause`
 
 - **Vị trí:** Bên trái, cách lề trái `16.dp`
+
+##### 3.2. Rewind/Forward Buttons (Tùy chọn - để thống nhất với Option 3)
+- **Kích thước:**
+  - Size: `32.dp × 32.dp` (tròn, nhỏ hơn Play/Pause)
+  - Icon size: `20.dp`
+
+- **Styling:**
+  - Background: `Transparent` hoặc `SurfaceVariant.copy(alpha = 0.5f)`
+  - Shape: `CircleShape`
+  - Icon color: `MaterialTheme.colorScheme.primary` (#FF6B35)
+  - Icon: `Icons.Default.Replay10` / `Icons.Default.Forward10`
+
+- **Vị trí:** 
+  - Rewind: Bên trái Play/Pause, spacing `8.dp`
+  - Forward: Bên phải Play/Pause, spacing `8.dp`
+  - **Hoặc:** Có thể bỏ qua nếu muốn UI gọn hơn (chỉ giữ Play/Pause)
+
+- **Layout Option A (Chỉ Play/Pause - Recommended):**
+```
+┌────────────────────────────────────┐
+│  [▶]  ────────────●─────────────  │
+│        00:26              03:31    │
+└────────────────────────────────────┘
+```
+
+- **Layout Option B (Có Rewind/Forward - Thống nhất với Notification):**
+```
+┌────────────────────────────────────┐
+│  [⏮] [▶] [⏭]  ────●─────────────  │
+│        00:26              03:31    │
+└────────────────────────────────────┘
+```
 
 #### 4. Progress Slider
 - **Kích thước:**
@@ -211,11 +337,12 @@ Tài liệu này mô tả chi tiết thiết kế UI cho audio player trong app 
 #### 2. Notification Header
 - **Small Icon:**
   - Resource: `R.drawable.ic_notification_mic` (icon mic màu cam)
-  - Size: `24dp × 24dp`
-  - Color: `#FF6B35` (primary orange)
+  - Size: `24dp × 24dp` (system standard)
+  - Color: `#FF6B35` (primary orange) - **THỐNG NHẤT với Option 1**
 
 - **App Name:** "Smart Recorder"
 - **Color Accent:** `ContextCompat.getColor(context, R.color.primary_orange)` (#FF6B35)
+  - **⚠️ QUAN TRỌNG:** Phải set `.setColor()` để progress bar và accent dùng màu cam
 
 #### 3. Content
 - **Title:**
@@ -231,29 +358,37 @@ Tài liệu này mô tả chi tiết thiết kế UI cho audio player trong app 
 
 #### 4. Progress Bar
 - **Format:**
-  - Current: `00:26` (left)
-  - Total: `03:31` (right)
+  - Current: `00:26` (left) - **THỐNG NHẤT format với Option 1**
+  - Total: `03:31` (right) - **THỐNG NHẤT format với Option 1**
   - Progress: `setProgress(max, current, false)`
 
 - **Styling:**
-  - Color: System accent (sẽ dùng màu cam từ `setColor()`)
-  - Height: System default (~4dp)
+  - Active color: `#FF6B35` (primary orange) - **THỐNG NHẤT với Option 1**
+  - Inactive color: System default (sẽ tự động dùng alpha từ accent color)
+  - Height: System default (~4dp) - **THỐNG NHẤT với Option 1**
+  - **⚠️ QUAN TRỌNG:** Phải set `.setColor(ContextCompat.getColor(context, R.color.primary_orange))` để đảm bảo màu cam
 
-#### 5. Actions
+#### 5. Actions (Bắt buộc có đầy đủ 3 buttons)
+
 - **Rewind 10s:**
-  - Icon: `R.drawable.ic_rewind_10`
-  - Label: "Rewind"
+  - Icon: `R.drawable.ic_rewind_10` hoặc `Icons.Default.Replay10`
+  - Label: "Rewind" hoặc "Rewind 10s"
   - Action: `ACTION_REWIND_10`
+  - **⚠️ THỐNG NHẤT:** Cùng icon style với Option 1 (nếu có)
 
 - **Play/Pause:**
-  - Icon: `R.drawable.ic_play` / `R.drawable.ic_pause`
+  - Icon: `R.drawable.ic_play` / `R.drawable.ic_pause` hoặc Material Icons
   - Label: "Play" / "Pause"
   - Action: `ACTION_TOGGLE_PLAY`
+  - **⚠️ THỐNG NHẤT:** Cùng icon (`Icons.Default.PlayArrow` / `Icons.Default.Pause`) với Option 1
 
 - **Forward 10s:**
-  - Icon: `R.drawable.ic_forward_10`
-  - Label: "Forward"
+  - Icon: `R.drawable.ic_forward_10` hoặc `Icons.Default.Forward10`
+  - Label: "Forward" hoặc "Forward 10s"
   - Action: `ACTION_FORWARD_10`
+  - **⚠️ THỐNG NHẤT:** Cùng icon style với Option 1 (nếu có)
+
+**Layout:** `[Rewind] [Play/Pause] [Forward]` - Horizontal, spacing đều
 
 #### 6. MediaStyle Configuration
 ```kotlin
@@ -328,6 +463,11 @@ Jockerfie is my favourite...
 | **Implementation** | Compose UI | Service + Notification |
 | **Phức tạp** | ⭐⭐ (dễ) | ⭐⭐⭐ (trung bình) |
 | **Bắt buộc** | ✅ Recommended | ✅ Bắt buộc cho background |
+| **Màu sắc** | ✅ #FF6B35 (cam) | ✅ #FF6B35 (cam) - **THỐNG NHẤT** |
+| **Icons** | ✅ Material Icons | ✅ Material Icons - **THỐNG NHẤT** |
+| **Time format** | ✅ MM:SS | ✅ MM:SS - **THỐNG NHẤT** |
+| **Progress style** | ✅ 4dp, cam | ✅ 4dp, cam - **THỐNG NHẤT** |
+| **Actions** | ⚠️ Play/Pause (có thể thêm Rewind/Forward) | ✅ Rewind, Play/Pause, Forward |
 
 ### 🎯 Kết Luận
 
@@ -336,72 +476,118 @@ Jockerfie is my favourite...
 
 **→ Nên implement CẢ HAI** để có trải nghiệm tốt nhất!
 
+### ✅ Đảm Bảo Thống Nhất
+
+Khi implement, đảm bảo:
+1. ✅ Cùng màu cam `#FF6B35` cho tất cả accent colors
+2. ✅ Cùng Material Icons cho Play/Pause/Rewind/Forward
+3. ✅ Cùng format time `MM:SS`
+4. ✅ Cùng progress bar style (4dp, cam)
+5. ✅ Cùng layout pattern (Button trái, Progress giữa, Time dưới)
+
 ---
 
 ## 🔧 Implementation Checklist
 
+### ✅ Consistency Checklist (BẮT BUỘC)
+
+Trước khi implement, đảm bảo:
+
+- [ ] **Colors:** Đã define `#FF6B35` trong `colors.xml` và `Color.kt`
+- [ ] **Icons:** Đã import Material Icons hoặc tạo custom icons cùng style
+- [ ] **Time Format:** Đã tạo helper function `formatTime(ms: Long): String` → `MM:SS`
+- [ ] **Design Tokens:** Đã tạo constants file hoặc object chứa tất cả values
+
 ### Option 1: Card Player
 
 - [ ] Tạo file `TranscriptPlayerBar.kt`
-- [ ] Implement Card với gradient background
-- [ ] Implement Play/Pause button (tròn, cam)
-- [ ] Implement Slider với styling cam
-- [ ] Implement time labels (MM:SS format)
+- [ ] **Colors:** Dùng `MaterialTheme.colorScheme.primary` (#FF6B35)
+- [ ] Implement Card với gradient background (cam nhạt #FFE5D9)
+- [ ] **Icons:** Dùng `Icons.Default.PlayArrow` / `Icons.Default.Pause`
+- [ ] Implement Play/Pause button (tròn 40dp, nền cam, icon trắng)
+- [ ] **Progress:** Slider 4dp, active cam, inactive cam alpha 0.2
+- [ ] **Time:** Dùng helper `formatTime()` → `MM:SS` format
+- [ ] Implement time labels (left: current, right: duration)
+- [ ] (Optional) Thêm Rewind/Forward buttons để thống nhất với Option 3
 - [ ] Integrate vào `TranscriptScreen.kt`
 - [ ] Connect với ViewModel state
 - [ ] Test seek functionality
 - [ ] Test play/pause toggle
-- [ ] Verify responsive trên các screen sizes
+- [ ] **Verify:** Màu cam, icons, format time đều đúng
 
 ### Option 3: Notification & Lock Screen
 
 - [ ] Update `PlaybackForegroundService.kt`
 - [ ] Tạo `MediaSessionCompat`
+- [ ] **Colors:** Set `.setColor(ContextCompat.getColor(context, R.color.primary_orange))` → #FF6B35
+- [ ] **Icons:** Dùng cùng Material Icons hoặc custom icons cùng style với Option 1
 - [ ] Implement `buildPlaybackNotification()` với MediaStyle
-- [ ] Add actions: Rewind, Play/Pause, Forward
-- [ ] Add progress bar với time labels
+- [ ] Add actions: Rewind, Play/Pause, Forward (đầy đủ 3 buttons)
+- [ ] **Time:** Dùng cùng helper `formatTime()` → `MM:SS` format
+- [ ] Add progress bar với time labels (left: current, right: duration)
 - [ ] Add preview text (transcript snippet)
-- [ ] Set notification color accent (#FF6B35)
-- [ ] Create large icon cho lock screen
+- [ ] Create large icon cho lock screen (64dp, cam background)
 - [ ] Update `MediaSession` state khi playback thay đổi
 - [ ] Test notification khi app ở background
 - [ ] Test lock screen controls
 - [ ] Verify permission `POST_NOTIFICATIONS`
+- [ ] **Verify:** Màu cam, icons, format time đều đúng và giống Option 1
+
+### 🔍 Final Verification
+
+Sau khi implement cả 2 options:
+
+- [ ] **Visual Test:** So sánh Option 1 và Option 3 → Màu cam có giống nhau không?
+- [ ] **Icon Test:** Icons có cùng style, cùng weight không?
+- [ ] **Time Test:** Format time có giống nhau không? (MM:SS)
+- [ ] **Progress Test:** Progress bar có cùng màu cam không?
+- [ ] **Layout Test:** Pattern có giống nhau không? (Button trái, Progress giữa, Time dưới)
 
 ---
 
-## 🎨 Design Tokens
+## 🎨 Unified Design Tokens
 
-### Colors
+### 🎨 Colors (BẮT BUỘC dùng chung)
+
 ```kotlin
-// Primary
-val PrimaryOrange = Color(0xFFFF6B35)      // #FF6B35
-val OnPrimary = Color(0xFFFFFFFF)          // White
+// PRIMARY - Dùng cho TẤT CẢ media controls
+val PrimaryOrange = Color(0xFFFF6B35)      // #FF6B35 - Vibrant orange
+val OnPrimary = Color(0xFFFFFFFF)          // White - Text/icons trên nền cam
 
-// Surface Variant (Card background)
-val SurfaceVariant = Color(0xFFFFE5D9)     // Light orange
-val OnSurfaceVariant = Color(0xFF475569)    // Dark gray
+// SURFACE - Chỉ dùng trong app (Option 1)
+val SurfaceVariant = Color(0xFFFFE5D9)     // Light orange - Card background
+val OnSurfaceVariant = Color(0xFF475569)    // Dark gray - Text trên nền nhạt
 
-// Gradients
+// PROGRESS BAR - Dùng chung cho cả 2 options
+val ProgressActive = PrimaryOrange         // #FF6B35 - Phần đã phát
+val ProgressInactive = PrimaryOrange.copy(alpha = 0.2f)  // Cam nhạt - Phần chưa phát
+
+// GRADIENTS - Chỉ dùng trong app (Option 1)
 val GradientStart = PrimaryOrange.copy(alpha = 0.10f)
 val GradientEnd = PrimaryOrange.copy(alpha = 0.05f)
 ```
 
-### Dimensions
+**⚠️ Lưu ý:** 
+- Option 1 (In-app): Dùng đầy đủ colors trên
+- Option 3 (Notification): Chỉ dùng `PrimaryOrange` cho accent, system sẽ tự render background
+
+### 📏 Dimensions
+
+#### Option 1 (In-App) - Card Player
 ```kotlin
-// Card
+// Card Container
 val CardPadding = 16.dp
 val CardCornerRadius = 24.dp
 val InnerCornerRadius = 20.dp
 val CardElevation = 2.dp
 
-// Button
-val PlayButtonSize = 40.dp
+// Play/Pause Button
+val PlayButtonSize = 40.dp              // Tròn, lớn, dễ tap
 val PlayButtonIconSize = 24.dp
 
-// Slider
-val SliderTrackHeight = 4.dp
-val SliderThumbSize = 10.dp
+// Progress Slider
+val SliderTrackHeight = 4.dp             // Mảnh, hiện đại
+val SliderThumbSize = 10.dp              // Circle thumb
 
 // Spacing
 val HorizontalPadding = 16.dp
@@ -409,14 +595,58 @@ val VerticalPadding = 8.dp
 val ButtonSpacing = 16.dp
 ```
 
-### Typography
+#### Option 3 (Notification) - System Defaults
 ```kotlin
-// Title
-MaterialTheme.typography.labelMedium
-
-// Time labels
-MaterialTheme.typography.labelSmall
+// Notification uses system defaults, but ensure:
+// - Icon size: 24dp (system standard)
+// - Progress bar: System default (~4dp)
+// - Button spacing: System default (compact)
 ```
+
+### 🔤 Typography
+
+```kotlin
+// Time Labels - Dùng chung cho cả 2 options
+val TimeLabelStyle = MaterialTheme.typography.labelSmall
+val TimeLabelColor = OnSurfaceVariant  // #475569 - Dark gray
+
+// Title (chỉ Option 1)
+val TitleStyle = MaterialTheme.typography.labelMedium
+val TitleColor = OnSurfaceVariant
+
+// Format: MM:SS (ví dụ: 00:26, 03:31)
+// Không dùng H:MM:SS trừ khi duration > 1 giờ
+```
+
+### 🎯 Icon Specifications
+
+```kotlin
+// TẤT CẢ icons phải cùng style Material Icons
+val PlayIcon = Icons.Default.PlayArrow
+val PauseIcon = Icons.Default.Pause
+val RewindIcon = Icons.Default.Replay10      // Hoặc custom ic_rewind_10
+val ForwardIcon = Icons.Default.Forward10    // Hoặc custom ic_forward_10
+
+// Icon colors:
+// - Trên nền cam: White (#FFFFFF)
+// - Trên nền trắng: Primary Orange (#FF6B35)
+```
+
+### 📐 Layout Pattern (Unified)
+
+```
+┌─────────────────────────────────────────┐
+│  [Button]  [Progress Bar]  [Time]      │
+│     ↓           ↓            ↓           │
+│   Play/Pause  ────●─────   00:26/03:31  │
+└─────────────────────────────────────────┘
+```
+
+**Pattern Rules:**
+1. Button (Play/Pause) luôn ở **bên trái**
+2. Progress bar ở **giữa**, chiếm hết không gian còn lại
+3. Time labels ở **dưới progress bar**, left/right alignment
+4. Optional: Rewind/Forward buttons có thể thêm vào Option 1
 
 ---
 
@@ -430,10 +660,92 @@ app/src/main/java/com/yourname/smartrecorder/
 │   │   └── TranscriptScreen.kt          (sửa: thay PlayerBar cũ)
 │   └── player/
 │       └── TranscriptPlayerBar.kt       (mới: Option 1)
-└── core/
-    └── service/
-        └── PlaybackForegroundService.kt (sửa: Option 3)
+├── core/
+│   ├── service/
+│   │   └── PlaybackForegroundService.kt (sửa: Option 3)
+│   └── utils/
+│       └── TimeFormatter.kt              (mới: Shared helper)
+└── ui/
+    └── theme/
+        └── PlayerColors.kt               (mới: Shared color constants)
 ```
+
+### 🔄 Shared Code/Helpers (Tái Sử Dụng)
+
+Để đảm bảo thống nhất, tạo shared helpers:
+
+#### 1. TimeFormatter.kt (Shared)
+```kotlin
+package com.yourname.smartrecorder.core.utils
+
+object TimeFormatter {
+    /**
+     * Format milliseconds to MM:SS or H:MM:SS
+     * THỐNG NHẤT cho cả Option 1 và Option 3
+     */
+    fun formatTime(ms: Long): String {
+        val totalSeconds = ms / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        
+        return if (hours > 0) {
+            String.format("%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            String.format("%02d:%02d", minutes, seconds)
+        }
+    }
+}
+```
+
+**Usage:**
+- Option 1: `Text(TimeFormatter.formatTime(positionMs))`
+- Option 3: `TimeFormatter.formatTime(position)` trong notification
+
+#### 2. PlayerColors.kt (Shared Constants)
+```kotlin
+package com.yourname.smartrecorder.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+object PlayerColors {
+    // PRIMARY - Dùng cho TẤT CẢ media controls
+    val PrimaryOrange = Color(0xFFFF6B35)      // #FF6B35
+    
+    // PROGRESS BAR - Dùng chung
+    val ProgressActive = PrimaryOrange
+    val ProgressInactive = PrimaryOrange.copy(alpha = 0.2f)
+    
+    // SURFACE - Chỉ Option 1
+    val CardBackground = Color(0xFFFFE5D9)     // Light orange
+    val CardGradientStart = PrimaryOrange.copy(alpha = 0.10f)
+    val CardGradientEnd = PrimaryOrange.copy(alpha = 0.05f)
+}
+```
+
+**Usage:**
+- Option 1: `PlayerColors.PrimaryOrange` trong Compose
+- Option 3: `ContextCompat.getColor(context, R.color.primary_orange)` trong Service
+
+#### 3. PlayerIcons.kt (Shared Icon References)
+```kotlin
+package com.yourname.smartrecorder.ui.player
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+object PlayerIcons {
+    // THỐNG NHẤT cho cả Option 1 và Option 3
+    val Play = Icons.Default.PlayArrow
+    val Pause = Icons.Default.Pause
+    val Rewind = Icons.Default.Replay10      // Hoặc custom
+    val Forward = Icons.Default.Forward10     // Hoặc custom
+}
+```
+
+**Usage:**
+- Option 1: `Icon(PlayerIcons.Play, ...)`
+- Option 3: Dùng cùng resource IDs hoặc Material Icons
 
 ### Dependencies (cần thêm)
 ```gradle

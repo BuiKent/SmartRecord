@@ -799,17 +799,34 @@ object NumberBasedSegmentationHelper {
         sections: List<Section>,
         segments: List<TranscriptSegment>
     ): List<TranscriptSegment> {
-        return segments.map { segment ->
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Assigning speakers from %d sections to %d segments",
+            sections.size, segments.size)
+        
+        var assignedCount = 0
+        var unassignedCount = 0
+        
+        val result = segments.map { segment ->
             // Find which section this segment belongs to
+            // Use overlap-based matching (segment overlaps with section)
             val section = sections.find { section ->
-                segment.startTimeMs >= section.startMs &&
-                segment.endTimeMs <= section.endMs
+                segment.endTimeMs > section.startMs && segment.startTimeMs < section.endMs
+            }
+            
+            if (section != null) {
+                assignedCount++
+            } else {
+                unassignedCount++
             }
             
             segment.copy(
                 speaker = section?.number ?: 1  // Default to speaker 1 if no section found
             )
         }
+        
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Assignment complete: %d assigned, %d unassigned (default to speaker 1)",
+            assignedCount, unassignedCount)
+        
+        return result
     }
     
     /**
@@ -824,37 +841,63 @@ object NumberBasedSegmentationHelper {
             return emptyList()
         }
         
-        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Starting detection on %d segments", segments.size)
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] === Starting detection ===")
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Input: %d segments, config: minScore=%d, autoAcceptSpeaker=%b",
+            segments.size, config.minScore, config.speakerPatternAutoAccept)
+        
+        val startTime = System.currentTimeMillis()
         
         // Step 1: Extract words
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Step 1: Extracting words from segments")
         val words = extractWordsFromSegments(segments)
         if (words.isEmpty()) {
             AppLogger.w(TAG_TRANSCRIPT, "[NumberBasedSegmentation] No words extracted")
             return emptyList()
         }
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Extracted %d words", words.size)
         
         // Step 2: Find candidates
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Step 2: Finding candidate headings")
         val candidates = findCandidateHeadings(words)
         if (candidates.isEmpty()) {
             AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] No candidates found")
             return emptyList()
         }
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Found %d candidates", candidates.size)
+        
+        // Log candidate distribution by pattern type
+        val candidatesByType = candidates.groupingBy { it.patternType }.eachCount()
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Candidates by type: %s",
+            candidatesByType.entries.joinToString(", ") { "${it.key.name}=${it.value}" })
         
         // Step 3: Score candidates
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Step 3: Scoring candidates")
         val scoredCandidates = scoreCandidates(candidates, words, segments, config)
         
         // Step 4: Filter valid headings
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Step 4: Filtering valid headings")
         val validHeadings = filterValidHeadings(scoredCandidates, config)
         if (validHeadings.isEmpty()) {
             AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] No valid headings after filtering")
             return emptyList()
         }
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] %d valid headings after filtering", validHeadings.size)
+        
+        // Log confidence distribution
+        val confidenceDistribution = validHeadings.groupingBy { 
+            calculateConfidenceLevel(it, scoredCandidates) 
+        }.eachCount()
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Confidence distribution: %s",
+            confidenceDistribution.entries.joinToString(", ") { "${it.key.name}=${it.value}" })
         
         // Step 5: Segment transcript
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Step 5: Segmenting transcript")
         val sections = segmentTranscript(validHeadings, words, segments)
         
-        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Detection complete: %d sections found",
-            sections.size)
+        val duration = System.currentTimeMillis() - startTime
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] === Detection complete ===")
+        AppLogger.d(TAG_TRANSCRIPT, "[NumberBasedSegmentation] Result: %d sections found in %d ms",
+            sections.size, duration)
         
         return sections
     }
