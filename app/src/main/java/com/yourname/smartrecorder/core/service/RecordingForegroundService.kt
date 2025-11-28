@@ -328,9 +328,15 @@ class RecordingForegroundService : Service() {
             
             // ⚠️ CRITICAL: Luôn xóa channel cũ để đảm bảo importance được update
             try {
-                manager.deleteNotificationChannel(CHANNEL_ID)
+                val existingChannel = manager.getNotificationChannel(CHANNEL_ID)
+                if (existingChannel != null) {
+                    AppLogger.d(TAG_SERVICE, "Deleting existing channel -> importance: ${existingChannel.importance}")
+                    manager.deleteNotificationChannel(CHANNEL_ID)
+                    // Small delay to ensure deletion completes
+                    Thread.sleep(100)
+                }
             } catch (e: Exception) {
-                // Channel không tồn tại, ignore
+                AppLogger.d(TAG_SERVICE, "Error deleting channel: ${e.message}")
             }
             
             val channel = NotificationChannel(
@@ -346,6 +352,14 @@ class RecordingForegroundService : Service() {
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
+            
+            // Verify channel was created correctly
+            val createdChannel = manager.getNotificationChannel(CHANNEL_ID)
+            if (createdChannel != null) {
+                AppLogger.d(TAG_SERVICE, "Channel created -> importance: ${createdChannel.importance}, canShowBadge: ${createdChannel.canShowBadge()}")
+            } else {
+                AppLogger.w(TAG_SERVICE, "Channel was not created!")
+            }
         }
     }
     
