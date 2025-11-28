@@ -12,6 +12,64 @@
 
 ## 🔍 Phân Tích Hiện Trạng
 
+### 0. UI Components - Hiện Tại (Mới Thêm)
+
+**RecordingPlayerBar Component:**
+- ✅ Đã được tạo: `app/src/main/java/com/yourname/smartrecorder/ui/player/RecordingPlayerBar.kt`
+- ✅ Có `isCompact` parameter để điều chỉnh kích thước
+- ✅ Được dùng trong:
+  - `RecordingCard` (LibraryScreen) với `isCompact = true`
+  - `TranscriptScreen` với `isCompact = false` (default)
+- ✅ Callback: `onPlayPauseClick` (không tách riêng play/pause)
+
+**RecordingCard Component:**
+- ✅ Khi `isPlaying = true`: hiển thị `RecordingPlayerBar` với `isCompact = true`
+- ✅ Khi `isPlaying = false`: hiển thị Play button và Transcript button
+- ✅ Callbacks: `onPlayClick`, `onPauseClick`, `onStopClick`, `onSeekTo`
+
+**LibraryViewModel - Playback Logic:**
+- ✅ Có playback logic riêng với `AudioPlayer` trực tiếp
+- ✅ **KHÔNG dùng `PlaybackForegroundService`** (không có import hoặc sử dụng)
+- ✅ Quản lý state: `currentlyPlayingId`, `isPlaying`, `currentPositionMs`
+- ✅ Methods: `playRecording()`, `stopPlayback()`, `seekTo()`
+
+**⚠️ QUAN TRỌNG - Cần Quyết Định:**
+
+**LibraryViewModel có 2 options:**
+
+**Option A: Giữ nguyên (Không dùng Foreground Service)**
+- ✅ LibraryScreen playback không cần foreground service (chỉ play trong app)
+- ✅ Đơn giản hơn, không cần notification
+- ❌ Không có media controls khi app background
+- ❌ Không có notification navigation
+
+**Option B: Migrate sang Foreground Service (Như TranscriptScreen)**
+- ✅ Có media controls khi app background
+- ✅ Có notification navigation
+- ✅ Consistent với TranscriptScreen
+- ❌ Phức tạp hơn, cần migrate thêm code
+
+**👉 Quyết định cần làm:**
+1. **LibraryViewModel có cần dùng `PlaybackForegroundService` không?**
+   - Nếu **KHÔNG** → Chỉ migrate `TranscriptViewModel` và `RecordViewModel`
+   - Nếu **CÓ** → Cần migrate cả `LibraryViewModel`
+
+2. **Nếu chọn Option A (giữ nguyên):**
+   - `LibraryViewModel` vẫn dùng `AudioPlayer` trực tiếp
+   - Không cần migrate `LibraryViewModel` sang repository pattern
+   - Chỉ migrate `TranscriptViewModel` và `RecordViewModel`
+
+3. **Nếu chọn Option B (migrate sang Foreground Service):**
+   - `LibraryViewModel` cần dùng `PlaybackForegroundService`
+   - Cần migrate `LibraryViewModel` sang repository pattern
+   - Thêm bước migration cho `LibraryViewModel` trong Phase 3
+
+**📝 Ghi chú trong kế hoạch:**
+- Kế hoạch hiện tại giả định **Option A** (giữ nguyên LibraryViewModel)
+- Nếu chọn Option B, sẽ cần thêm Phase 3.3: Refactor LibraryViewModel
+
+---
+
 ### 1.1. Recording State - Hiện Tại
 
 **RecordViewModel (Source of Truth hiện tại):**
@@ -827,6 +885,11 @@ override fun onDestroy() {
 
 ### Phase 3: Refactor ViewModels
 
+**⚠️ Lưu ý về LibraryViewModel:**
+- `LibraryViewModel` hiện tại **KHÔNG dùng Foreground Service**
+- Kế hoạch này giả định **Option A**: Giữ nguyên LibraryViewModel (không migrate)
+- Nếu chọn **Option B**: Migrate LibraryViewModel sang Foreground Service, xem **Phase 3.3** bên dưới
+
 #### Step 3.1: Refactor RecordViewModel
 
 **File:** `app/src/main/java/com/yourname/smartrecorder/ui/record/RecordViewModel.kt`
@@ -1187,6 +1250,179 @@ private fun startPositionUpdates() {
 
 ---
 
+#### Step 3.3: (Optional) Refactor LibraryViewModel - Chỉ nếu chọn Option B
+
+**⚠️ CHỈ LÀM BƯỚC NÀY NẾU CHỌN OPTION B: Migrate LibraryViewModel sang Foreground Service**
+
+**File:** `app/src/main/java/com/yourname/smartrecorder/ui/library/LibraryViewModel.kt`
+
+**Thay đổi tương tự TranscriptViewModel:**
+
+1. **Inject Repository và ForegroundServiceManager:**
+```kotlin
+@HiltViewModel
+class LibraryViewModel @Inject constructor(
+    // ... existing dependencies
+    private val playbackSessionRepository: PlaybackSessionRepository,  // ← Thêm
+    private val foregroundServiceManager: ForegroundServiceManager,  // ← Thêm
+    // ...
+) : ViewModel() {
+```
+
+2. **Expose playback state:**
+```kotlin
+// Expose playback state from repository
+val playbackState: StateFlow<PlaybackState> = 
+    playbackSessionRepository.state
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = PlaybackState.Idle
+        )
+```
+
+3. **Derive UI state from repository:**
+```kotlin
+// Combine repository state with other UI state
+val uiState: StateFlow<LibraryUiState> = combine(
+    playbackState,
+    // ... other state flows (recordings, search, etc.)
+) { playbackState, /* ... */ ->
+    LibraryUiState(
+        isPlaying = playbackState is PlaybackState.Playing,
+        currentlyPlayingId = when (playbackState) {
+            is PlaybackState.Playing -> playbackState.recordingId
+            is PlaybackState.Paused -> playbackState.recordingId
+            else -> null
+        },
+        currentPositionMs = when (playbackState) {
+            is PlaybackState.Playing -> playbackState.positionMs
+            is PlaybackState.Paused -> playbackState.positionMs
+            else -> 0L
+        },
+        // ... other fields
+    )
+}.stateIn(
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),
+    initialValue = LibraryUiState()
+)
+```
+
+4. **Update playRecording() để dùng Foreground Service:**
+```kotlin
+fun playRecording(recording: Recording) {
+    val playbackState = playbackState.value
+    
+    viewModelScope.launch {
+        when (playbackState) {
+            is PlaybackState.Playing -> {
+                if (playbackState.recordingId == recording.id) {
+                    // Pause current playback
+                    audioPlayer.pause()
+                    // Service will update repository, UI will react automatically
+                } else {
+                    // Stop current and play new
+                    audioPlayer.stop()
+                    foregroundServiceManager.stopPlaybackService()
+                    // Start new playback
+                    startNewPlayback(recording)
+                }
+            }
+            is PlaybackState.Paused -> {
+                if (playbackState.recordingId == recording.id) {
+                    // Resume
+                    audioPlayer.resume()
+                    // Service will update repository, UI will react automatically
+                } else {
+                    // Stop current and play new
+                    audioPlayer.stop()
+                    foregroundServiceManager.stopPlaybackService()
+                    startNewPlayback(recording)
+                }
+            }
+            is PlaybackState.Idle -> {
+                // Start new playback
+                startNewPlayback(recording)
+            }
+        }
+    }
+}
+
+private fun startNewPlayback(recording: Recording) {
+    val file = File(recording.filePath)
+    if (!file.exists()) {
+        _uiState.update { it.copy(error = "Audio file not found") }
+        return
+    }
+    
+    // Start foreground service
+    foregroundServiceManager.startPlaybackService(
+        recording.id,
+        recording.title.ifEmpty { "Recording" },
+        recording.durationMs
+    )
+    
+    // Start AudioPlayer
+    audioPlayer.play(file) { /* on completion */ }
+    startPositionUpdates()
+}
+```
+
+5. **Update stopPlayback():**
+```kotlin
+fun stopPlayback() {
+    viewModelScope.launch {
+        audioPlayer.stop()
+        foregroundServiceManager.stopPlaybackService()
+        // Service will update repository to Idle, UI will react automatically
+    }
+}
+```
+
+6. **Update seekTo():**
+```kotlin
+fun seekTo(positionMs: Long) {
+    val playbackState = playbackState.value
+    if (playbackState !is PlaybackState.Playing && playbackState !is PlaybackState.Paused) {
+        return
+    }
+    
+    audioPlayer.seekTo(positionMs.toInt())
+    
+    // Update service notification (service will update repository)
+    if (playbackState is PlaybackState.Playing || playbackState is PlaybackState.Paused) {
+        foregroundServiceManager.updatePlaybackNotification(
+            playbackState.recordingId,
+            positionMs,
+            playbackState.durationMs,
+            isPaused = playbackState is PlaybackState.Paused
+        )
+    }
+}
+```
+
+**Checklist (chỉ nếu chọn Option B):**
+- [ ] Inject `PlaybackSessionRepository` và `ForegroundServiceManager`
+- [ ] Expose `playbackState` từ repository
+- [ ] Derive `uiState` từ `playbackState`
+- [ ] Update `playRecording()` → dùng foreground service
+- [ ] Update `stopPlayback()` → dùng foreground service
+- [ ] Update `seekTo()` → update service notification
+- [ ] Remove local playback state (nếu có)
+- [ ] Test: Start playback → Service starts → Repository state = Playing → UI shows playing
+- [ ] Test: Pause playback → Service pauses → Repository state = Paused → UI shows paused
+- [ ] Test: Stop playback → Service stops → Repository state = Idle → UI shows stopped
+- [ ] Test: Navigate away and back → UI vẫn sync với service
+
+**⚠️ Pitfalls:**
+- ❌ **Sai:** Vẫn dùng `AudioPlayer` trực tiếp mà không dùng service → không có notification
+- ✅ **Đúng:** Luôn dùng `foregroundServiceManager` để start/stop service
+- ❌ **Sai:** Không update repository khi seek → position không sync
+- ✅ **Đúng:** Update service notification khi seek, service sẽ update repository
+
+---
+
 ### Phase 4: Fix Navigation & Activity
 
 #### Step 4.1: Update AndroidManifest.xml
@@ -1480,6 +1716,8 @@ val elapsed = when (recordingState) {
 - [ ] Derive `uiState` từ `playbackState`
 - [ ] Simplify `togglePlayPause()`
 - [ ] Update position update logic → dùng `playbackState`
+- [ ] **(Optional - Option B only)** Inject `PlaybackSessionRepository` và `ForegroundServiceManager` vào `LibraryViewModel`
+- [ ] **(Optional - Option B only)** Migrate `LibraryViewModel` sang dùng Foreground Service
 
 ### Phase 4: Fix Navigation
 - [ ] Thêm `launchMode="singleTop"` vào `AndroidManifest.xml`
