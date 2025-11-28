@@ -8,7 +8,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -62,6 +65,77 @@ import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
 import com.yourname.smartrecorder.ui.transcript.TranscriptViewModel
+import com.yourname.smartrecorder.domain.model.TranscriptSegment
+
+/**
+ * Represents a grouped segment (multiple segments from the same speaker combined into one line).
+ * When showSpeakerMode is true, segments with the same speaker are grouped together.
+ */
+private data class GroupedSegment(
+    val segments: List<TranscriptSegment> = emptyList(),
+    val singleSegment: TranscriptSegment? = null
+) {
+    val firstSegment: TranscriptSegment
+        get() = singleSegment ?: segments.first()
+    
+    val speaker: Int?
+        get() = firstSegment.speaker
+    
+    val combinedText: String
+        get() = if (segments.isNotEmpty()) {
+            segments.joinToString(" ") { it.text }
+        } else {
+            singleSegment?.text ?: ""
+        }
+    
+    val startTimeMs: Long
+        get() = firstSegment.startTimeMs
+    
+    val endTimeMs: Long
+        get() = (segments.lastOrNull() ?: singleSegment)?.endTimeMs ?: 0L
+    
+    val ids: List<Long>
+        get() = if (segments.isNotEmpty()) {
+            segments.map { it.id }
+        } else {
+            listOfNotNull(singleSegment?.id)
+        }
+}
+
+/**
+ * Groups consecutive segments with the same speaker into a single GroupedSegment.
+ * Only groups when showSpeakerMode is true and segments have speaker assignments.
+ */
+private fun groupSegmentsBySpeaker(segments: List<TranscriptSegment>): List<GroupedSegment> {
+    if (segments.isEmpty()) return emptyList()
+    
+    val grouped = mutableListOf<GroupedSegment>()
+    var currentGroup = mutableListOf<TranscriptSegment>()
+    var currentSpeaker: Int? = null
+    
+    segments.forEach { segment ->
+        val segmentSpeaker = segment.speaker
+        
+        // If speaker is null or different from current, start a new group
+        if (segmentSpeaker != currentSpeaker) {
+            // Save previous group if not empty
+            if (currentGroup.isNotEmpty()) {
+                grouped.add(GroupedSegment(segments = currentGroup.toList()))
+                currentGroup.clear()
+            }
+            currentSpeaker = segmentSpeaker
+        }
+        
+        currentGroup.add(segment)
+    }
+    
+    // Add the last group
+    if (currentGroup.isNotEmpty()) {
+        grouped.add(GroupedSegment(segments = currentGroup.toList()))
+    }
+    
+    return grouped
+}
 
 @Composable
 fun TranscriptScreen(
@@ -100,6 +174,7 @@ fun TranscriptScreen(
     // Show toast message for volume warning
     LaunchedEffect(uiState.toastMessage) {
         uiState.toastMessage?.let { message ->
+            AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Showing toast -> message: %s", message)
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             // Clear toast message after showing
             delay(3500) // Show for 3.5 seconds
@@ -130,7 +205,9 @@ fun TranscriptScreen(
                         
                         AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Export copied to clipboard -> format: %s, length: %d chars", 
                             format, exportedText.length)
-                        Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                        val toastMessage = "Copied to clipboard"
+                        AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Showing toast -> message: %s", toastMessage)
+                        Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
                         showExportSheet = false
                     } else {
                         AppLogger.w(TAG_VIEWMODEL, "[TranscriptScreen] Export failed -> format: %s", format)
@@ -185,9 +262,15 @@ fun TranscriptScreen(
             )
         }
     ) { innerPadding ->
+        val layoutDirection = LocalLayoutDirection.current
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(
+                    start = innerPadding.calculateStartPadding(layoutDirection),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(layoutDirection),
+                    bottom = 0.dp  // Remove bottom padding to eliminate gap between text and bottom menu
+                )
                 .fillMaxSize()
         ) {
             // Player bar
@@ -297,8 +380,27 @@ fun TranscriptScreen(
                         FloatingActionButtons(
                             showSpeakerMode = showSpeakerMode,
                             isProcessing = isPeopleIconDisabled,
-                            onToggleSpeakerMode = { showSpeakerMode = !showSpeakerMode },
+                            isProcessingTranscript = uiState.isProcessingTranscript,
+                            hasProcessedSegments = hasProcessedSegments,
+                            onToggleSpeakerMode = { 
+                                AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] People/Sub button clicked -> currentMode: %s, disabled: %b", 
+                                    if (showSpeakerMode) "Speaker" else "Timeline", isPeopleIconDisabled)
+                                if (!isPeopleIconDisabled) {
+                                    showSpeakerMode = !showSpeakerMode
+                                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Toggled to mode: %s", 
+                                        if (!showSpeakerMode) "Speaker" else "Timeline")
+                                } else {
+                                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Button click ignored (disabled) -> reason: %s", 
+                                        when {
+                                            uiState.isProcessingTranscript -> "Processing transcript"
+                                            !hasProcessedSegments -> "No multiple speakers detected"
+                                            else -> "Unknown"
+                                        })
+                                }
+                            },
                             onCopyClick = {
+                                AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Copy button clicked -> mode: %s", 
+                                    if (showSpeakerMode) "TXT" else "Subtitle")
                                 val exportedText = if (showSpeakerMode) {
                                     // Copy TXT format (like Share → TXT)
                                     viewModel.exportTranscript(ExportFormat.TXT)
@@ -310,7 +412,9 @@ fun TranscriptScreen(
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     val clip = ClipData.newPlainText("Transcript", exportedText)
                                     clipboard.setPrimaryClip(clip)
-                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    val toastMessage = "Copied to clipboard"
+                                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptScreen] Showing toast -> message: %s", toastMessage)
+                                    Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
                                     AppLogger.logMain(TAG_VIEWMODEL, "[TranscriptScreen] Copied to clipboard -> mode: %s, length: %d", 
                                         if (showSpeakerMode) "TXT" else "SRT", exportedText.length)
                                 }
@@ -431,13 +535,30 @@ private fun TranscriptTabContent(
         uiState.segments
     }
     
-    // Log for debugging
-    LaunchedEffect(segmentsToShow.size, uiState.isGeneratingTranscript, uiState.isLoading) {
-        AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] State -> segmentsCount: %d, isGenerating: %b, isLoading: %b, searchQuery: %s", 
-            segmentsToShow.size, uiState.isGeneratingTranscript, uiState.isLoading, uiState.searchQuery)
+    // Filter out BLANK_AUDIO segments (case-insensitive) - in case they exist in DB from before
+    val filteredSegments = remember(segmentsToShow) {
+        segmentsToShow.filter { segment ->
+            val textUpper = segment.text.trim().uppercase()
+            textUpper != "BLANK_AUDIO" && textUpper.isNotBlank()
+        }
     }
     
-    if (segmentsToShow.isEmpty()) {
+    // Group segments by speaker when in speaker mode (only if showSpeakerMode is true)
+    val groupedSegments = remember(filteredSegments, showSpeakerMode) {
+        if (showSpeakerMode && filteredSegments.isNotEmpty()) {
+            groupSegmentsBySpeaker(filteredSegments)
+        } else {
+            filteredSegments.map { GroupedSegment(singleSegment = it) }
+        }
+    }
+    
+    // Log for debugging
+    LaunchedEffect(filteredSegments.size, uiState.isGeneratingTranscript, uiState.isLoading) {
+        AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] State -> segmentsCount: %d, isGenerating: %b, isLoading: %b, searchQuery: %s", 
+            filteredSegments.size, uiState.isGeneratingTranscript, uiState.isLoading, uiState.searchQuery)
+    }
+    
+    if (filteredSegments.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -482,9 +603,27 @@ private fun TranscriptTabContent(
             }
         }
     } else {
+        // LazyListState for auto-scrolling to current segment
+        val listState = rememberLazyListState()
+        
+        // Auto-scroll to current segment when it changes during playback
+        LaunchedEffect(uiState.currentSegmentId, uiState.isPlaying) {
+            if (uiState.isPlaying && uiState.currentSegmentId != null) {
+                val currentIndex = groupedSegments.indexOfFirst { 
+                    it.ids.contains(uiState.currentSegmentId) 
+                }
+                if (currentIndex >= 0) {
+                    listState.animateScrollToItem(currentIndex)
+                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] Auto-scrolled to segment index: %d (segmentId: %d)", 
+                        currentIndex, uiState.currentSegmentId)
+                }
+            }
+        }
+        
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),  // Remove vertical padding to eliminate gap
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Removed old icon button - now using floating buttons
@@ -498,24 +637,28 @@ private fun TranscriptTabContent(
                     )
                 }
             }
-            items(segmentsToShow) { segment ->
+            items(groupedSegments) { groupedSegment ->
                 Box(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TranscriptLineItem(
-                        segment = segment,
-                        isCurrent = segment.id == uiState.currentSegmentId,
+                        groupedSegment = groupedSegment,
+                        isCurrent = groupedSegment.ids.contains(uiState.currentSegmentId),
                         isHighlighted = uiState.searchQuery.isNotEmpty() && 
-                            segment.text.lowercase().contains(uiState.searchQuery.lowercase()),
+                            groupedSegment.combinedText.lowercase().contains(uiState.searchQuery.lowercase()),
                         searchQuery = uiState.searchQuery,
                         showSpeaker = showSpeakerMode,
-                        isEditing = segment.id == uiState.editingSegmentId,
-                        editingText = if (segment.id == uiState.editingSegmentId) uiState.editingText else segment.text,
-                    onClick = { onSegmentClick(segment) },
-                    onEditClick = { onEditClick(segment.id) },
-                    onTextChange = onTextChange,
-                    onSaveClick = onSaveClick,
-                    onCancelClick = onCancelClick
+                        isEditing = groupedSegment.ids.contains(uiState.editingSegmentId),
+                        editingText = if (groupedSegment.ids.contains(uiState.editingSegmentId)) {
+                            uiState.editingText
+                        } else {
+                            groupedSegment.combinedText
+                        },
+                        onClick = { onSegmentClick(groupedSegment.firstSegment) },
+                        onEditClick = { onEditClick(groupedSegment.firstSegment.id) },
+                        onTextChange = onTextChange,
+                        onSaveClick = onSaveClick,
+                        onCancelClick = onCancelClick
                     )
                 }
             }
@@ -525,7 +668,7 @@ private fun TranscriptTabContent(
 
 @Composable
 private fun TranscriptLineItem(
-    segment: com.yourname.smartrecorder.domain.model.TranscriptSegment,
+    groupedSegment: GroupedSegment,
     isCurrent: Boolean,
     isHighlighted: Boolean = false,
     searchQuery: String = "",
@@ -538,6 +681,7 @@ private fun TranscriptLineItem(
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
+    val segment = groupedSegment.firstSegment
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     
@@ -566,10 +710,10 @@ private fun TranscriptLineItem(
         ) {
             // Show speaker label if showSpeaker is true, otherwise show timeline
             if (showSpeaker) {
-                // Show speaker label - fallback to "Speaker 1" if null
+                // Show speaker number only (no "Speaker" prefix) - fallback to "1" if null
                 // This ensures consistent display even when detectSpeakers() doesn't detect multiple speakers
                 Text(
-                    text = "Speaker ${segment.speaker ?: 1}:",
+                    text = "${segment.speaker ?: 1}:",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -625,12 +769,12 @@ private fun TranscriptLineItem(
                     // Highlight search query in text
                     if (isHighlighted && searchQuery.isNotEmpty()) {
                         HighlightedText(
-                            text = segment.text,
+                            text = groupedSegment.combinedText,
                             query = searchQuery
                         )
                     } else {
                         Text(
-                            text = segment.text,
+                            text = groupedSegment.combinedText,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -957,13 +1101,15 @@ private fun SummaryTabContent(
 private fun FloatingActionButtons(
     showSpeakerMode: Boolean,
     isProcessing: Boolean = false,
+    isProcessingTranscript: Boolean = false,
+    hasProcessedSegments: Boolean = false,
     onToggleSpeakerMode: () -> Unit,
     onCopyClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),  // Reduced vertical padding to make buttons closer to bottom menu
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -984,20 +1130,46 @@ private fun FloatingActionButtons(
         
         // Subtitle/Timeline button (when not in speaker mode) or People button (when in speaker mode)
         // Disabled when processing or when no segments have been processed yet
-        FloatingActionButton(
-            onClick = { if (!isProcessing) onToggleSpeakerMode() },
-            modifier = Modifier
-                .size(56.dp)
-                .alpha(if (isProcessing) 0.5f else 1f),  // Visual feedback when disabled
-            shape = CircleShape,
-            containerColor = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = if (showSpeakerMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
+        val disableReason = when {
+            isProcessingTranscript -> "Processing transcript..."
+            !hasProcessedSegments -> "No multiple speakers detected"
+            else -> null
+        }
+        
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+            tooltip = {
+                if (disableReason != null) {
+                    PlainTooltip {
+                        Text(disableReason)
+                    }
+                }
+            },
+            state = remember { TooltipState() }
         ) {
-            Icon(
-                imageVector = if (showSpeakerMode) Icons.Default.Person else Icons.Default.Subtitles,
-                contentDescription = if (showSpeakerMode) "Show timeline" else if (isProcessing) "Processing transcript..." else "Show speakers",
-                modifier = Modifier.size(24.dp)
-            )
+            FloatingActionButton(
+                onClick = { 
+                    AppLogger.d(TAG_VIEWMODEL, "[FloatingActionButtons] People/Sub button clicked -> isProcessing: %b, showSpeakerMode: %b", 
+                        isProcessing, showSpeakerMode)
+                    if (!isProcessing) {
+                        onToggleSpeakerMode()
+                    } else {
+                        AppLogger.d(TAG_VIEWMODEL, "[FloatingActionButtons] Button click ignored (disabled)")
+                    }
+                },
+                modifier = Modifier
+                    .size(56.dp)
+                    .alpha(if (isProcessing) 0.5f else 1f),  // Visual feedback when disabled
+                shape = CircleShape,
+                containerColor = if (showSpeakerMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = if (showSpeakerMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
+                Icon(
+                    imageVector = if (showSpeakerMode) Icons.Default.Person else Icons.Default.Subtitles,
+                    contentDescription = if (showSpeakerMode) "Show timeline" else if (isProcessing) disableReason ?: "Show speakers" else "Show speakers",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

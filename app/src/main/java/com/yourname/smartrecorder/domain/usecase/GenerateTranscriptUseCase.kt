@@ -53,19 +53,25 @@ class GenerateTranscriptUseCase @Inject constructor(
             }
             
             // Convert WhisperEngine.WhisperSegment to TranscriptSegment (RAW - no speaker processing)
-            val rawSegments = whisperSegments.mapIndexed { index, whisperSegment ->
-                TranscriptSegment(
-                    id = index.toLong(),
-                    recordingId = recording.id,
-                    startTimeMs = (whisperSegment.start * 1000).toLong(),
-                    endTimeMs = (whisperSegment.end * 1000).toLong(),
-                    text = whisperSegment.text,
-                    isQuestion = whisperSegment.text.trim().endsWith("?"),
-                    speaker = null  // Not processed yet - will be processed in background
-                )
-            }
+            val rawSegments = whisperSegments
+                .mapIndexed { index, whisperSegment ->
+                    TranscriptSegment(
+                        id = index.toLong(),
+                        recordingId = recording.id,
+                        startTimeMs = (whisperSegment.start * 1000).toLong(),
+                        endTimeMs = (whisperSegment.end * 1000).toLong(),
+                        text = whisperSegment.text,
+                        isQuestion = whisperSegment.text.trim().endsWith("?"),
+                        speaker = null  // Not processed yet - will be processed in background
+                    )
+                }
+                .filter { segment ->
+                    // Filter out BLANK_AUDIO segments (case-insensitive)
+                    val textUpper = segment.text.trim().uppercase()
+                    textUpper != "BLANK_AUDIO" && textUpper.isNotBlank()
+                }
         
-            AppLogger.d(TAG_TRANSCRIPT, "Generated %d RAW transcript segments (no speaker processing)", rawSegments.size)
+            AppLogger.d(TAG_TRANSCRIPT, "Generated %d RAW transcript segments (no speaker processing, filtered BLANK_AUDIO)", rawSegments.size)
             
             // Log raw text immediately after transcription (first 3 segments as sample)
             logRawText(rawSegments)
