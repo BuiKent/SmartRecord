@@ -361,6 +361,15 @@ class PlaybackForegroundService : Service() {
     
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            
+            // ⚠️ CRITICAL: Luôn xóa channel cũ để đảm bảo importance được update
+            try {
+                manager.deleteNotificationChannel(CHANNEL_ID)
+            } catch (e: Exception) {
+                // Channel không tồn tại, ignore
+            }
+            
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Audio Playback",
@@ -373,7 +382,6 @@ class PlaybackForegroundService : Service() {
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC // Vẫn hiển thị trên lock screen
                 setShowBadge(false)
             }
-            val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }
@@ -415,9 +423,9 @@ class PlaybackForegroundService : Service() {
             pausePendingIntent
         )
         
-        // Stop action
+        // Stop action - dùng icon stop chuẩn của Android
         val stopAction = NotificationCompat.Action(
-            android.R.drawable.ic_menu_close_clear_cancel,
+            android.R.drawable.ic_menu_close_clear_cancel, // Icon stop cho notification
             "Stop",
             stopPendingIntent
         )
@@ -435,6 +443,7 @@ class PlaybackForegroundService : Service() {
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
             .setOnlyAlertOnce(true) // ⚠️ CRITICAL: Chỉ alert lần đầu, update im lặng
             .setSilent(true) // ⚠️ CRITICAL: Im lặng hoàn toàn
+            .setShowWhen(false) // Không hiển thị timestamp
         
         // Add MediaStyle for lock screen controls
         mediaSession?.let { session ->
@@ -444,6 +453,9 @@ class PlaybackForegroundService : Service() {
                     .setMediaSession(session.sessionToken)
             )
         }
+        
+        // ⚠️ CRITICAL: Đảm bảo stop action hiển thị trong expanded view
+        // MediaStyle sẽ tự động hiển thị tất cả actions trong expanded view
         
         return builder.build()
     }

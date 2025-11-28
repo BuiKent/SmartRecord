@@ -259,8 +259,8 @@ class RecordingForegroundService : Service() {
         AppLogger.logCritical(TAG_SERVICE, "Recording stopped in foreground service", 
             "duration=${duration}ms")
         
-        // ⚠️ CRITICAL: Update repository state FIRST
-        recordingSessionRepository.setIdle()
+        // ⚠️ CRITICAL: Don't stop AudioRecorder here - let ViewModel do it
+        // ViewModel will handle stopping AudioRecorder, saving file, and updating repository state
         
         isRecording = false
         isPaused = false
@@ -268,8 +268,13 @@ class RecordingForegroundService : Service() {
         lastBackgroundTime = 0L
         recordingStateManager.clearRecordingState()
         
-        // Send broadcast to ViewModel
+        // ⚠️ CRITICAL: Send broadcast FIRST, ViewModel will:
+        // 1. Stop AudioRecorder
+        // 2. Save file to database
+        // 3. Update repository to Idle
         sendBroadcast(BROADCAST_STOP)
+        
+        // ⚠️ CRITICAL: Don't set repository to Idle here - let ViewModel do it after saving
     }
     
     private fun sendBroadcast(action: String) {
@@ -319,6 +324,15 @@ class RecordingForegroundService : Service() {
     
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            
+            // ⚠️ CRITICAL: Luôn xóa channel cũ để đảm bảo importance được update
+            try {
+                manager.deleteNotificationChannel(CHANNEL_ID)
+            } catch (e: Exception) {
+                // Channel không tồn tại, ignore
+            }
+            
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Recording",
@@ -331,7 +345,6 @@ class RecordingForegroundService : Service() {
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC // Vẫn hiển thị trên lock screen
                 setShowBadge(false)
             }
-            val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }

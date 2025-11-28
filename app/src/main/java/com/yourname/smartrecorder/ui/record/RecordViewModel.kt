@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.smartrecorder.core.logging.AppLogger
@@ -96,8 +97,28 @@ class RecordViewModel @Inject constructor(
         initialValue = RecordUiState()
     )
     
+    // BroadcastReceiver để nhận stop từ notification
+    private val stopFromNotificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == RecordingForegroundService.BROADCAST_STOP) {
+                AppLogger.logCritical(TAG_RECORDING, "Stop from notification received")
+                // Gọi onStopClick để lưu vào database
+                onStopClick()
+            }
+        }
+    }
+    
     init {
         checkModelReady()
+        
+        // Register BroadcastReceiver để nhận stop từ notification
+        val filter = IntentFilter(RecordingForegroundService.BROADCAST_STOP)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(stopFromNotificationReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(stopFromNotificationReceiver, filter)
+        }
     }
     
     private val _navigateToTranscript = MutableStateFlow<String?>(null)
@@ -292,46 +313,84 @@ class RecordViewModel @Inject constructor(
 
     fun onStopClick() {
         val currentState = recordingState.value
-        if (currentState !is RecordingState.Active) {
-            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Stop rejected - not recording")
+        
+        // ⚠️ CRITICAL: Allow stop even if state is already Idle (from notification stop)
+        // This handles the case where service already stopped but we still need to save
+        if (currentState !is RecordingState.Active && currentRecording == null) {
+            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Stop rejected - not recording and no currentRecording")
+            return
+        }
+        
+        // ⚠️ CRITICAL: Prevent multiple calls
+        if (isStarting) {
+            AppLogger.w(TAG_VIEWMODEL, "RecordViewModel: Stop rejected - already processing")
             return
         }
         
         AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStopClick", null)
+        isStarting = true
+        
         viewModelScope.launch {
             try {
                 timerJob?.cancel()
                 
-                // Get recording from repository state
-                val recording = currentRecording ?: run {
-                    AppLogger.w(TAG_RECORDING, "Stop called but currentRecording is null")
-                    return@launch
+                // Get recording from repository state or currentRecording
+                val recording = if (currentState is RecordingState.Active) {
+                    currentRecording ?: run {
+                        AppLogger.w(TAG_RECORDING, "Stop called but currentRecording is null")
+                        isStarting = false
+                        return@launch
+                    }
+                } else {
+                    // State already Idle (from notification stop), use currentRecording if available
+                    currentRecording ?: run {
+                        AppLogger.w(TAG_RECORDING, "Stop called but currentRecording is null and state is Idle")
+                        isStarting = false
+                        return@launch
+                    }
                 }
                 
-                // Calculate actual recording duration using repository state
-                val durationMs = currentState.getElapsedMs()
+                // Calculate actual recording duration
+                val durationMs = if (currentState is RecordingState.Active) {
+                    currentState.getElapsedMs()
+                } else {
+                    // State already Idle, use a default or calculate from file
+                    recording.durationMs.takeIf { it > 0 } ?: 0L
+                }
+                
                 AppLogger.d(TAG_RECORDING, "Stopping recording -> recordingId: %s, duration: %d ms", 
                     recording.id, durationMs)
                 
-                // Stop foreground service - service will update repository to Idle
-                foregroundServiceManager.stopRecordingService()
+                // Stop foreground service (if not already stopped)
+                if (currentState is RecordingState.Active) {
+                    foregroundServiceManager.stopRecordingService()
+                }
                 
                 // Stop auto-save and force final save
                 autoSaveManager.forceSaveNow()
                 autoSaveManager.stopAutoSave()
                 
+                // ⚠️ CRITICAL: Stop AudioRecorder and save
+                // Service doesn't stop AudioRecorder, so we always need to stop it here
                 val saved = stopRecordingAndSave(recording, durationMs)
+                
+                // ⚠️ CRITICAL: Update repository state to Idle AFTER saving
+                recordingSessionRepository.setIdle()
                 
                 AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Recording saved", 
                     "recordingId=${saved.id}, title=${saved.title}, duration=${saved.durationMs}ms")
                 
                 currentRecording = null
+                isStarting = false
                 _navigateToTranscript.value = saved.id
                 
                 AppLogger.d(TAG_RECORDING, "Navigation triggered -> transcriptId: %s", saved.id)
             } catch (e: Exception) {
                 AppLogger.e(TAG_RECORDING, "Failed to stop recording", e)
+                isStarting = false
                 _otherUiState.update { it.copy(error = e.message) }
+                // Still update repository to Idle on error
+                recordingSessionRepository.setIdle()
             }
         }
     }
@@ -475,6 +534,13 @@ class RecordViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        
+        // Unregister BroadcastReceiver
+        try {
+            context.unregisterReceiver(stopFromNotificationReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver not registered, ignore
+        }
         
         // Cleanup if recording was active
         val currentState = recordingState.value
