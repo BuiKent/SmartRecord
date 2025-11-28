@@ -1520,9 +1520,32 @@ Tài liệu này liệt kê các task cần thực hiện để cải thiện UI
   - Code hiện tại: `if (showSpeaker && segment.speaker != null)` → chỉ hiển thị khi speaker != null
   - Cần xử lý case speaker == null để không hiển thị dòng trống
 
-### 2.3. Bottom Navigation
+### 2.3. Auto-scroll Behavior
 
-#### ✅ Task 2.3.1: Bottom menu luôn về màn hình chính
+#### ✅ Task 2.3.1: Smart Auto-scroll - Disable khi User Scroll Manually ✅ COMPLETED
+- **File:** `app/src/main/java/com/yourname/smartrecorder/ui/screens/TranscriptScreen.kt`
+- **Mô tả:**
+  - Auto-scroll chỉ hoạt động khi user không đang scroll manually
+  - Khi user scroll manually → tự động tắt auto-scroll
+  - Khi đến timeline/speaker tiếp theo → tự động bật lại auto-scroll
+- **Cách làm:**
+  1. Sử dụng `listState.isScrollInProgress` để detect user scroll
+  2. Track state `isUserScrolling` để disable auto-scroll khi user đang scroll
+  3. Re-enable auto-scroll sau 500ms khi user dừng scroll
+  4. Re-enable auto-scroll khi segment thay đổi (timeline/speaker mới)
+  5. Track `lastAutoScrolledSegmentId` để chỉ auto-scroll khi segment thực sự thay đổi
+- **Priority:** High
+- **Estimated Time:** 1 giờ
+- **Status:** ✅ COMPLETED
+  - ✅ Detect user manual scroll với `listState.isScrollInProgress`
+  - ✅ Disable auto-scroll khi user đang scroll
+  - ✅ Re-enable sau 500ms khi user dừng scroll
+  - ✅ Re-enable khi segment thay đổi (timeline/speaker tiếp theo)
+  - ✅ Chỉ auto-scroll khi segment thực sự thay đổi (không scroll lại segment cũ)
+
+### 2.4. Bottom Navigation
+
+#### ✅ Task 2.4.1: Bottom menu luôn về màn hình chính
 - **File:** 
   - `app/src/main/java/com/yourname/smartrecorder/ui/widgets/AppBottomBar.kt`
   - `app/src/main/java/com/yourname/smartrecorder/ui/SmartRecorderApp.kt`
@@ -1646,14 +1669,20 @@ Box(modifier = Modifier.fillMaxSize()) {
 
 ### Transcript Screen:
 - [x] Inline editing hoạt động ✅ (đã làm, cần verify)
-- [ ] Save khi click outside ❌ **CHƯA LÀM ĐƯỢC** - Cần implement
+- [x] Save khi click outside ✅ COMPLETED (đã implement với onFocusChanged)
 - [x] Save khi click check icon ✅ (đã làm, cần verify)
 - [ ] Không có memory leak ⚠️ Chưa test
 - [x] Performance tốt (không lag khi edit) ✅ (đã làm, cần verify)
 - [x] Floating buttons hiển thị đúng vị trí ✅ (đã làm, cần verify)
 - [x] Copy button hoạt động đúng (subtitle/txt) ✅ (đã làm, cần verify) - Khi copy và paste thì có hiện speaker 1, 2 → logic đã đúng
-- [ ] Speaker labels hiển thị trong People mode ⚠️ **VẤN ĐỀ:** Trong màn hình transcript khi chuyển qua tab People thì đang hiện "unknown speaker" thay vì "Speaker 1", "Speaker 2". Logic copy/paste đã đúng nhưng hiển thị trong tab chưa đúng.
+- [x] Speaker labels hiển thị trong People mode ✅ COMPLETED (đã fix, hiển thị Speaker 1, 2 thay vì Unknown Speaker)
 - [x] Bottom menu luôn về màn hình chính ✅ (đã làm, cần verify)
+- [x] Auto-scroll thông minh ✅ COMPLETED
+  - ✅ Tự động tắt khi user scroll manually
+  - ✅ Tự động bật lại khi đến timeline/speaker tiếp theo
+  - ✅ Sử dụng `listState.isScrollInProgress` để detect user scroll
+  - ✅ Re-enable sau 500ms khi user dừng scroll
+  - ✅ Re-enable khi segment thay đổi (timeline/speaker mới)
 
 ---
 

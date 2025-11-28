@@ -5,7 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -48,9 +51,21 @@ class PlaybackForegroundService : Service() {
         private const val NOTIFICATION_ID = 2
         private const val ACTION_PAUSE = "com.yourname.smartrecorder.PAUSE_PLAYBACK"
         private const val ACTION_STOP = "com.yourname.smartrecorder.STOP_PLAYBACK"
+        const val BROADCAST_UPDATE_NOTIFICATION = "com.yourname.smartrecorder.BROADCAST_UPDATE_PLAYBACK_NOTIFICATION"
         
         fun createIntent(context: android.content.Context): Intent {
             return Intent(context, PlaybackForegroundService::class.java)
+        }
+    }
+    
+    private val notificationUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == BROADCAST_UPDATE_NOTIFICATION) {
+                val position = intent.getLongExtra("position", 0L)
+                val duration = intent.getLongExtra("duration", 0L)
+                val isPaused = intent.getBooleanExtra("isPaused", false)
+                updateNotification(position, duration, isPaused)
+            }
         }
     }
     
@@ -63,6 +78,15 @@ class PlaybackForegroundService : Service() {
         AppLogger.logService(TAG_SERVICE, "PlaybackForegroundService", "onCreate")
         createNotificationChannel()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        
+        // Register BroadcastReceiver for notification updates
+        val filter = IntentFilter(BROADCAST_UPDATE_NOTIFICATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(notificationUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(notificationUpdateReceiver, filter)
+        }
         
         // TODO: Create MediaSession for lock screen controls
         // mediaSession = MediaSessionCompat(this, "PlaybackService").apply {
@@ -101,12 +125,10 @@ class PlaybackForegroundService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
-                // Handle start playback or update notification
+                // Handle start playback only (notification updates via BroadcastReceiver)
                 val recordingId = intent?.getStringExtra("recordingId")
                 val title = intent?.getStringExtra("title")
                 val duration = intent?.getLongExtra("duration", 0L) ?: 0L
-                val position = intent?.getLongExtra("position", 0L) ?: 0L
-                val isPaused = intent?.getBooleanExtra("isPaused", false) ?: false
                 
                 // Lưu recordingId nếu có
                 if (recordingId != null) {
@@ -115,14 +137,12 @@ class PlaybackForegroundService : Service() {
                 
                 if (title != null && duration > 0 && !isPlaying) {
                     startPlayback(title, duration)
-                } else if (isPlaying) {
-                    // Update notification
-                    updateNotification(position, duration, isPaused)
+                    return START_STICKY
                 } else {
-                    startForeground(NOTIFICATION_ID, createNotification(0, 0, false))
-                    AppLogger.logService(TAG_SERVICE, "PlaybackForegroundService", "Started foreground")
+                    // Ignore update notification calls via Intent (use BroadcastReceiver instead)
+                    AppLogger.d(TAG_SERVICE, "Ignoring update notification via Intent - use BroadcastReceiver")
+                    return START_NOT_STICKY
                 }
-                return START_STICKY
             }
         }
     }
@@ -138,6 +158,12 @@ class PlaybackForegroundService : Service() {
         if (isPlaying) {
             AppLogger.logRareCondition(TAG_SERVICE, "Service destroyed while playing", 
                 "title=$currentTitle, position=$currentPosition")
+        }
+        // Unregister BroadcastReceiver
+        try {
+            unregisterReceiver(notificationUpdateReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver not registered, ignore
         }
         // TODO: Release MediaSession
         // mediaSession?.release()

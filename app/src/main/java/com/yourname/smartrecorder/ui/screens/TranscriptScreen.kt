@@ -65,6 +65,8 @@ import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.ExportBottomSheet
 import com.yourname.smartrecorder.ui.transcript.TranscriptTab
 import com.yourname.smartrecorder.ui.transcript.TranscriptViewModel
+import com.yourname.smartrecorder.ui.player.TranscriptPlayerBar
+import com.yourname.smartrecorder.core.utils.TimeFormatter
 import com.yourname.smartrecorder.domain.model.TranscriptSegment
 
 /**
@@ -273,15 +275,14 @@ fun TranscriptScreen(
                 )
                 .fillMaxSize()
         ) {
-            // Player bar
-            PlayerBar(
+            // Player bar - Card design với màu cam
+            TranscriptPlayerBar(
+                title = recording?.title?.takeIf { it.isNotBlank() } ?: "",
                 isPlaying = uiState.isPlaying,
-                isLooping = uiState.isLooping,
                 currentPosMs = uiState.currentPositionMs,
                 durationMs = recording?.durationMs ?: 0L,
                 onPlayPauseClick = { viewModel.togglePlayPause() },
-                onSeekTo = { viewModel.seekTo(it.toLong()) },
-                onToggleLoop = { viewModel.toggleLoop() }
+                onSeekTo = { viewModel.seekTo(it) }
             )
             
             // Search bar
@@ -443,7 +444,7 @@ fun TranscriptScreen(
     // Bookmark dialog
     if (showBookmarkDialog) {
         AddBookmarkDialog(
-            timestamp = formatDuration(uiState.currentPositionMs),
+            timestamp = TimeFormatter.formatTime(uiState.currentPositionMs),
             onDismiss = { showBookmarkDialog = false },
             onConfirm = { note ->
                 viewModel.addBookmark(note)
@@ -467,55 +468,8 @@ fun TranscriptScreen(
     }
 }
 
-@Composable
-fun PlayerBar(
-    isPlaying: Boolean,
-    isLooping: Boolean = false,
-    currentPosMs: Long,
-    durationMs: Long,
-    onPlayPauseClick: () -> Unit,
-    onSeekTo: (Float) -> Unit,
-    onToggleLoop: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onPlayPauseClick) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = "Play/Pause"
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Slider(
-                    value = currentPosMs.toFloat(),
-                    onValueChange = onSeekTo,
-                    valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        formatDuration(currentPosMs),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Text(
-                        formatDuration(durationMs),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-        }
-    }
-}
+// PlayerBar đã được thay thế bằng TranscriptPlayerBar
+// Giữ lại comment này để reference
 
 @Composable
 private fun TranscriptTabContent(
@@ -606,19 +560,66 @@ private fun TranscriptTabContent(
         // LazyListState for auto-scrolling to current segment
         val listState = rememberLazyListState()
         
-        // Auto-scroll to current segment when it changes during playback
-        // Show 1 timeline before current + current timeline (scroll to index - 1)
-        LaunchedEffect(uiState.currentSegmentId, uiState.isPlaying) {
-            if (uiState.isPlaying && uiState.currentSegmentId != null) {
-                val currentIndex = groupedSegments.indexOfFirst { 
-                    it.ids.contains(uiState.currentSegmentId) 
+        // Track if user is manually scrolling (disable auto-scroll during manual scroll)
+        var isUserScrolling by remember { mutableStateOf(false) }
+        var lastManualScrollTime by remember { mutableStateOf(0L) }
+        var lastAutoScrolledSegmentId by remember { mutableStateOf<Long?>(null) }
+        
+        // Detect user manual scroll
+        LaunchedEffect(listState.isScrollInProgress) {
+            if (listState.isScrollInProgress) {
+                isUserScrolling = true
+                lastManualScrollTime = System.currentTimeMillis()
+                AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] User started manual scroll -> disabling auto-scroll")
+            } else {
+                // User stopped scrolling - check if we should re-enable auto-scroll
+                // Re-enable after a short delay (500ms) to avoid immediate re-scroll
+                kotlinx.coroutines.delay(500)
+                if (System.currentTimeMillis() - lastManualScrollTime > 500) {
+                    isUserScrolling = false
+                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] User stopped manual scroll -> re-enabling auto-scroll")
                 }
-                if (currentIndex >= 0) {
-                    // Scroll to show 1 timeline before current + current timeline
-                    val scrollIndex = maxOf(0, currentIndex - 1)
-                    listState.animateScrollToItem(scrollIndex)
-                    AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] Auto-scrolled to segment index: %d (current: %d, segmentId: %d)", 
-                        scrollIndex, currentIndex, uiState.currentSegmentId)
+            }
+        }
+        
+        // Auto-scroll to current segment when it changes during playback
+        // Only auto-scroll if:
+        // 1. Audio is playing
+        // 2. User is not manually scrolling
+        // 3. Current segment changed (new timeline/speaker)
+        LaunchedEffect(uiState.currentSegmentId, uiState.isPlaying) {
+            if (uiState.isPlaying && uiState.currentSegmentId != null && !isUserScrolling) {
+                // Only auto-scroll if segment actually changed
+                if (uiState.currentSegmentId != lastAutoScrolledSegmentId) {
+                    val currentIndex = groupedSegments.indexOfFirst { 
+                        it.ids.contains(uiState.currentSegmentId) 
+                    }
+                    if (currentIndex >= 0) {
+                        // Scroll to show 1 timeline before current + current timeline
+                        val scrollIndex = maxOf(0, currentIndex - 1)
+                        listState.animateScrollToItem(scrollIndex)
+                        lastAutoScrolledSegmentId = uiState.currentSegmentId
+                        AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] Auto-scrolled to segment index: %d (current: %d, segmentId: %d)", 
+                            scrollIndex, currentIndex, uiState.currentSegmentId)
+                    }
+                }
+            }
+        }
+        
+        // Re-enable auto-scroll when segment changes (new timeline/speaker) even if user was scrolling
+        // This allows auto-scroll to resume when audio naturally progresses to next segment
+        LaunchedEffect(uiState.currentSegmentId) {
+            if (uiState.isPlaying && uiState.currentSegmentId != null) {
+                // If segment changed and user was scrolling, check if we should resume auto-scroll
+                if (isUserScrolling && uiState.currentSegmentId != lastAutoScrolledSegmentId) {
+                    // Wait a bit to see if user continues scrolling
+                    kotlinx.coroutines.delay(1000)
+                    if (!listState.isScrollInProgress) {
+                        isUserScrolling = false
+                        lastManualScrollTime = System.currentTimeMillis()
+                        AppLogger.d(TAG_VIEWMODEL, "[TranscriptTabContent] Segment changed to %d -> re-enabling auto-scroll", 
+                            uiState.currentSegmentId)
+                    }
                 }
             }
         }
@@ -724,7 +725,7 @@ private fun TranscriptLineItem(
             } else {
                 // Show timeline
                 Text(
-                    text = "[${formatDuration(segment.startTimeMs)}]",
+                    text = "[${TimeFormatter.formatTime(segment.startTimeMs)}]",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -902,7 +903,7 @@ private fun NotesTabContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = formatDuration(bookmark.timestampMs),
+                                    text = TimeFormatter.formatTime(bookmark.timestampMs),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )

@@ -52,14 +52,14 @@ class ForegroundServiceManager @Inject constructor(
     }
     
     fun updateRecordingNotification(durationMs: Long, isPaused: Boolean = false) {
-        // ⚠️ CRITICAL FIX: Dùng startService() thay vì startForegroundService() để tránh recreate notification
-        // Service đã chạy rồi (foreground), chỉ cần update notification
-        val intent = RecordingForegroundService.createIntent(context).apply {
+        // ⚠️ CRITICAL FIX: Dùng BroadcastReceiver thay vì startService() để tránh gọi onStartCommand liên tục
+        // Service đã chạy rồi (foreground), chỉ cần update notification qua broadcast
+        val intent = Intent(RecordingForegroundService.BROADCAST_UPDATE_NOTIFICATION).apply {
+            setPackage(context.packageName)
             putExtra("durationMs", durationMs)
             putExtra("isPaused", isPaused)
         }
-        // Dùng startService() thay vì startForegroundService() để tránh gọi onStartCommand liên tục
-        context.startService(intent)
+        context.sendBroadcast(intent)
     }
     
     fun startPlaybackService(recordingId: String, title: String, duration: Long) {
@@ -94,16 +94,15 @@ class ForegroundServiceManager @Inject constructor(
     }
     
     fun updatePlaybackNotification(recordingId: String, position: Long, duration: Long, isPaused: Boolean = false) {
-        // ⚠️ CRITICAL FIX: Dùng startService() thay vì startForegroundService() để tránh recreate notification
-        // Service đã chạy rồi (foreground), chỉ cần update notification
-        val intent = PlaybackForegroundService.createIntent(context).apply {
-            putExtra("recordingId", recordingId)
+        // ⚠️ CRITICAL FIX: Dùng BroadcastReceiver thay vì startService() để tránh gọi onStartCommand liên tục
+        // Service đã chạy rồi (foreground), chỉ cần update notification qua broadcast
+        val intent = Intent(PlaybackForegroundService.BROADCAST_UPDATE_NOTIFICATION).apply {
+            setPackage(context.packageName)
             putExtra("position", position)
             putExtra("duration", duration)
             putExtra("isPaused", isPaused)
         }
-        // Dùng startService() thay vì startForegroundService() để tránh gọi onStartCommand liên tục
-        context.startService(intent)
+        context.sendBroadcast(intent)
     }
 }
 

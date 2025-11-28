@@ -54,9 +54,20 @@ class RecordingForegroundService : Service() {
         const val BROADCAST_PAUSE = "com.yourname.smartrecorder.BROADCAST_PAUSE"
         const val BROADCAST_RESUME = "com.yourname.smartrecorder.BROADCAST_RESUME"
         const val BROADCAST_STOP = "com.yourname.smartrecorder.BROADCAST_STOP"
+        const val BROADCAST_UPDATE_NOTIFICATION = "com.yourname.smartrecorder.BROADCAST_UPDATE_NOTIFICATION"
         
         fun createIntent(context: android.content.Context): Intent {
             return Intent(context, RecordingForegroundService::class.java)
+        }
+    }
+    
+    private val notificationUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == BROADCAST_UPDATE_NOTIFICATION) {
+                val durationMs = intent.getLongExtra("durationMs", 0L)
+                val isPaused = intent.getBooleanExtra("isPaused", false)
+                updateNotification(durationMs, isPaused)
+            }
         }
     }
     
@@ -69,6 +80,15 @@ class RecordingForegroundService : Service() {
         AppLogger.logService(TAG_SERVICE, "RecordingForegroundService", "onCreate")
         createNotificationChannel()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        
+        // Register BroadcastReceiver for notification updates
+        val filter = IntentFilter(BROADCAST_UPDATE_NOTIFICATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(notificationUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(notificationUpdateReceiver, filter)
+        }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -94,23 +114,18 @@ class RecordingForegroundService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
-                // Handle start recording or update notification
+                // Handle start recording only (notification updates via BroadcastReceiver)
                 val recordingId = intent?.getStringExtra("recordingId")
                 val fileName = intent?.getStringExtra("fileName")
-                val durationMs = intent?.getLongExtra("durationMs", 0L) ?: 0L
-                val pausedState = intent?.getBooleanExtra("isPaused", false) ?: false
-                isPaused = pausedState
                 
                 if (recordingId != null && fileName != null && !isRecording) {
                     startRecording(recordingId, fileName)
-                } else if (isRecording) {
-                    // Update notification
-                    updateNotification(durationMs, isPaused)
+                    return START_STICKY // Restart if killed
                 } else {
-                    startForeground(NOTIFICATION_ID, createNotification(0, false))
-                    AppLogger.logService(TAG_SERVICE, "RecordingForegroundService", "Started foreground")
+                    // Ignore update notification calls via Intent (use BroadcastReceiver instead)
+                    AppLogger.d(TAG_SERVICE, "Ignoring update notification via Intent - use BroadcastReceiver")
+                    return START_NOT_STICKY
                 }
-                return START_STICKY // Restart if killed
             }
         }
     }
@@ -126,6 +141,12 @@ class RecordingForegroundService : Service() {
         if (isRecording) {
             AppLogger.logRareCondition(TAG_SERVICE, "Service destroyed while recording", 
                 "recordingDuration=${System.currentTimeMillis() - recordingStartTime}ms")
+        }
+        // Unregister BroadcastReceiver
+        try {
+            unregisterReceiver(notificationUpdateReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver not registered, ignore
         }
     }
     

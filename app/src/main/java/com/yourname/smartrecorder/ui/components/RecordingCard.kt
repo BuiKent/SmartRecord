@@ -24,6 +24,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
+import com.yourname.smartrecorder.core.utils.TimeFormatter
 import com.yourname.smartrecorder.domain.model.Recording
 import java.text.SimpleDateFormat
 import java.util.*
@@ -118,7 +119,7 @@ fun RecordingCard(
                     
                     Row {
                         Text(
-                            text = formatDuration(recording.durationMs),
+                            text = TimeFormatter.formatTime(recording.durationMs),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -191,18 +192,20 @@ fun RecordingCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Play/Pause button
+                // Play/Pause button - màu cam để thống nhất
                 IconButton(
                     onClick = { 
                         AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked %s -> recordingId: %s", 
                             if (isPlaying) "pause" else "play", recording.id)
                         if (isPlaying) onPauseClick() else onPlayClick() 
-                    }
+                    },
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary, // Màu cam #FF6B35
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 
@@ -255,17 +258,8 @@ fun RecordingCard(
     }
 }
 
-fun formatDuration(ms: Long): String {
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) {
-        "%d:%02d:%02d".format(h, m, s)
-    } else {
-        "%d:%02d".format(m, s)
-    }
-}
+// formatDuration đã được thay thế bằng TimeFormatter.formatTime()
+// Giữ lại comment này để reference
 
 fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
