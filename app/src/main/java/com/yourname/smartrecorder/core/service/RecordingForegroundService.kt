@@ -118,29 +118,10 @@ class RecordingForegroundService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_STOP -> {
-                // ✅ GIẢI PHÁP: Dùng PendingIntent.send() giống như media control
-                // PendingIntent được Android System xử lý → có quyền đặc biệt để mở app
-                AppLogger.d(TAG_SERVICE, "ACTION_STOP received", "Opening app via PendingIntent...")
-                
-                try {
-                    // Dùng cùng PendingIntent như media control (contentIntent)
-                    val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
-                    pendingIntent.send() // ✅ Android System xử lý → reliable hơn startActivity()
-                    AppLogger.d(TAG_SERVICE, "PendingIntent.send() called", "route=${AppRoutes.RECORD}")
-                } catch (e: Exception) {
-                    AppLogger.logRareCondition(TAG_SERVICE, "Failed to send PendingIntent", "error=${e.message}")
-                    // Fallback: Dùng startActivity() nếu PendingIntent.send() fail
-                    try {
-                        val appIntent = Intent(this, MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                            putExtra("notification_route", AppRoutes.RECORD)
-                        }
-                        startActivity(appIntent)
-                        AppLogger.d(TAG_SERVICE, "Fallback: startActivity() called", "route=${AppRoutes.RECORD}")
-                    } catch (e2: Exception) {
-                        AppLogger.logRareCondition(TAG_SERVICE, "Fallback also failed", "error=${e2.message}")
-                    }
-                }
+                // ✅ CRITICAL FIX: Stop button giờ dùng PendingIntent đến MainActivity trực tiếp
+                // Không cần xử lý ở đây nữa vì PendingIntent đã mở app rồi
+                // Chỉ cần stop service sau khi app đã mở
+                AppLogger.d(TAG_SERVICE, "ACTION_STOP received", "App should already be opened by PendingIntent")
                 
                 // ✅ Dùng coroutine để đợi app mở, sau đó mới stop service (non-blocking)
                 serviceScope.launch {
@@ -325,7 +306,21 @@ class RecordingForegroundService : Service() {
         val statusText = if (isPausedState) "Paused" else "Recording"
         
         // Create PendingIntents for actions
-        val stopPendingIntent = createActionPendingIntent(ACTION_STOP, 1)
+        // ✅ CRITICAL FIX: Stop button dùng PendingIntent đến MainActivity (deep link) thay vì Service
+        // Để mở app trực tiếp, không bị Android 12+ chặn background Activity start
+        val currentState = recordingSessionRepository.getCurrentState()
+        val recordingId = if (currentState is com.yourname.smartrecorder.domain.state.RecordingState.Active) {
+            currentState.recordingId
+        } else {
+            null
+        }
+        val stopRoute = if (recordingId != null) {
+            com.yourname.smartrecorder.ui.navigation.AppRoutes.transcriptDetail(recordingId)
+        } else {
+            AppRoutes.RECORD
+        }
+        val stopPendingIntent = notificationDeepLinkHandler.createPendingIntent(stopRoute)
+        
         val pauseResumePendingIntent = if (isPausedState) {
             createActionPendingIntent(ACTION_RESUME, 2)
         } else {
