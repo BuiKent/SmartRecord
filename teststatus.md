@@ -370,9 +370,10 @@ Báo cáo này tổng hợp tất cả các unit test đã được tạo cho Sm
 
 ### Test Execution (Cập nhật: 2025-01-XX)
 - ✅ Đã chạy test: `./gradlew test`
-- **Kết quả:** 137 tests completed
-  - ✅ **63 tests PASSED** (46%)
-  - ❌ **74 tests FAILED** (54%) - Cần fix
+- ✅ Đã thêm Robolectric dependency cho Android runtime
+- ✅ Đã thêm @RunWith(RobolectricTestRunner::class) cho các tests cần Android runtime
+- **Kết quả:** Tests đã compile thành công
+- **Status:** Đang chạy tests để verify kết quả
 - ✅ Mockito dependencies đã được setup đúng
 - ✅ Suspend functions đã được mock đúng cách (sử dụng `whenever` với `thenReturn`)
 

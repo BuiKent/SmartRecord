@@ -2,10 +2,13 @@ package com.yourname.smartrecorder.domain.usecase
 
 import org.junit.Test
 import org.junit.Assert.*
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests for GenerateSummaryUseCase
  */
+@RunWith(RobolectricTestRunner::class)
 class GenerateSummaryUseCaseTest {
     
     private val useCase = GenerateSummaryUseCase()
