@@ -22,6 +22,9 @@ import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
 import com.yourname.smartrecorder.core.audio.AudioRecorder
 import com.yourname.smartrecorder.data.repository.RecordingSessionRepository
+import com.yourname.smartrecorder.domain.usecase.StopRecordingAndSaveUseCase
+import com.yourname.smartrecorder.domain.usecase.GetRecordingsDirectoryUseCase
+import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.ui.navigation.AppRoutes
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +54,15 @@ class RecordingForegroundService : Service() {
     
     @Inject
     lateinit var audioRecorder: AudioRecorder
+    
+    @Inject
+    lateinit var stopRecordingAndSave: StopRecordingAndSaveUseCase
+    
+    @Inject
+    lateinit var getRecordingsDirectory: GetRecordingsDirectoryUseCase
+    
+    @Inject
+    lateinit var autoSaveManager: AutoSaveManager
     
     private val binder = LocalBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -108,6 +120,15 @@ class RecordingForegroundService : Service() {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // ✅ CRITICAL FIX: Gọi startForeground() NGAY với placeholder notification
+        // Để tránh delay 10 giây do FGS throttling (Android 12+)
+        // Notification sẽ được update sau khi có dữ liệu thật
+        if (!isRecording) {
+            val placeholderNotification = createPlaceholderNotification()
+            startForeground(NOTIFICATION_ID, placeholderNotification)
+            AppLogger.d(TAG_SERVICE, "Placeholder notification shown immediately")
+        }
+        
         when (intent?.action) {
             ACTION_PAUSE -> {
                 pauseRecording()
@@ -118,18 +139,130 @@ class RecordingForegroundService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_STOP -> {
-                // ✅ CRITICAL FIX: Stop button giờ dùng PendingIntent đến MainActivity trực tiếp
-                // Không cần xử lý ở đây nữa vì PendingIntent đã mở app rồi
-                // Chỉ cần stop service sau khi app đã mở
-                AppLogger.d(TAG_SERVICE, "ACTION_STOP received", "App should already be opened by PendingIntent")
+                // ✅ CRITICAL FIX: Stop và lưu file TRỰC TIẾP trong Service
+                // PendingIntent đã mở app với TranscriptScreen, giờ chỉ cần stop và lưu
+                AppLogger.d(TAG_SERVICE, "ACTION_STOP received", "Stopping and saving recording directly in service")
                 
-                // ✅ Dùng coroutine để đợi app mở, sau đó mới stop service (non-blocking)
                 serviceScope.launch {
-                    delay(300) // Đợi app mở và xử lý intent
-                    AppLogger.d(TAG_SERVICE, "Stopping service after delay", "")
-                    stopRecording()
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf()
+                    try {
+                        // 1. Lấy thông tin recording từ repository state
+                        val currentState = recordingSessionRepository.getCurrentState()
+                        if (currentState !is com.yourname.smartrecorder.domain.state.RecordingState.Active) {
+                            AppLogger.w(TAG_SERVICE, "Cannot stop - no active recording")
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            stopSelf()
+                            return@launch
+                        }
+                        
+                        val recordingId = currentState.recordingId
+                        val filePath = currentState.filePath
+                        val durationMs = currentState.getElapsedMs()
+                        
+                        AppLogger.d(TAG_SERVICE, "Stopping recording -> recordingId: %s, duration: %d ms", 
+                            recordingId, durationMs)
+                        
+                        // 2. Stop AudioRecorder trực tiếp (đóng file)
+                        val audioFile = try {
+                            runBlocking { audioRecorder.stopRecording() }
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG_SERVICE, "Failed to stop AudioRecorder", e)
+                            null
+                        }
+                        
+                        if (audioFile == null || !audioFile.exists()) {
+                            AppLogger.e(TAG_SERVICE, "Audio file not found after stop -> path: %s", null, filePath)
+                            // Vẫn tiếp tục để clear state
+                        } else {
+                            AppLogger.d(TAG_SERVICE, "Audio file stopped -> path: %s, size: %d bytes", 
+                                audioFile.absolutePath, audioFile.length())
+                        }
+                        
+                        // 3. Stop auto-save và force final save (giống logic trong app)
+                        // Tạo Recording object tạm thời để force save auto-save
+                        val tempRecording = Recording(
+                            id = recordingId,
+                            title = "", // Will be auto-generated
+                            filePath = audioFile?.absolutePath ?: filePath,
+                            createdAt = currentState.startTimeMs,
+                            durationMs = durationMs,
+                            mode = "DEFAULT",
+                            isPinned = false,
+                            isArchived = false
+                        )
+                        
+                        try {
+                            // Force save auto-save trước (nếu có)
+                            runBlocking { autoSaveManager.forceSaveNow() }
+                            AppLogger.d(TAG_SERVICE, "Auto-save force save completed")
+                        } catch (e: Exception) {
+                            // Auto-save có thể không active hoặc đã stop, không phải lỗi nghiêm trọng
+                            AppLogger.d(TAG_SERVICE, "Auto-save force save skipped or failed", "error=${e.message}")
+                        }
+                        
+                        // Stop auto-save job
+                        autoSaveManager.stopAutoSave()
+                        AppLogger.d(TAG_SERVICE, "Auto-save stopped")
+                        
+                        // 4. Lưu file vào database (QUAN TRỌNG: Phải lưu TRƯỚC khi mở transcript)
+                        val savedRecording = try {
+                            runBlocking { stopRecordingAndSave(tempRecording, durationMs) }
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG_SERVICE, "Failed to save recording to database", e)
+                            null
+                        }
+                        
+                        if (savedRecording == null) {
+                            AppLogger.e(TAG_SERVICE, "Failed to save recording - cannot open transcript")
+                            // Clear state và stop service ngay nếu lưu thất bại
+                            recordingSessionRepository.setIdle()
+                            recordingStateManager.clearRecordingState()
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            stopSelf()
+                            return@launch
+                        }
+                        
+                        AppLogger.d(TAG_SERVICE, "Recording saved successfully -> id: %s", savedRecording.id)
+                        
+                        // ✅ CRITICAL: Đợi một chút để đảm bảo DB transaction đã commit xong
+                        // Tránh race condition: TranscriptScreen load trước khi DB được cập nhật
+                        delay(300)
+                        
+                        // 5. Mở app với route transcript_detail/{recordingId} SAU KHI ĐÃ LƯU VÀ ĐỢI
+                        try {
+                            val route = com.yourname.smartrecorder.ui.navigation.AppRoutes.transcriptDetail(savedRecording.id)
+                            val pendingIntent = notificationDeepLinkHandler.createPendingIntent(route)
+                            pendingIntent.send()
+                            AppLogger.d(TAG_SERVICE, "App opened with route: %s (after save)", route)
+                        } catch (e: Exception) {
+                            AppLogger.logRareCondition(TAG_SERVICE, "Failed to open app", "error=${e.message}")
+                            // Fallback: Mở RecordScreen nếu không mở được TranscriptScreen
+                            try {
+                                val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
+                                pendingIntent.send()
+                            } catch (e2: Exception) {
+                                AppLogger.logRareCondition(TAG_SERVICE, "Failed to open app (fallback)", "error=${e2.message}")
+                            }
+                        }
+                        
+                        // 6. Clear state và stop service (SAU KHI ĐÃ LƯU VÀ MỞ APP)
+                        recordingSessionRepository.setIdle()
+                        recordingStateManager.clearRecordingState()
+                        
+                        // Đợi thêm một chút để đảm bảo app đã mở và nhận được route
+                        delay(200)
+                        
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf()
+                        
+                        AppLogger.d(TAG_SERVICE, "Recording stopped and saved successfully")
+                    } catch (e: Exception) {
+                        AppLogger.e(TAG_SERVICE, "Error in ACTION_STOP", e)
+                        // Vẫn clear state và stop service để tránh stuck
+                        recordingSessionRepository.setIdle()
+                        recordingStateManager.clearRecordingState()
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf()
+                    }
                 }
                 
                 return START_NOT_STICKY
@@ -167,10 +300,12 @@ class RecordingForegroundService : Service() {
         recordingStartTime = System.currentTimeMillis()
         lastBackgroundTime = 0L
         
-        // ✅ Tối ưu: Tạo notification TRƯỚC khi thao tác IO để hiển thị nhanh hơn
         isRecording = true
         isPaused = false
-        startForeground(NOTIFICATION_ID, createNotification(0, false))
+        
+        // ✅ CRITICAL FIX: Update notification với dữ liệu thật (placeholder đã được hiển thị trước đó)
+        // Notification đã được hiển thị ngay trong onStartCommand(), giờ chỉ cần update nội dung
+        notificationManager?.notify(NOTIFICATION_ID, createNotification(0, false))
         
         val filePath = File(getFilesDir(), "recordings/$fileName").absolutePath
         recordingSessionRepository.setActive(
@@ -306,20 +441,9 @@ class RecordingForegroundService : Service() {
         val statusText = if (isPausedState) "Paused" else "Recording"
         
         // Create PendingIntents for actions
-        // ✅ CRITICAL FIX: Stop button dùng PendingIntent đến MainActivity (deep link) thay vì Service
-        // Để mở app trực tiếp, không bị Android 12+ chặn background Activity start
-        val currentState = recordingSessionRepository.getCurrentState()
-        val recordingId = if (currentState is com.yourname.smartrecorder.domain.state.RecordingState.Active) {
-            currentState.recordingId
-        } else {
-            null
-        }
-        val stopRoute = if (recordingId != null) {
-            com.yourname.smartrecorder.ui.navigation.AppRoutes.transcriptDetail(recordingId)
-        } else {
-            AppRoutes.RECORD
-        }
-        val stopPendingIntent = notificationDeepLinkHandler.createPendingIntent(stopRoute)
+        // ✅ CRITICAL FIX: Stop button dùng ACTION_STOP để service stop và lưu file TRƯỚC
+        // Sau đó service sẽ mở app với transcript_detail/{recordingId} sau khi đã lưu
+        val stopPendingIntent = createActionPendingIntent(ACTION_STOP, 1)
         
         val pauseResumePendingIntent = if (isPausedState) {
             createActionPendingIntent(ACTION_RESUME, 2)
@@ -387,6 +511,61 @@ class RecordingForegroundService : Service() {
             // ✅ BỎ setSilent(true) - channel đã có setSound(null, null) nên vẫn im lặng
             // Không bị đẩy vào nhóm "silent" và hiển thị nhanh hơn
             .setStyle(NotificationCompat.DecoratedCustomViewStyle()) // ✅ DecoratedCustomViewStyle để hệ thống bọc nền mặc định
+            .apply {
+                // ✅ Android 14+: FOREGROUND_SERVICE_IMMEDIATE để giảm trễ hiển thị
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                }
+            }
+            .build()
+    }
+    
+    /**
+     * Tạo placeholder notification để hiển thị ngay khi service start
+     * Tránh delay 10 giây do FGS throttling (Android 12+)
+     */
+    private fun createPlaceholderNotification(): Notification {
+        val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
+        
+        // Tạo placeholder view với thông tin tối thiểu
+        val collapsedView = RemoteViews(packageName, R.layout.notification_recording_collapsed).apply {
+            setTextViewText(R.id.notification_time, "0:00")
+            setTextViewText(R.id.notification_status, "Starting...")
+            setImageViewResource(R.id.btn_pause_resume, R.drawable.ic_notification_pause)
+            setImageViewResource(R.id.btn_stop, R.drawable.ic_notification_stop)
+            // Placeholder PendingIntents (sẽ được update sau)
+            setOnClickPendingIntent(R.id.btn_pause_resume, createActionPendingIntent(ACTION_PAUSE, 2))
+            setOnClickPendingIntent(R.id.btn_stop, createActionPendingIntent(ACTION_STOP, 1))
+        }
+        
+        val expandedView = RemoteViews(packageName, R.layout.notification_recording_expanded).apply {
+            setTextViewText(R.id.notification_time, "0:00")
+            setTextViewText(R.id.notification_status, "Starting...")
+            setImageViewResource(R.id.btn_pause_resume, R.drawable.ic_notification_pause)
+            setImageViewResource(R.id.btn_stop, R.drawable.ic_notification_stop)
+            setOnClickPendingIntent(R.id.btn_pause_resume, createActionPendingIntent(ACTION_PAUSE, 2))
+            setOnClickPendingIntent(R.id.btn_stop, createActionPendingIntent(ACTION_STOP, 1))
+        }
+        
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentIntent(pendingIntent)
+            .setCustomContentView(collapsedView)
+            .setCustomBigContentView(expandedView)
+            .setCustomHeadsUpContentView(collapsedView)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setShowWhen(false)
+            .setOnlyAlertOnce(true)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .apply {
+                // ✅ Android 14+: FOREGROUND_SERVICE_IMMEDIATE để giảm trễ hiển thị
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                }
+            }
             .build()
     }
     

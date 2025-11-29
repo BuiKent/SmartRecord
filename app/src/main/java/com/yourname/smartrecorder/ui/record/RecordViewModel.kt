@@ -256,19 +256,47 @@ class RecordViewModel @Inject constructor(
             return
         }
         
-        AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStartClick", null)
+                AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "onStartClick", null)
         
         viewModelScope.launch {
             try {
                 isStarting = true
                 
+                // ✅ CRITICAL FIX: Start service TRƯỚC khi start AudioRecorder
+                // Android yêu cầu startForeground() trong vòng 5-10 giây sau startForegroundService()
+                // Nếu start AudioRecorder trước (có thể mất thời gian), service sẽ bị timeout
+                AppLogger.d(TAG_RECORDING, "Getting recordings directory")
+                val outputDir = getRecordingsDirectory()
+                
+                // Generate recordingId và fileName TRƯỚC
+                val recordingId = java.util.UUID.randomUUID().toString()
+                val nextFileNumber = withContext(Dispatchers.IO) {
+                    val existingFiles = outputDir.listFiles { file ->
+                        file.name.startsWith("recording_") && file.name.endsWith(".3gp")
+                    } ?: emptyArray()
+                    val numbers = existingFiles.mapNotNull { file ->
+                        val name = file.name
+                        val numberStr = name.removePrefix("recording_").removeSuffix(".3gp")
+                        numberStr.toIntOrNull()
+                    }
+                    if (numbers.isEmpty()) 1 else (numbers.maxOrNull() ?: 0) + 1
+                }
+                val fileName = "recording_%03d.3gp".format(nextFileNumber)
+                
+                // Start service TRƯỚC (với recordingId và fileName tạm thời)
+                // Service sẽ hiển thị notification ngay, không đợi AudioRecorder start
+                AppLogger.d(TAG_RECORDING, "Starting foreground service FIRST -> recordingId: %s, fileName: %s", 
+                    recordingId, fileName)
+                foregroundServiceManager.startRecordingService(recordingId, fileName)
+                
+                // Đợi một chút để service start và hiển thị notification
+                delay(100)
+                
                 // Recovery logic: Check if AudioRecorder is in stuck state
                 // This can happen if ViewModel was cleared while recording was active
                 try {
                     // Try to start - if it fails with "already in progress", force reset
-                    AppLogger.d(TAG_RECORDING, "Getting recordings directory")
-                    val outputDir = getRecordingsDirectory()
-                    AppLogger.d(TAG_RECORDING, "Starting recording -> outputDir: %s", outputDir.absolutePath)
+                    AppLogger.d(TAG_RECORDING, "Starting AudioRecorder -> outputDir: %s", outputDir.absolutePath)
                     
                     currentRecording = startRecording(outputDir)
                 } catch (e: IllegalStateException) {
@@ -281,13 +309,14 @@ class RecordViewModel @Inject constructor(
                             audioRecorder.forceReset()
                             AppLogger.d(TAG_RECORDING, "AudioRecorder force reset completed, retrying start")
                             // Retry after reset
-                            val outputDir = getRecordingsDirectory()
                             currentRecording = startRecording(outputDir)
                         } catch (retryException: Exception) {
                             AppLogger.e(TAG_RECORDING, "Failed to start recording after force reset", retryException)
                             _otherUiState.update { it.copy(error = retryException.message) }
                             currentRecording = null
                             isStarting = false
+                            // Stop service nếu AudioRecorder start thất bại
+                            foregroundServiceManager.stopRecordingService()
                             return@launch
                         }
                     } else {
@@ -298,10 +327,7 @@ class RecordViewModel @Inject constructor(
                 AppLogger.logViewModel(TAG_RECORDING, "RecordViewModel", "Recording started", 
                     "recordingId=${currentRecording?.id}")
                 
-                // Start foreground service to keep recording active in background
-                // Service will update repository state, UI will react automatically
-                val fileName = File(currentRecording!!.filePath).name
-                foregroundServiceManager.startRecordingService(currentRecording!!.id, fileName)
+                // Service đã được start trước đó, không cần start lại
                 
                 // Start auto-save - use startTimeMs from repository state
                 val recordingState = recordingSessionRepository.getCurrentState()
