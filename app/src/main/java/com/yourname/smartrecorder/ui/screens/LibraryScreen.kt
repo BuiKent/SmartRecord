@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
@@ -24,6 +25,9 @@ import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.RecordingCard
 import com.yourname.smartrecorder.ui.library.LibraryViewModel
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 
 @Composable
 fun LibraryScreen(
@@ -70,7 +74,12 @@ fun LibraryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(
+                        start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                        top = innerPadding.calculateTopPadding(),
+                        end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                        bottom = 0.dp  // Bỏ bottom padding để tránh che content
+                    )
             ) {
             // Search bar
         OutlinedTextField(
@@ -123,9 +132,22 @@ fun LibraryScreen(
                 }
             }
         } else {
+            // Calculate bottom padding for spacer (only shows when scrolled to bottom)
+            // Pattern from Numerology: chỉ tính navBarsBottom + spacing, bỏ bottomBarHeight
+            val navBarsBottom = WindowInsets.navigationBars
+                .asPaddingValues()
+                .calculateBottomPadding()
+            val spacing = 8.dp
+            val bottomSpacing = navBarsBottom + spacing  // Bỏ bottomBarHeight - không cần padding cho bottom bar
+            
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 8.dp,
+                    end = 16.dp,
+                    bottom = 0.dp  // No bottom padding - only spacer at end
+                ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredRecordings) { recording ->
@@ -146,6 +168,12 @@ fun LibraryScreen(
                         onCancelClick = { viewModel.cancelEditing() },
                         onDeleteClick = { recordingToDelete -> viewModel.deleteRecording(recordingToDelete) }
                     )
+                }
+                
+                // Spacer at the end - only visible when scrolled to bottom
+                // Pattern from Numerology: padding chỉ hiển thị khi scroll đến cuối
+                item {
+                    Spacer(modifier = Modifier.height(bottomSpacing))
                 }
             }
         }

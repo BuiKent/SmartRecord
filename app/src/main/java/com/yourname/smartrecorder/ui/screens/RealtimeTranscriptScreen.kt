@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -55,9 +56,15 @@ fun RealtimeTranscriptScreen(
             )
         }
     ) { innerPadding ->
+        val layoutDirection = LocalLayoutDirection.current
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(
+                    start = innerPadding.calculateStartPadding(layoutDirection),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(layoutDirection),
+                    bottom = 0.dp  // Bỏ bottom padding để tránh che content
+                )
                 .fillMaxSize()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

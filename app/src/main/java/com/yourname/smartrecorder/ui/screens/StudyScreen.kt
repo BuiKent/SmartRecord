@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourname.smartrecorder.ui.study.StudyViewModel
 
@@ -41,10 +42,16 @@ fun StudyScreen(
             )
         }
     ) { innerPadding ->
+        val layoutDirection = LocalLayoutDirection.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(
+                    start = innerPadding.calculateStartPadding(layoutDirection),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(layoutDirection),
+                    bottom = 0.dp  // Bỏ bottom padding để tránh che content
+                )
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
