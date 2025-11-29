@@ -38,6 +38,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -63,12 +65,13 @@ class RecordViewModel @Inject constructor(
 ) : ViewModel() {
 
     // Expose recording state from repository
+    // ⚠️ CRITICAL: Use Eagerly to ensure immediate subscription and correct initial value
     val recordingState: StateFlow<RecordingState> = 
         recordingSessionRepository.state
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = RecordingState.Idle
+                started = SharingStarted.Eagerly, // Subscribe immediately to get current state
+                initialValue = recordingSessionRepository.getCurrentState() // Use actual current state as initial
             )
     
     // Derive UI state from repository state
@@ -118,6 +121,44 @@ class RecordViewModel @Inject constructor(
         } else {
             @Suppress("DEPRECATION")
             context.registerReceiver(stopFromNotificationReceiver, filter)
+        }
+        
+        // ⚠️ CRITICAL: Auto-start timer and restore currentRecording if recording is already active (e.g., after navigation)
+        // This ensures UI updates correctly when navigating back to RecordScreen
+        viewModelScope.launch {
+            recordingState.collect { state ->
+                if (state is RecordingState.Active) {
+                    // Recording is active - restore currentRecording if null
+                    if (currentRecording == null) {
+                        AppLogger.d(TAG_RECORDING, "Restoring currentRecording from repository state", 
+                            "recordingId=${state.recordingId}, filePath=${state.filePath}")
+                        currentRecording = com.yourname.smartrecorder.domain.model.Recording(
+                            id = state.recordingId,
+                            title = "", // Will be set when saved
+                            filePath = state.filePath,
+                            createdAt = state.startTimeMs,
+                            durationMs = 0L, // Will be calculated when stopped
+                            mode = "DEFAULT",
+                            isPinned = false,
+                            isArchived = false
+                        )
+                    }
+                    
+                    // Ensure timer is running
+                    if (timerJob?.isActive != true) {
+                        AppLogger.d(TAG_RECORDING, "Auto-starting timer - recording already active", 
+                            "recordingId=${state.recordingId}, isPaused=${state.isPaused}")
+                        startTimer()
+                    }
+                } else {
+                    // Recording is idle - stop timer if running and clear currentRecording
+                    timerJob?.cancel()
+                    if (currentRecording != null) {
+                        AppLogger.d(TAG_RECORDING, "Clearing currentRecording - recording is idle")
+                        currentRecording = null
+                    }
+                }
+            }
         }
     }
     
@@ -335,11 +376,25 @@ class RecordViewModel @Inject constructor(
                 timerJob?.cancel()
                 
                 // Get recording from repository state or currentRecording
+                // ⚠️ CRITICAL: Restore currentRecording from repository state if null (e.g., after navigation)
                 val recording = if (currentState is RecordingState.Active) {
                     currentRecording ?: run {
-                        AppLogger.w(TAG_RECORDING, "Stop called but currentRecording is null")
-                        isStarting = false
-                        return@launch
+                        // currentRecording is null (e.g., ViewModel was recreated after navigation)
+                        // Create Recording object from repository state
+                        AppLogger.d(TAG_RECORDING, "Restoring currentRecording from repository state", 
+                            "recordingId=${currentState.recordingId}, filePath=${currentState.filePath}")
+                        val restoredRecording = com.yourname.smartrecorder.domain.model.Recording(
+                            id = currentState.recordingId,
+                            title = "", // Will be set when saved
+                            filePath = currentState.filePath,
+                            createdAt = currentState.startTimeMs,
+                            durationMs = 0L, // Will be calculated below
+                            mode = "DEFAULT",
+                            isPinned = false,
+                            isArchived = false
+                        )
+                        currentRecording = restoredRecording
+                        restoredRecording
                     }
                 } else {
                     // State already Idle (from notification stop), use currentRecording if available

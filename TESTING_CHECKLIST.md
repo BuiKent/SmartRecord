@@ -5,6 +5,10 @@
 - [x] Playback pause/resume ở LibraryScreen và TranscriptScreen
 - [x] Playback cho recording mới thu âm ở TranscriptScreen
 - [x] Cross-screen playback sync
+- [x] Recording timer auto-start khi navigate back từ LibraryScreen/HistoryScreen
+- [x] Recording stop button hoạt động sau khi navigate away và quay lại
+- [x] Recording UI sync đúng khi navigate từ media control notification
+- [x] Recording currentRecording restore từ repository state khi ViewModel recreate
 
 ---
 
@@ -12,10 +16,10 @@
 
 ### Recording Notification
 1. **Start recording → Ẩn app → Tap notification**
-   - [ ] Navigate đến RecordScreen
-   - [ ] UI sync đúng (đang recording, timer chạy)
-   - [ ] Có thể pause/resume từ UI
-   - [ ] Có thể stop từ UI
+   - [x] Navigate đến RecordScreen
+   - [x] UI sync đúng (đang recording, timer chạy)
+   - [x] Có thể pause/resume từ UI
+   - [x] Có thể stop từ UI
 
 2. **Start recording → Pause → Ẩn app → Tap notification**
    - [ ] Navigate đến RecordScreen
@@ -93,9 +97,9 @@
 
 ### Recording State
 1. **Start recording ở RecordScreen → Navigate to LibraryScreen → Navigate back**
-   - [ ] UI sync đúng (đang recording, timer chạy)
-   - [ ] Có thể pause/resume từ UI
-   - [ ] Có thể stop từ UI
+   - [x] UI sync đúng (đang recording, timer chạy)
+   - [x] Có thể pause/resume từ UI
+   - [x] Có thể stop từ UI
 
 2. **Start recording → Pause → Navigate away → Navigate back**
    - [ ] UI sync đúng (đang paused, timer dừng)
