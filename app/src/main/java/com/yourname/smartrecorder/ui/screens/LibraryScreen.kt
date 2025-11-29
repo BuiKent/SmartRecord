@@ -2,7 +2,9 @@ package com.yourname.smartrecorder.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -10,6 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -143,7 +148,52 @@ fun LibraryScreen(
             val spacing = 8.dp
             val bottomSpacing = navBarsBottom + spacing  // Bỏ bottomBarHeight - không cần padding cho bottom bar
             
+            // LazyListState để quản lý scroll position và auto-scroll đến item đang play
+            val listState = rememberLazyListState()
+            val coroutineScope = rememberCoroutineScope()
+            
+            // Auto-scroll đến item đang play khi quay lại màn hình hoặc khi playback state thay đổi
+            LaunchedEffect(playbackState, filteredRecordings.size) {
+                val currentState = playbackState  // Lưu vào biến local để smart cast
+                when (currentState) {
+                    is PlaybackState.Playing -> {
+                        val playingRecordingId = currentState.recordingId
+                        val playingIndex = filteredRecordings.indexOfFirst { it.id == playingRecordingId }
+                        if (playingIndex >= 0) {
+                            // Scroll đến item đang play với animation mượt
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(
+                                    index = playingIndex,
+                                    scrollOffset = 0
+                                )
+                                AppLogger.d(TAG_VIEWMODEL, "[LibraryScreen] Auto-scrolled to playing item -> index: %d, recordingId: %s", 
+                                    playingIndex, playingRecordingId)
+                            }
+                        }
+                    }
+                    is PlaybackState.Paused -> {
+                        val playingRecordingId = currentState.recordingId
+                        val playingIndex = filteredRecordings.indexOfFirst { it.id == playingRecordingId }
+                        if (playingIndex >= 0) {
+                            // Scroll đến item đang pause với animation mượt
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(
+                                    index = playingIndex,
+                                    scrollOffset = 0
+                                )
+                                AppLogger.d(TAG_VIEWMODEL, "[LibraryScreen] Auto-scrolled to paused item -> index: %d, recordingId: %s", 
+                                    playingIndex, playingRecordingId)
+                            }
+                        }
+                    }
+                    is PlaybackState.Idle -> {
+                        // Không scroll khi idle
+                    }
+                }
+            }
+            
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
@@ -153,7 +203,10 @@ fun LibraryScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredRecordings) { recording ->
+                items(
+                    items = filteredRecordings,
+                    key = { recording -> recording.id }  // Key để có thể scroll đến item cụ thể
+                ) { recording ->
                     val currentPlaybackState = playbackState
                     val isCurrentlyPlaying = when (currentPlaybackState) {
                         is PlaybackState.Playing -> currentPlaybackState.recordingId == recording.id
@@ -178,7 +231,8 @@ fun LibraryScreen(
                     RecordingCard(
                         recording = recording,
                         onClick = { onRecordingClick(recording.id) },
-                        isPlaying = isCurrentlyPlaying, // Để card biết đang play và hiển thị SimplePlaybackBar
+                        isActive = isCurrentlyPlaying,  // true khi Playing hoặc Paused (để hiển thị SimplePlaybackBar)
+                        isPlaying = isPlaying,  // true chỉ khi Playing (để hiển thị icon đúng)
                         positionMs = positionMs,
                         onPlayClick = { viewModel.playRecording(recording) },
                         onPauseClick = { viewModel.pausePlayback() },

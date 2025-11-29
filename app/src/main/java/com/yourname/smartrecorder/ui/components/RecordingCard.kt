@@ -43,7 +43,8 @@ import java.util.*
 fun RecordingCard(
     recording: Recording,
     onClick: () -> Unit,
-    isPlaying: Boolean = false,
+    isActive: Boolean = false,  // true khi đang play hoặc pause (để hiển thị SimplePlaybackBar)
+    isPlaying: Boolean = false,  // true chỉ khi đang play (để hiển thị icon đúng)
     positionMs: Long = 0L,
     onPlayClick: () -> Unit = {},
     onPauseClick: () -> Unit = {},
@@ -197,12 +198,12 @@ fun RecordingCard(
             Spacer(modifier = Modifier.height(8.dp))
             
             // Hiển thị SimplePlaybackBar khi đang play/pause, nếu không thì hiển thị Play button và Transcript button
-            if (isPlaying) {
+            if (isActive) {
                 // SimplePlaybackBar bên trong card - ẩn transcript button
                 SimplePlaybackBar(
                     positionMs = positionMs,
                     durationMs = recording.durationMs,
-                    isPlaying = isPlaying,
+                    isPlaying = isPlaying,  // Chỉ true khi đang play, false khi pause
                     onPauseClick = {
                         AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked pause -> recordingId: %s", recording.id)
                         onPauseClick()
