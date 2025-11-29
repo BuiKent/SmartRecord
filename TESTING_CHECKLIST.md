@@ -22,13 +22,13 @@
    - [x] Có thể stop từ UI
 
 2. **Start recording → Pause → Ẩn app → Tap notification**
-   - [ ] Navigate đến RecordScreen
-   - [ ] UI sync đúng (đang paused, timer dừng)
-   - [ ] Có thể resume từ UI
-   - [ ] Có thể stop từ UI
+   - [x] Navigate đến RecordScreen
+   - [x] UI sync đúng (đang paused, timer dừng)
+   - [x] Có thể resume từ UI
+   - [x] Có thể stop từ UI
 
 3. **Start recording → Ẩn app → Tap pause button trong notification**
-   - [ ] Recording pause
+   - [x] Recording pause
    - [ ] Notification update (icon đổi sang play)
    - [ ] Tap notification → Navigate đến RecordScreen → UI sync đúng (paused)
 

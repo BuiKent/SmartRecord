@@ -9,10 +9,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
+import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
@@ -26,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import javax.inject.Inject
 
@@ -191,27 +197,34 @@ class RecordingForegroundService : Service() {
         )
         
         isRecording = true
-        startForeground(NOTIFICATION_ID, createNotification(0, true))
+        // ⚠️ CRITICAL: Khi bắt đầu recording thì isPausedState = false (đang recording, chưa paused)
+        startForeground(NOTIFICATION_ID, createNotification(0, false))
         recordingStateManager.setRecordingActive(recordingId, fileName, recordingStartTime)
     }
     
     fun pauseRecording() {
-        if (!isRecording || isPaused) {
-            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to pause when not recording or already paused")
+        // ⚠️ CRITICAL: Check repository state thay vì local state
+        val currentState = recordingSessionRepository.getCurrentState()
+        if (currentState !is com.yourname.smartrecorder.domain.state.RecordingState.Active || currentState.isPaused) {
+            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to pause when not recording or already paused",
+                "state=${currentState.javaClass.simpleName}")
             return
         }
         
         isPaused = true
         AppLogger.logCritical(TAG_SERVICE, "Recording paused in foreground service")
         
-        // ⚠️ CRITICAL: Pause AudioRecorder FIRST
-        serviceScope.launch {
-            try {
+        // ⚠️ CRITICAL: Pause AudioRecorder FIRST - dùng runBlocking để đảm bảo pause hoàn thành
+        try {
+            runBlocking {
                 audioRecorder.pause()
                 AppLogger.d(TAG_SERVICE, "AudioRecorder paused successfully")
-            } catch (e: Exception) {
-                AppLogger.e(TAG_SERVICE, "Failed to pause AudioRecorder", e)
             }
+        } catch (e: Exception) {
+            AppLogger.e(TAG_SERVICE, "Failed to pause AudioRecorder", e)
+            // Nếu pause thất bại, revert state
+            isPaused = false
+            return
         }
         
         // ⚠️ CRITICAL: Update repository state (repository will set pauseStartTimeMs)
@@ -219,26 +232,37 @@ class RecordingForegroundService : Service() {
         
         // Send broadcast to ViewModel
         sendBroadcast(BROADCAST_PAUSE)
-        updateNotification(System.currentTimeMillis() - recordingStartTime, true)
+        
+        // ✅ Update notification với actual duration (đã trừ paused time)
+        val updatedState = recordingSessionRepository.getCurrentState()
+        if (updatedState is com.yourname.smartrecorder.domain.state.RecordingState.Active) {
+            updateNotification(updatedState.getElapsedMs(), true)
+        }
     }
     
     fun resumeRecording() {
-        if (!isRecording || !isPaused) {
-            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to resume when not recording or not paused")
+        // ⚠️ CRITICAL: Check repository state thay vì local state
+        val currentState = recordingSessionRepository.getCurrentState()
+        if (currentState !is com.yourname.smartrecorder.domain.state.RecordingState.Active || !currentState.isPaused) {
+            AppLogger.logRareCondition(TAG_SERVICE, "Attempted to resume when not recording or not paused",
+                "state=${currentState.javaClass.simpleName}")
             return
         }
         
         isPaused = false
         AppLogger.logCritical(TAG_SERVICE, "Recording resumed in foreground service")
         
-        // ⚠️ CRITICAL: Resume AudioRecorder FIRST
-        serviceScope.launch {
-            try {
+        // ⚠️ CRITICAL: Resume AudioRecorder FIRST - dùng runBlocking để đảm bảo resume hoàn thành
+        try {
+            runBlocking {
                 audioRecorder.resume()
                 AppLogger.d(TAG_SERVICE, "AudioRecorder resumed successfully")
-            } catch (e: Exception) {
-                AppLogger.e(TAG_SERVICE, "Failed to resume AudioRecorder", e)
             }
+        } catch (e: Exception) {
+            AppLogger.e(TAG_SERVICE, "Failed to resume AudioRecorder", e)
+            // Nếu resume thất bại, revert state
+            isPaused = true
+            return
         }
         
         // ⚠️ CRITICAL: Update repository state (repository will calculate totalPausedDurationMs)
@@ -246,7 +270,12 @@ class RecordingForegroundService : Service() {
         
         // Send broadcast to ViewModel
         sendBroadcast(BROADCAST_RESUME)
-        updateNotification(System.currentTimeMillis() - recordingStartTime, false)
+        
+        // ✅ Update notification với actual duration (đã trừ paused time)
+        val updatedState = recordingSessionRepository.getCurrentState()
+        if (updatedState is com.yourname.smartrecorder.domain.state.RecordingState.Active) {
+            updateNotification(updatedState.getElapsedMs(), false)
+        }
     }
     
     fun stopRecording() {
@@ -287,7 +316,18 @@ class RecordingForegroundService : Service() {
     
     fun updateNotification(durationMs: Long, isPaused: Boolean = false) {
         if (isRecording) {
-            val notification = createNotification(durationMs, !isPaused)
+            // ⚠️ CRITICAL: Lấy ACTUAL recording duration từ repository (đã trừ paused time)
+            val currentState = recordingSessionRepository.getCurrentState()
+            val actualDuration = if (currentState is com.yourname.smartrecorder.domain.state.RecordingState.Active) {
+                currentState.getElapsedMs() // Đã trừ totalPausedDurationMs
+            } else {
+                durationMs // Fallback
+            }
+            
+            // ⚠️ CRITICAL: Truyền isPaused trực tiếp (không đảo ngược)
+            // isPaused = false → isPausedState = false → "Recording" + icon pause
+            // isPaused = true → isPausedState = true → "Paused" + icon play
+            val notification = createNotification(actualDuration, isPaused)
             notificationManager?.notify(NOTIFICATION_ID, notification)
             
             // Check if app has been in background too long
@@ -364,62 +404,98 @@ class RecordingForegroundService : Service() {
     }
     
     private fun createNotification(durationMs: Long, isPausedState: Boolean): Notification {
-        // Sử dụng NotificationDeepLinkHandler để tạo PendingIntent với route đúng
-        // Recording luôn về RECORD screen
         val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
         
-        // Pause/Resume action
+        val durationText = formatDuration(durationMs)
+        
+        // Tạo actions với CUSTOM ICON
         val pauseResumeAction = if (isPausedState) {
+            // Đang paused → hiện Play
             val resumeIntent = Intent(this, RecordingForegroundService::class.java).apply {
                 action = ACTION_RESUME
             }
-            NotificationCompat.Action(
-                android.R.drawable.ic_media_play,
-                "Resume",
-                PendingIntent.getService(this, 1, resumeIntent, PendingIntent.FLAG_IMMUTABLE)
-            )
+            val resumePendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                PendingIntent.getForegroundService(
+                    this, 1, resumeIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            } else {
+                PendingIntent.getService(
+                    this, 1, resumeIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            }
+            NotificationCompat.Action.Builder(
+                com.yourname.smartrecorder.R.drawable.ic_notification_play, // ✅ Custom icon
+                "Resume", // ✅ Có text (MediaStyle sẽ chỉ hiển thị icon trong compact view)
+                resumePendingIntent
+            ).build()
         } else {
+            // Đang recording → hiện Pause
             val pauseIntent = Intent(this, RecordingForegroundService::class.java).apply {
                 action = ACTION_PAUSE
             }
-            NotificationCompat.Action(
-                android.R.drawable.ic_media_pause,
-                "Pause",
-                PendingIntent.getService(this, 2, pauseIntent, PendingIntent.FLAG_IMMUTABLE)
-            )
+            val pausePendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                PendingIntent.getForegroundService(
+                    this, 2, pauseIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            } else {
+                PendingIntent.getService(
+                    this, 2, pauseIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            }
+            NotificationCompat.Action.Builder(
+                com.yourname.smartrecorder.R.drawable.ic_notification_pause, // ✅ Custom icon
+                "Pause", // ✅ Có text (MediaStyle sẽ chỉ hiển thị icon trong compact view)
+                pausePendingIntent
+            ).build()
         }
         
         // Stop action
         val stopIntent = Intent(this, RecordingForegroundService::class.java).apply {
             action = ACTION_STOP
         }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 3, stopIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val stopAction = NotificationCompat.Action(
-            android.R.drawable.ic_menu_close_clear_cancel,
-            "Stop",
+        val stopPendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            PendingIntent.getForegroundService(
+                this, 3, stopIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        } else {
+            PendingIntent.getService(
+                this, 3, stopIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
+        val stopAction = NotificationCompat.Action.Builder(
+            com.yourname.smartrecorder.R.drawable.ic_notification_stop, // ✅ Icon Stop (vuông) thay vì X
+            "Stop", // ✅ Có text (MediaStyle sẽ chỉ hiển thị icon trong compact view)
             stopPendingIntent
-        )
+        ).build()
         
-        val durationText = formatDuration(durationMs)
+        // ✅ Text hiển thị - dùng text ngắn để tránh bị cắt
         val statusText = if (isPausedState) "Paused" else "Recording"
+        val contentText = "$durationText · Tap to return" // Rút ngắn text để tránh bị cắt
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("$statusText - $durationText")
-            .setContentText("Tap to return to app")
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now) // Mic icon cho recording
+            .setContentTitle(statusText)
+            .setContentText(contentText)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now) // Icon mic trong status bar
             .setContentIntent(pendingIntent)
             .addAction(pauseResumeAction)
             .addAction(stopAction)
-            .setOngoing(!isPausedState) // Cho phép dismiss khi paused
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // DEFAULT để hiện icon trên status bar
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Lock screen
+            .setOngoing(!isPausedState)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setShowWhen(true)
-            .setOnlyAlertOnce(true) // ⚠️ CRITICAL: Chỉ alert lần đầu, update im lặng
-            .setSilent(true) // ⚠️ CRITICAL: Im lặng hoàn toàn
+            .setShowWhen(false) // Không hiển thị timestamp
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setStyle(  // ✅ MediaStyle để hiển thị icon trong compact view
+                MediaNotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView(0, 1) // Hiển thị action index 0 (Play/Pause) và 1 (Stop) trong compact view
+            )
             .build()
     }
     
