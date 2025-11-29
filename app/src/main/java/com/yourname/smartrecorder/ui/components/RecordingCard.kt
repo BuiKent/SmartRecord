@@ -15,6 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -92,7 +96,7 @@ fun RecordingCard(
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester),
                             shape = RoundedCornerShape(12.dp),
-                            textStyle = MaterialTheme.typography.titleMedium,
+                            textStyle = MaterialTheme.typography.titleSmall,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(
                                 onDone = { onSaveClick() }
@@ -116,7 +120,7 @@ fun RecordingCard(
                         ) {
                             Text(
                                 text = recording.title.ifBlank { "Untitled Recording" },
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -125,23 +129,19 @@ fun RecordingCard(
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    Row {
-                        Text(
-                            text = TimeFormatter.formatTime(recording.durationMs),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = " • ",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDate(recording.createdAt),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    // bodyTiny style: 9sp for time labels
+                    val bodyTinyStyle = TextStyle(
+                        fontFamily = FontFamily.Default,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp,
+                        letterSpacing = 0.3.sp
+                    )
+                    Text(
+                        text = TimeFormatter.formatTime(recording.durationMs),
+                        style = bodyTinyStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 
                 // Edit/Save button
@@ -171,7 +171,7 @@ fun RecordingCard(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Title",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -187,7 +187,8 @@ fun RecordingCard(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete Recording",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -217,25 +218,26 @@ fun RecordingCard(
                 // Play/Pause/Stop controls
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Play button - bo tròn, màu cam để thống nhất
-                    IconButton(
-                        onClick = { 
-                            AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked play -> recordingId: %s", recording.id)
-                            onPlayClick() 
-                        },
+                    Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(30.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary)
+                            .clickable(onClick = { 
+                                AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked play -> recordingId: %s", recording.id)
+                                onPlayClick() 
+                            }),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Play",
-                            tint = MaterialTheme.colorScheme.onPrimary, // Icon trên nền primary
-                            modifier = Modifier.size(24.dp)
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     

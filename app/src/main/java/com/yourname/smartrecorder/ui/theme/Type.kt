@@ -114,3 +114,13 @@ val Typography = Typography(
     )
 )
 
+// Extension property để thêm bodyTiny (9sp) cho time labels
+val Typography.bodyTiny: TextStyle
+    get() = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 9.sp,
+        lineHeight = 12.sp,
+        letterSpacing = 0.3.sp
+    )
+
