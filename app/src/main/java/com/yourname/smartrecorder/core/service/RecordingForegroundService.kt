@@ -18,6 +18,7 @@ import com.yourname.smartrecorder.R
 import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_SERVICE
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_LIFECYCLE
+import com.yourname.smartrecorder.MainActivity
 import com.yourname.smartrecorder.core.notification.NotificationDeepLinkHandler
 import com.yourname.smartrecorder.core.audio.AudioRecorder
 import com.yourname.smartrecorder.data.repository.RecordingSessionRepository
@@ -118,6 +119,14 @@ class RecordingForegroundService : Service() {
                 stopRecording()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
+                
+                // ✅ Mở app khi stop từ notification
+                val appIntent = Intent(this@RecordingForegroundService, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra("notification_route", AppRoutes.RECORD)
+                }
+                startActivity(appIntent)
+                
                 return START_NOT_STICKY
             }
             else -> {
