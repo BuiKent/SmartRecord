@@ -90,6 +90,14 @@ class RecordingRepositoryImpl @Inject constructor(
         AppLogger.logDatabase(TAG_REPOSITORY, "UPDATE_COMPLETE", "recordings", "id=$id")
     }
     
+    override suspend fun getRecordingsByDate(startOfDay: Long, endOfDay: Long): List<Recording> {
+        AppLogger.logDatabase(TAG_REPOSITORY, "SELECT", "recordings", "startOfDay=$startOfDay, endOfDay=$endOfDay")
+        val entities = recordingDao.getRecordingsByDate(startOfDay, endOfDay)
+        val recordings = entities.map { it.toDomain() }
+        AppLogger.logDatabase(TAG_REPOSITORY, "SELECT_COMPLETE", "recordings", "count=${recordings.size}")
+        return recordings
+    }
+    
     private fun Recording.toEntity(): RecordingEntity {
         return RecordingEntity(
             id = id,

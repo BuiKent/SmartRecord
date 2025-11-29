@@ -5,6 +5,8 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_USECASE
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.domain.repository.RecordingRepository
+import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 class StopRecordingAndSaveUseCase @Inject constructor(
@@ -23,10 +25,7 @@ class StopRecordingAndSaveUseCase @Inject constructor(
         
         // Generate auto title if empty
         val title = if (recording.title.isBlank()) {
-            // For now, use simple title. Later can use transcript to generate better title
-            val simpleTitle = "Recording ${java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault()).format(java.util.Date(recording.createdAt))}"
-            AppLogger.d(TAG_USECASE, "Generated auto title: %s", simpleTitle)
-            simpleTitle
+            generateSequentialTitle(recording.createdAt)
         } else {
             recording.title
         }
@@ -49,6 +48,58 @@ class StopRecordingAndSaveUseCase @Inject constructor(
             "fileSize=${fileSize}bytes, durationMs=${durationMs}ms")
         
         return finalRecording
+    }
+    
+    /**
+     * Generate sequential title: Record-001-29.11.2025, Record-002-29.11.2025, ...
+     * Format: Record-{sequence}-{date}
+     * Date format follows system locale (dd.MM.yyyy or MM.dd.yyyy)
+     */
+    private suspend fun generateSequentialTitle(createdAt: Long): String {
+        // Get start and end of day for the recording date
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = createdAt
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startOfDay = calendar.timeInMillis
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+        val endOfDay = calendar.timeInMillis
+        
+        // Get all recordings created on the same day
+        val recordingsToday = recordingRepository.getRecordingsByDate(startOfDay, endOfDay)
+        
+        // Extract sequence numbers from titles matching pattern "Record-XXX-..."
+        val sequenceNumbers = recordingsToday.mapNotNull { rec ->
+            val title = rec.title
+            if (title.startsWith("Record-")) {
+                val parts = title.split("-")
+                if (parts.size >= 2) {
+                    parts[1].toIntOrNull()
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        }
+        
+        // Find next sequence number
+        val nextSequence = if (sequenceNumbers.isEmpty()) {
+            1
+        } else {
+            (sequenceNumbers.maxOrNull() ?: 0) + 1
+        }
+        
+        // Format date according to system locale (dd.MM.yyyy or MM.dd.yyyy)
+        val dateFormat = java.text.SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        val dateStr = dateFormat.format(java.util.Date(createdAt))
+        
+        val title = "Record-%03d-%s".format(nextSequence, dateStr)
+        AppLogger.d(TAG_USECASE, "Generated sequential title: %s", title)
+        return title
     }
 }
 

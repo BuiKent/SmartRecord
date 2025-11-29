@@ -14,5 +14,6 @@ interface RecordingRepository {
     suspend fun deleteRecording(recording: Recording)
     suspend fun updatePinnedStatus(id: String, isPinned: Boolean)
     suspend fun updateArchivedStatus(id: String, isArchived: Boolean)
+    suspend fun getRecordingsByDate(startOfDay: Long, endOfDay: Long): List<Recording>
 }
 

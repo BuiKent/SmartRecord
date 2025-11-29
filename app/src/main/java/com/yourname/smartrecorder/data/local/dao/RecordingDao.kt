@@ -35,5 +35,8 @@ interface RecordingDao {
     
     @Query("UPDATE recordings SET isArchived = :isArchived WHERE id = :id")
     suspend fun updateArchivedStatus(id: String, isArchived: Boolean)
+    
+    @Query("SELECT * FROM recordings WHERE createdAt >= :startOfDay AND createdAt < :endOfDay AND isArchived = 0")
+    suspend fun getRecordingsByDate(startOfDay: Long, endOfDay: Long): List<RecordingEntity>
 }
 
