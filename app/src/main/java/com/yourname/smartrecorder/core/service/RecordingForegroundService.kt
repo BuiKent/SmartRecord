@@ -118,23 +118,34 @@ class RecordingForegroundService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_STOP -> {
-                // ✅ TỐI ƯU: Mở app TRƯỚC, sau đó mới stop service
-                // Dùng NotificationDeepLinkHandler để đảm bảo đúng flags và navigation
+                // ✅ GIẢI PHÁP: Dùng PendingIntent.send() giống như media control
+                // PendingIntent được Android System xử lý → có quyền đặc biệt để mở app
+                AppLogger.d(TAG_SERVICE, "ACTION_STOP received", "Opening app via PendingIntent...")
+                
                 try {
+                    // Dùng cùng PendingIntent như media control (contentIntent)
                     val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
-                    pendingIntent.send()
+                    pendingIntent.send() // ✅ Android System xử lý → reliable hơn startActivity()
+                    AppLogger.d(TAG_SERVICE, "PendingIntent.send() called", "route=${AppRoutes.RECORD}")
                 } catch (e: Exception) {
-                    // Fallback: Dùng startActivity trực tiếp
-                    val appIntent = Intent(this, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        putExtra("notification_route", AppRoutes.RECORD)
+                    AppLogger.logRareCondition(TAG_SERVICE, "Failed to send PendingIntent", "error=${e.message}")
+                    // Fallback: Dùng startActivity() nếu PendingIntent.send() fail
+                    try {
+                        val appIntent = Intent(this, MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            putExtra("notification_route", AppRoutes.RECORD)
+                        }
+                        startActivity(appIntent)
+                        AppLogger.d(TAG_SERVICE, "Fallback: startActivity() called", "route=${AppRoutes.RECORD}")
+                    } catch (e2: Exception) {
+                        AppLogger.logRareCondition(TAG_SERVICE, "Fallback also failed", "error=${e2.message}")
                     }
-                    startActivity(appIntent)
                 }
                 
                 // ✅ Dùng coroutine để đợi app mở, sau đó mới stop service (non-blocking)
                 serviceScope.launch {
-                    delay(200) // Đợi app mở và xử lý intent
+                    delay(300) // Đợi app mở và xử lý intent
+                    AppLogger.d(TAG_SERVICE, "Stopping service after delay", "")
                     stopRecording()
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()

@@ -19,8 +19,9 @@ class NotificationDeepLinkHandler @Inject constructor(
      */
     fun createPendingIntent(route: String): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
-            // ⚠️ CRITICAL: Dùng SINGLE_TOP để prevent Activity recreate
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // ⚠️ CRITICAL: NEW_TASK cần thiết khi start từ Service/Background
+            // SINGLE_TOP để prevent Activity recreate
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("notification_route", route)
         }
         
