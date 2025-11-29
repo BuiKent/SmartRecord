@@ -24,10 +24,12 @@ import com.yourname.smartrecorder.core.logging.AppLogger
 import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.ui.components.ErrorHandler
 import com.yourname.smartrecorder.ui.components.RecordingCard
+import com.yourname.smartrecorder.ui.components.SimplePlaybackBar
 import com.yourname.smartrecorder.ui.library.LibraryViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import com.yourname.smartrecorder.domain.state.PlaybackState
 
 @Composable
 fun LibraryScreen(
@@ -36,6 +38,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val playbackState by viewModel.playbackState.collectAsState()
     val filteredRecordings = viewModel.getFilteredRecordings()
     val context = LocalContext.current
 
@@ -151,13 +154,34 @@ fun LibraryScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredRecordings) { recording ->
+                    val currentPlaybackState = playbackState
+                    val isCurrentlyPlaying = when (currentPlaybackState) {
+                        is PlaybackState.Playing -> currentPlaybackState.recordingId == recording.id
+                        is PlaybackState.Paused -> currentPlaybackState.recordingId == recording.id
+                        is PlaybackState.Idle -> false
+                    }
+                    
+                    val positionMs = if (isCurrentlyPlaying) {
+                        when (val state = currentPlaybackState) {
+                            is PlaybackState.Playing -> state.positionMs
+                            is PlaybackState.Paused -> state.positionMs
+                            is PlaybackState.Idle -> 0L
+                        }
+                    } else {
+                        0L
+                    }
+                    
+                    val isPlaying = currentPlaybackState is PlaybackState.Playing && 
+                        currentPlaybackState.recordingId == recording.id
+                    
+                    // Luôn hiển thị RecordingCard, SimplePlaybackBar sẽ hiển thị bên trong card
                     RecordingCard(
                         recording = recording,
                         onClick = { onRecordingClick(recording.id) },
-                        isPlaying = uiState.currentlyPlayingId == recording.id && uiState.isPlaying,
-                        positionMs = if (uiState.currentlyPlayingId == recording.id) uiState.currentPositionMs else 0L,
+                        isPlaying = isCurrentlyPlaying, // Để card biết đang play và hiển thị SimplePlaybackBar
+                        positionMs = positionMs,
                         onPlayClick = { viewModel.playRecording(recording) },
-                        onPauseClick = { viewModel.playRecording(recording) }, // Toggle pause
+                        onPauseClick = { viewModel.pausePlayback() },
                         onStopClick = { viewModel.stopPlayback() },
                         onSeekTo = { newPosition -> viewModel.seekTo(newPosition) },
                         isEditing = recording.id == uiState.editingRecordingId,

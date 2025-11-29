@@ -35,6 +35,7 @@ import com.yourname.smartrecorder.core.logging.AppLogger.TAG_VIEWMODEL
 import com.yourname.smartrecorder.core.utils.TimeFormatter
 import com.yourname.smartrecorder.domain.model.Recording
 import com.yourname.smartrecorder.ui.player.RecordingPlayerBar
+import com.yourname.smartrecorder.ui.components.SimplePlaybackBar
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -195,27 +196,29 @@ fun RecordingCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Hiển thị RecordingPlayerBar khi đang play, nếu không thì hiển thị Play button và Transcript button
+            // Hiển thị SimplePlaybackBar khi đang play/pause, nếu không thì hiển thị Play button và Transcript button
             if (isPlaying) {
-                // RecordingPlayerBar với kích thước compact (nhỏ hơn) cho History card
-                RecordingPlayerBar(
-                    title = recording.title.ifBlank { "Untitled Recording" },
-                    isPlaying = isPlaying,
+                // SimplePlaybackBar bên trong card - ẩn transcript button
+                SimplePlaybackBar(
                     positionMs = positionMs,
                     durationMs = recording.durationMs,
-                    onPlayPauseClick = {
-                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked pause in player bar -> recordingId: %s", recording.id)
+                    isPlaying = isPlaying,
+                    onPauseClick = {
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked pause -> recordingId: %s", recording.id)
                         onPauseClick()
+                    },
+                    onStopClick = {
+                        AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User clicked stop -> recordingId: %s", recording.id)
+                        onStopClick()
                     },
                     onSeekTo = { newPosition ->
                         AppLogger.d(TAG_VIEWMODEL, "[RecordingCard] User seeked to %d ms -> recordingId: %s", newPosition, recording.id)
                         onSeekTo(newPosition)
                     },
-                    isCompact = true, // Compact mode cho History card
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                // Play/Pause/Stop controls
+                // Play button và Transcript button khi không play
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

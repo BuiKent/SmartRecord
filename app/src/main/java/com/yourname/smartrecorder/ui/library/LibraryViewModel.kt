@@ -313,6 +313,31 @@ class LibraryViewModel @Inject constructor(
         // Service will update repository to Playing, UI will react automatically
     }
     
+    fun pausePlayback() {
+        val currentPlaybackState = playbackState.value
+        AppLogger.logViewModel(TAG_VIEWMODEL, "LibraryViewModel", "pausePlayback", 
+            "currentState=${currentPlaybackState.javaClass.simpleName}")
+        
+        when (currentPlaybackState) {
+            is PlaybackState.Playing -> {
+                // Pause playback - giữ nguyên trạng thái play
+                AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Pausing playback -> recordingId: %s", currentPlaybackState.recordingId)
+                foregroundServiceManager.pausePlaybackService()
+                positionUpdateJob?.cancel()
+                // Service will update repository, UI will react automatically
+            }
+            is PlaybackState.Paused -> {
+                // Resume playback
+                AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] Resuming playback -> recordingId: %s", currentPlaybackState.recordingId)
+                foregroundServiceManager.resumePlaybackService()
+                startPositionUpdates()
+            }
+            else -> {
+                AppLogger.logRareCondition(TAG_VIEWMODEL, "Pause called when not playing/paused")
+            }
+        }
+    }
+    
     fun stopPlayback() {
         val currentPlaybackState = playbackState.value
         AppLogger.d(TAG_VIEWMODEL, "[LibraryViewModel] User stopped playback -> currentState=${currentPlaybackState.javaClass.simpleName}")
