@@ -27,6 +27,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import javax.inject.Inject
@@ -116,16 +118,27 @@ class RecordingForegroundService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_STOP -> {
-                stopRecording()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-                
-                // ✅ Mở app khi stop từ notification
-                val appIntent = Intent(this@RecordingForegroundService, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    putExtra("notification_route", AppRoutes.RECORD)
+                // ✅ TỐI ƯU: Mở app TRƯỚC, sau đó mới stop service
+                // Dùng NotificationDeepLinkHandler để đảm bảo đúng flags và navigation
+                try {
+                    val pendingIntent = notificationDeepLinkHandler.createPendingIntent(AppRoutes.RECORD)
+                    pendingIntent.send()
+                } catch (e: Exception) {
+                    // Fallback: Dùng startActivity trực tiếp
+                    val appIntent = Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        putExtra("notification_route", AppRoutes.RECORD)
+                    }
+                    startActivity(appIntent)
                 }
-                startActivity(appIntent)
+                
+                // ✅ Dùng coroutine để đợi app mở, sau đó mới stop service (non-blocking)
+                serviceScope.launch {
+                    delay(200) // Đợi app mở và xử lý intent
+                    stopRecording()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
                 
                 return START_NOT_STICKY
             }
