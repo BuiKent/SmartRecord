@@ -67,7 +67,11 @@ fun StudyScreen(
                     onClick = { viewModel.loadFlashcardsForReview() },
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Load Flashcards for Review")
                 }

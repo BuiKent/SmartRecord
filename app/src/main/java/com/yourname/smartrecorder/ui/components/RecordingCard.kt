@@ -68,7 +68,7 @@ fun RecordingCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant) // ✅ Xám để tạo contrast với nền đen
     ) {
         Column(
             modifier = Modifier
@@ -234,7 +234,7 @@ fun RecordingCard(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Play",
-                            tint = Color.White, // Icon trắng trên nền cam
+                            tint = MaterialTheme.colorScheme.onPrimary, // Icon trên nền primary
                             modifier = Modifier.size(24.dp)
                         )
                     }

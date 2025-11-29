@@ -232,18 +232,34 @@ fun TranscriptScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = { showSearch = !showSearch }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     IconButton(onClick = { showBookmarkDialog = true }) {
-                        Icon(Icons.Default.Bookmark, contentDescription = "Add Bookmark")
+                        Icon(
+                            Icons.Default.Bookmark,
+                            contentDescription = "Add Bookmark",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     IconButton(onClick = { showExportSheet = true }) {
-                        Icon(Icons.Default.Share, contentDescription = "Export")
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Export",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     IconButton(
                         onClick = { showDeleteDialog = true }
@@ -300,12 +316,20 @@ fun TranscriptScreen(
                         shape = RoundedCornerShape(12.dp),
                         placeholder = { Text("Search in transcript...") },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         },
                         trailingIcon = {
                             if (uiState.searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.clearSearch() }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         },

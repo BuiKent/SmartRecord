@@ -33,15 +33,15 @@ private val LightColorScheme = lightColorScheme(
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFFFF8A65), // Lighter orange for dark mode
-    onPrimary = Color(0xFF5C1F00),
+    onPrimary = Color(0xFFFFFFFF), // ✅ Trắng tinh cho icon trên nền primary
     primaryContainer = Color(0xFFBF360C), // Darker orange container
     onPrimaryContainer = Color(0xFFFFE5DE),
-    surface = Color(0xFF1C1C1C), // Dark background
-    onSurface = Color(0xFFF5F5F5), // Bright text for contrast
-    surfaceVariant = Color(0xFF2E2E2E), // Lighter variant for dark mode
-    onSurfaceVariant = Color(0xFFE0E0E0),
-    background = Color(0xFF1C1C1C), // Consistent with surface
-    onBackground = Color(0xFFF5F5F5), // Bright text
+    surface = Color(0xFF000000), // ✅ Đen tinh thay vì xám
+    onSurface = Color(0xFFFFFFFF), // ✅ Trắng tinh cho text/icon
+    surfaceVariant = Color(0xFF2E2E2E), // Xám đậm hơn một chút cho card để rõ nền đen
+    onSurfaceVariant = Color(0xFFFFFFFF), // ✅ Trắng tinh cho text/icon trên variant
+    background = Color(0xFF000000), // ✅ Đen tinh thay vì xám
+    onBackground = Color(0xFFFFFFFF), // ✅ Trắng tinh cho text
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )

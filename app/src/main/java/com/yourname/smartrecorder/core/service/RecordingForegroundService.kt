@@ -312,15 +312,13 @@ class RecordingForegroundService : Service() {
             setTextViewText(R.id.notification_time, durationText)
             setTextViewText(R.id.notification_status, statusText)
             
-            // ✅ Set icon cho TẤT CẢ buttons
-            setImageViewResource(R.id.btn_stop_left, stopIcon)
+            // Set icons for buttons
             setImageViewResource(R.id.btn_pause_resume, pauseResumeIcon)
-            setImageViewResource(R.id.btn_stop_right, stopIcon)
+            setImageViewResource(R.id.btn_stop, stopIcon)
             
             // Set click listeners
-            setOnClickPendingIntent(R.id.btn_stop_left, stopPendingIntent)
             setOnClickPendingIntent(R.id.btn_pause_resume, pauseResumePendingIntent)
-            setOnClickPendingIntent(R.id.btn_stop_right, stopPendingIntent)
+            setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
         }
         
         // Create expanded view
@@ -328,26 +326,22 @@ class RecordingForegroundService : Service() {
             setTextViewText(R.id.notification_time, durationText)
             setTextViewText(R.id.notification_status, statusText)
             
-            // ✅ Set icon cho TẤT CẢ buttons
-            setImageViewResource(R.id.btn_stop_left, stopIcon)
+            // Set icons for buttons
             setImageViewResource(R.id.btn_pause_resume, pauseResumeIcon)
-            setImageViewResource(R.id.btn_stop_right, stopIcon)
+            setImageViewResource(R.id.btn_stop, stopIcon)
             
-            setOnClickPendingIntent(R.id.btn_stop_left, stopPendingIntent)
             setOnClickPendingIntent(R.id.btn_pause_resume, pauseResumePendingIntent)
-            setOnClickPendingIntent(R.id.btn_stop_right, stopPendingIntent)
+            setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
         }
         
-        // ✅ Create heads-up view (same as collapsed for consistency)
+        // Create heads-up view (same as collapsed for consistency)
         val headsUpView = RemoteViews(packageName, R.layout.notification_recording_collapsed).apply {
             setTextViewText(R.id.notification_time, durationText)
             setTextViewText(R.id.notification_status, statusText)
-            setImageViewResource(R.id.btn_stop_left, stopIcon)
             setImageViewResource(R.id.btn_pause_resume, pauseResumeIcon)
-            setImageViewResource(R.id.btn_stop_right, stopIcon)
-            setOnClickPendingIntent(R.id.btn_stop_left, stopPendingIntent)
+            setImageViewResource(R.id.btn_stop, stopIcon)
             setOnClickPendingIntent(R.id.btn_pause_resume, pauseResumePendingIntent)
-            setOnClickPendingIntent(R.id.btn_stop_right, stopPendingIntent)
+            setOnClickPendingIntent(R.id.btn_stop, stopPendingIntent)
         }
         
         return NotificationCompat.Builder(this, CHANNEL_ID)

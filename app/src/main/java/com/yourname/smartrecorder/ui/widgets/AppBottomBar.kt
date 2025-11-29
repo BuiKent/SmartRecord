@@ -38,8 +38,8 @@ fun AppBottomBar(
             label = { Text("History") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                selectedTextColor = MaterialTheme.colorScheme.onPrimary,
                 indicatorColor = MaterialTheme.colorScheme.primary
             )
         )
@@ -53,14 +53,14 @@ fun AppBottomBar(
                     imageVector = Icons.Default.Mic,
                     contentDescription = "Record",
                     modifier = Modifier.size(32.dp),
-                    tint = if (currentRoute == AppRoutes.RECORD) Color.White else MaterialTheme.colorScheme.primary
+                    tint = if (currentRoute == AppRoutes.RECORD) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
                 )
             },
             label = { Text("Record") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                selectedTextColor = MaterialTheme.colorScheme.onPrimary,
                 indicatorColor = MaterialTheme.colorScheme.primary
             )
         )
@@ -78,8 +78,8 @@ fun AppBottomBar(
             label = { Text("Library") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                selectedTextColor = MaterialTheme.colorScheme.onPrimary,
                 indicatorColor = MaterialTheme.colorScheme.primary
             )
         )

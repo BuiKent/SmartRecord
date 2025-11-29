@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:text="0:00"
             android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="#FFFFFF"
             android:textStyle="bold"/>
         
         <TextView
@@ -30,20 +30,10 @@
             android:layout_height="wrap_content"
             android:text="Recording"
             android:textSize="14sp"
-            android:textColor="?android:attr/textColorSecondary"/>
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
     
-    <!-- Action buttons - Use ImageView instead of ImageButton -->
-    <ImageView
-        android:id="@+id/btn_stop_left"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginEnd="8dp"
-        android:src="@drawable/ic_notification_stop"
-        android:scaleType="centerInside"
-        android:padding="8dp"
-        android:contentDescription="Stop"/>
-    
+    <!-- Action buttons - Pause/Resume and Stop -->
     <ImageView
         android:id="@+id/btn_pause_resume"
         android:layout_width="40dp"
@@ -55,7 +45,7 @@
         android:contentDescription="Pause/Resume"/>
     
     <ImageView
-        android:id="@+id/btn_stop_right"
+        android:id="@+id/btn_stop"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:src="@drawable/ic_notification_stop"
